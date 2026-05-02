@@ -1,0 +1,109 @@
+<div class="finishing-page">
+  <div class="header-card">
+    <div class="list-header">
+      <div>
+        <h1 class="list-title">Finishing Queue</h1>
+        <p class="list-subtitle">ترتيب الحالات الجاهزة من الديزاين وإنهاؤها للمحاسبة</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+        <button
+          type="button"
+          (click)="logout()"
+          title="Logout"
+          style="padding:8px 12px;border-radius:10px;border:1px solid var(--color-border-secondary,#e2e8f0);background:transparent;cursor:pointer;font-size:12px;color:inherit;"
+        >
+          Logout
+        </button>
+        <div class="list-total-badge">{{ counts.all }} حالة</div>
+      </div>
+    </div>
+
+    <div class="search">
+      <input type="text" [(ngModel)]="searchTerm" placeholder="Search by case, patient, doctor..." />
+    </div>
+  </div>
+
+  <div class="layout">
+    <div class="queue-card">
+      <div class="card-title-row">
+        <h2>Cases</h2>
+        <span class="mini-badge">{{ queueCases.length }}</span>
+      </div>
+      <div class="empty" *ngIf="!queueCases.length">لا توجد حالات في هذا التصنيف.</div>
+      <button
+        class="case-row"
+        [class.active]="selectedCase?.id === c.id"
+        *ngFor="let c of queueCases"
+        (click)="takeCase(c)"
+      >
+        <div class="case-main">
+          <strong>{{ c.caseNumber }}</strong>
+          <div class="patient">{{ c.patient }}</div>
+          <span class="requester-badge" [class.student]="c.requesterType === 'student'">
+            {{ c.requesterType === 'student' ? 'طالب' : 'دكتور' }}
+          </span>
+          <div class="case-meta">{{ c.deliveryDate || 'No delivery date' }}</div>
+        </div>
+        <div class="case-side">
+          <small class="doctor">{{ c.doctor }}</small>
+          <span class="status-badge ready">Ready</span>
+        </div>
+      </button>
+    </div>
+
+    <div class="details-card" *ngIf="selectedCase; else selectHint">
+      <div class="card-title-row">
+        <h2>Case Details</h2>
+        <span class="status-chip">In Finishing</span>
+      </div>
+      <div class="details-grid">
+        <div><span>Case</span><strong>{{ selectedCase.caseNumber }}</strong></div>
+        <div><span>Patient</span><strong>{{ selectedCase.patient }}</strong></div>
+        <div><span>Doctor</span><strong>{{ selectedCase.doctor }}</strong></div>
+        <div><span>Requester</span><strong>{{ selectedCase.requesterType === 'student' ? 'طالب' : 'دكتور' }}</strong></div>
+        <div><span>Phone</span><strong>{{ selectedCase.patientPhone || '-' }}</strong></div>
+        <div><span>Delivery</span><strong>{{ selectedCase.deliveryDate || '-' }}</strong></div>
+      </div>
+
+      <div class="detail-block">
+        <span class="detail-block-title">Secretary Details</span>
+        <div class="work-chips">
+          <span class="work-chip">Type: {{ selectedCase.workType || '-' }}</span>
+          <span class="work-chip">Detail: {{ selectedCase.workDetail || '-' }}</span>
+          <span class="work-chip">Color: {{ selectedCase.color || '-' }}</span>
+          <span class="work-chip">Size: {{ selectedCase.size || '-' }}</span>
+          <span class="work-chip">Qty: {{ selectedCase.quantity || 0 }}</span>
+        </div>
+        <div class="note-preview">
+          {{ selectedCase.instructions || 'لا توجد ملاحظات من السكرتيرة.' }}
+        </div>
+      </div>
+
+      <div class="detail-block">
+        <span class="detail-block-title">Designer Notes</span>
+        <div class="note-preview">
+          {{ selectedCase.designNotes || 'لا توجد ملاحظات من الديزاينر بعد.' }}
+        </div>
+      </div>
+
+      <label>Finishing Notes</label>
+      <textarea rows="5" [(ngModel)]="notes" placeholder="Write finishing notes..."></textarea>
+
+      <div class="actions">
+        <button type="button" class="secondary" (click)="closeCase()">Cancel</button>
+        <button
+          type="button"
+          class="primary"
+          [disabled]="isCompleting"
+          (click)="markAsCompleted()"
+        >
+          {{ isCompleting ? 'Completing...' : 'Mark as Completed' }}
+        </button>
+      </div>
+    </div>
+
+    <ng-template #selectHint>
+      <div class="details-card hint">اختار حالة من القائمة علشان تبدأ شغل الفينيش.</div>
+    </ng-template>
+  </div>
+</div>

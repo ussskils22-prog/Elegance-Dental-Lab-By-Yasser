@@ -1,0 +1,549 @@
+<!-- ═══════════════════════════════════════════════ NAVBAR ═══ -->
+<nav class="navbar">
+  <button class="nav-icon-btn" (click)="handleNavAction()" aria-label="رجوع أو قائمة">
+    <svg *ngIf="view === 'detail'" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <polyline points="9 18 15 12 9 6"/>
+    </svg>
+    <svg *ngIf="view === 'list'" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <line x1="3" y1="6"  x2="21" y2="6"/>
+      <line x1="3" y1="12" x2="21" y2="12"/>
+      <line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  </button>
+
+  <div class="nav-brand">
+    <div class="nav-brand-icon">
+      <svg width="16" height="16" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10"/>
+        <path d="M8 12h8M12 8v8"/>
+      </svg>
+    </div>
+    LabFlow Pro
+  </div>
+
+  <div class="nav-actions">
+    <button type="button" class="nav-icon-btn" aria-label="تسجيل الخروج" title="تسجيل الخروج" (click)="logout()">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+      </svg>
+    </button>
+    <button type="button" class="nav-icon-btn" aria-label="إشعارات">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      </svg>
+      <span class="notif-dot"></span>
+    </button>
+    <div class="nav-avatar">م</div>
+  </div>
+</nav>
+
+
+<!-- ═══════════════════════════════════════════════
+     LIST VIEW
+═══════════════════════════════════════════════ -->
+<div class="list-view" *ngIf="view === 'list'">
+
+  <!-- Header -->
+  <div class="list-header">
+    <div>
+      <h1 class="list-title">قائمة الحالات</h1>
+      <p class="list-subtitle">اختر حالة للبدء بالعمل عليها</p>
+    </div>
+    <div class="list-total-badge">{{ cases.length }} حالة</div>
+  </div>
+
+  <!-- Filter tabs -->
+  <div class="filter-tabs">
+    <button class="filter-tab" [class.active]="activeFilter === 'all'" (click)="setFilter('all')">
+      الكل <span class="tab-count">{{ counts.all }}</span>
+    </button>
+    <button class="filter-tab filter-pending" [class.active]="activeFilter === 'pending'" (click)="setFilter('pending')">
+      انتظار <span class="tab-count">{{ counts.pending }}</span>
+    </button>
+    <button class="filter-tab filter-progress" [class.active]="activeFilter === 'in-progress'" (click)="setFilter('in-progress')">
+      تحت الديزاين <span class="tab-count">{{ counts['in-progress'] }}</span>
+    </button>
+    <button class="filter-tab filter-under-khart" [class.active]="activeFilter === 'under-khart'" (click)="setFilter('under-khart')">
+      تحت الخرط <span class="tab-count">{{ counts['under-khart'] }}</span>
+    </button>
+    <button class="filter-tab filter-ready" [class.active]="activeFilter === 'ready-for-finishing'" (click)="setFilter('ready-for-finishing')">
+      جاهزة <span class="tab-count">{{ counts['ready-for-finishing'] }}</span>
+    </button>
+    <button class="filter-tab filter-finished" [class.active]="activeFilter === 'finished'" (click)="setFilter('finished')">
+      منتهية <span class="tab-count">{{ counts.finished }}</span>
+    </button>
+  </div>
+
+  <!-- Search bar -->
+  <div class="search-container">
+    <div class="search-input-wrapper">
+      <svg class="search-icon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="m21 21-4.35-4.35"/>
+      </svg>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="ابحث عن حالة أو مريض..."
+        [(ngModel)]="searchTerm"
+        dir="rtl"
+      />
+      <button
+        *ngIf="searchTerm"
+        class="search-clear-btn"
+        (click)="clearSearch()"
+        aria-label="مسح البحث"
+      >
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <span class="search-results-count" *ngIf="searchTerm">{{ filteredCases.length }} نتيجة</span>
+  </div>
+
+  <!-- Cases list -->
+  <div class="cases-list">
+    <div
+      class="case-card"
+      *ngFor="let c of filteredCases; let i = index"
+      [class]="'case-card status-' + c.status"
+      [style.animation-delay]="i * 60 + 'ms'"
+      (click)="openCase(c)"
+      [class.finished-card]="c.status === 'finished'"
+    >
+      <!-- Left accent bar -->
+      <div class="case-accent" [ngClass]="c.priority"></div>
+
+      <!-- Main content -->
+      <div class="case-body">
+        <div class="case-top-row">
+          <div class="case-id-group">
+            <span class="case-number">{{ c.caseNumber }}</span>
+            <span class="case-priority-badge" [ngClass]="c.priority">{{ priorityLabel(c.priority) }}</span>
+          </div>
+          <span class="case-status-badge" [ngClass]="c.status">{{ statusLabel(c.status) }}</span>
+        </div>
+
+        <div class="case-patient-row">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+          <span class="case-patient">{{ c.patient }}</span>
+          <span class="case-requester-badge" [class.student]="c.requesterType === 'student'">
+            {{ c.requesterType === 'student' ? 'طالب' : 'دكتور' }}
+          </span>
+          <span class="case-ply-chip" *ngIf="c.plyScanUrl" title="مرفق مسح PLY">PLY</span>
+        </div>
+
+        <div class="case-meta-row">
+          <div class="case-meta-item">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 10.23 19.79 19.79 0 0 1 1.61 1.6 2 2 0 0 1 3.6 0h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 7.91a16 16 0 0 0 6.29 6.29l.95-.95a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+            </svg>
+            {{ c.doctor }}
+          </div>
+          <div class="case-meta-item">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            تسليم: {{ c.deliveryDate }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Arrow or finished check -->
+      <div class="case-arrow" *ngIf="c.status !== 'finished'">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </div>
+      <div class="case-finished-icon" *ngIf="c.status === 'finished'">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div class="empty-state" *ngIf="filteredCases.length === 0">
+      <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <p>لا توجد حالات في هذا التصنيف</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     DETAIL VIEW
+═══════════════════════════════════════════════ -->
+<div class="detail-view" *ngIf="view === 'detail' && selectedCase">
+
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="header-inner">
+      <div class="badges-row">
+        <span class="badge badge-emergency" *ngIf="selectedCase.priority === 'emergency'">
+          <span class="pulse-dot"></span> Emergency Priority
+        </span>
+        <span class="badge badge-normal" *ngIf="selectedCase.priority === 'normal'">عادي</span>
+        <span class="badge badge-low"    *ngIf="selectedCase.priority === 'low'">منخفض</span>
+        <span class="badge badge-requester" [class.badge-requester-student]="selectedCase.requesterType === 'student'">
+          {{ selectedCase.requesterType === 'student' ? 'حالة طالب' : 'حالة دكتور' }}
+        </span>
+        <span class="badge badge-case">Case #{{ selectedCase.caseNumber }}</span>
+      </div>
+      <h1 class="page-title">تفاصيل الحالة التصميمية</h1>
+      <p class="page-subtitle">عرض شامل لبيانات المريض وتعليمات الطبيب</p>
+
+      <div class="active-status-pill" [ngClass]="selectedCase.status">
+        <span class="pill-dot" [ngClass]="selectedCase.status"></span>
+        الحالة: {{ statusLabel(selectedCase.status) }}
+      </div>
+    </div>
+  </header>
+
+  <!-- Layout -->
+  <div class="layout-wrapper">
+
+    <!-- Sidebar overlay for mobile -->
+    <div class="sidebar-overlay" [class.visible]="sidebarOpen" (click)="toggleSidebar()"></div>
+
+    <!-- ─── LEFT COLUMN ─── -->
+    <aside class="sidebar-col" [class.open]="sidebarOpen">
+
+      <!-- Work Stage Card -->
+      <div class="card">
+        <div class="card-head">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          حالة العمل الحالية
+        </div>
+        <div class="status-list">
+          <button
+            class="status-item"
+            *ngFor="let s of workStages"
+            [ngClass]="selectedCase.status === s.id ? 'active-green' : 'inactive'"
+            (click)="setStage(s.id)"
+            type="button"
+          >
+            <div class="status-icon-wrap" [ngClass]="selectedCase.status === s.id ? 'active-green' : 'inactive'">
+              <svg *ngIf="s.icon === 'clock'" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+              </svg>
+              <svg *ngIf="s.icon === 'check'" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            <span class="status-label">{{ s.label }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Notes Card -->
+      <div class="card notes-card">
+        <label class="field-label">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          <span>ملاحظات التصميم</span>
+        </label>
+        <textarea
+          class="notes-textarea"
+          [(ngModel)]="selectedCase.designNotes"
+          (ngModelChange)="onNotesChange()"
+          placeholder="اكتب أي ملاحظات تقنية أو تعديلات..."
+          rows="5"
+          (blur)="saveNotesOnBlur()"
+          maxlength="500"
+        ></textarea>
+        <div class="char-count">
+          <span>{{ selectedCase.designNotes.length }} / 500</span>
+        </div>
+      </div>
+
+      <!-- Upload Images -->
+      <div class="card upload-zone" (click)="triggerImageInput()" role="button" tabindex="0">
+        <input id="imageInput" type="file" hidden accept="image/*" multiple (change)="onImageSelected($event)">
+        <div class="upload-icon-ring">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="9" cy="9" r="2"/>
+            <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+          </svg>
+        </div>
+        <div>
+          <p class="upload-title">رفع صور التصميم</p>
+          <p class="upload-hint">PNG, JPG, JPEG (Max 10MB لكل صورة)</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <button class="btn-primary" (click)="saveCase()" [disabled]="isSaving || isFinishing" type="button">
+        <ng-container *ngIf="!isSaving && !saveSuccess">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+            <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+          </svg>
+          تحديث بيانات الحالة
+        </ng-container>
+        <ng-container *ngIf="isSaving">
+          <svg class="spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" stroke-dasharray="31.4" stroke-dashoffset="10" stroke-linecap="round"/>
+          </svg>
+          جارٍ الحفظ...
+        </ng-container>
+        <ng-container *ngIf="saveSuccess && !isSaving">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          تم الحفظ!
+        </ng-container>
+      </button>
+
+    </aside>
+
+    <!-- ─── MAIN CONTENT ─── -->
+    <main class="content-col">
+
+      <!-- Info Card -->
+      <div class="card info-card">
+        <div class="card-head">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          بيانات الحالة الأساسية
+        </div>
+        <div class="info-grid">
+          <div class="info-field">
+            <span class="info-label">المريض</span>
+            <span class="info-value">{{ selectedCase.patient }}</span>
+          </div>
+          <div class="info-field">
+            <span class="info-label">تاريخ الاستلام</span>
+            <span class="info-value">{{ selectedCase.receivedDate }}</span>
+          </div>
+          <div class="info-field">
+            <span class="info-label">الطبيب المعالج</span>
+            <span class="info-value">{{ selectedCase.doctor }}</span>
+          </div>
+          <div class="info-field">
+            <span class="info-label">نوع الحالة</span>
+            <span class="info-value">{{ selectedCase.requesterType === 'student' ? 'طالب' : 'دكتور' }}</span>
+          </div>
+          <div class="info-field">
+            <span class="info-label">موعد التسليم المتوقع</span>
+            <span class="info-value delivery-date">{{ selectedCase.deliveryDate }}</span>
+          </div>
+          <div class="info-field full-width">
+            <span class="info-label">العيادة</span>
+            <span class="info-value">{{ selectedCase.clinic }}</span>
+          </div>
+        </div>
+        <div class="meta-strip">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>
+            <circle cx="12" cy="16" r="0.5" fill="currentColor"/>
+          </svg>
+          تم الإدخال بواسطة: {{ selectedCase.enteredBy }}
+        </div>
+      </div>
+
+      <!-- Work Details Card -->
+      <div class="card work-details-card">
+        <div class="card-head">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/>
+            <line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/>
+          </svg>
+          تفاصيل العمل
+        </div>
+        <div class="work-details-grid">
+          <div class="work-detail-item">
+            <span class="work-label">نوع العمل</span>
+            <span class="work-value">{{ selectedCase.workType }}</span>
+          </div>
+          <div class="work-detail-item">
+            <span class="work-label">اللون</span>
+            <span class="work-value color-tag">{{ selectedCase.color }}</span>
+          </div>
+          <div class="work-detail-item">
+            <span class="work-label">الحجم</span>
+            <span class="work-value">{{ selectedCase.size }}</span>
+          </div>
+          <div class="work-detail-item">
+            <span class="work-label">العدد</span>
+            <span class="work-value">{{ selectedCase.quantity }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- مسح PLY من السكرتير -->
+      <div class="card ply-scan-card" *ngIf="selectedCase.plyScanUrl">
+        <div class="card-head">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+          </svg>
+          مسح ثلاثي الأبعاد (PLY)
+        </div>
+        <div class="ply-scan-body">
+          <p class="ply-scan-name" *ngIf="selectedCase.plyFileName">
+            {{ selectedCase.plyFileName }}
+          </p>
+          <div class="ply-scan-actions">
+            <button type="button" class="btn-ply-preview" (click)="openPlyViewer()">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+              معاينة
+            </button>
+            <a class="btn-ply-download" [href]="selectedCase.plyScanUrl" target="_blank" rel="noopener noreferrer" download>
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              فتح / تحميل
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Additional Details Card -->
+      <div class="card additional-details-card">
+        <div class="card-head">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/>
+          </svg>
+          التفاصيل الإضافية
+        </div>
+        <div class="additional-details-content">
+          <span class="additional-details-text">{{ selectedCase.workDetail || 'لا توجد تفاصيل إضافية' }}</span>
+        </div>
+      </div>
+
+      <!-- Instructions Card -->
+      <div class="card instructions-card">
+        <div class="card-head">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+          الملاحظات والتعليمات
+        </div>
+        <div class="instructions-body">
+          <div class="instruction-accent-line"></div>
+          <p class="instructions-text">{{ selectedCase.instructions }}</p>
+        </div>
+      </div>
+
+      <!-- Media Grid -->
+      <div class="card media-card-wrap">
+        <div class="card-head">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+          </svg>
+          الوسائط والمرفقات
+        </div>
+        <div class="media-grid">
+          <ng-container *ngIf="selectedCase.designImages && selectedCase.designImages.length > 0">
+            <div class="media-item image-preview" *ngFor="let image of selectedCase.designImages; let i = index">
+              <div class="media-thumb" (click)="openImageModal(image)">
+                <img [src]="image" [alt]="'صورة تصميم ' + (i + 1)" loading="lazy" decoding="async" (error)="onImageError($event)">
+              </div>
+              <div class="media-caption">صورة {{ i + 1 }}</div>
+              <button class="image-delete-btn" (click)="removeImage(i); $event.stopPropagation();" type="button" aria-label="حذف الصورة">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════
+     FINISH CONFIRM MODAL
+═══════════════════════════════════════════════ -->
+<div class="modal-overlay" [class.visible]="showFinishConfirm" (click)="cancelFinish()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-icon">
+      <svg width="28" height="28" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <h3 class="modal-title">تأكيد إنهاء الحالة</h3>
+    <p class="modal-desc">
+      هل أنت متأكد من إنهاء حالة
+      <strong>{{ selectedCase?.patient }}</strong>
+      رقم <strong>{{ selectedCase?.caseNumber }}</strong>؟
+      <br>لا يمكن التراجع عن هذا الإجراء.
+    </p>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" (click)="cancelFinish()" type="button">إلغاء</button>
+      <button class="btn-modal-confirm" (click)="confirmFinish()" type="button">
+        <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        نعم، إنهاء الحالة
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════ TOAST ═══════ -->
+<div class="toast" [class.toast-visible]="toastVisible">
+  <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+    <polyline points="20 6 9 17 4 12"/>
+  </svg>
+  {{ toastMsg }}
+</div>
+
+
+<!-- ═══════ PLY VIEWER MODAL ═══════ -->
+<div class="ply-modal-overlay" [class.visible]="plyViewerOpen" (click)="closePlyViewer()">
+  <div class="ply-modal-content" (click)="$event.stopPropagation()">
+    <button class="ply-modal-close" type="button" aria-label="إغلاق" (click)="closePlyViewer()">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+    <h3 class="ply-modal-title">معاينة مسح PLY</h3>
+    <p class="ply-modal-filename" *ngIf="selectedCase?.plyFileName">{{ selectedCase?.plyFileName }}</p>
+    <p class="ply-modal-hint">اسحب لتدوير النموذج · التكبير بعجلة الفأرة</p>
+    <div class="ply-modal-loading" *ngIf="plyViewerLoading">جاري تحميل النموذج…</div>
+    <div class="ply-modal-error" *ngIf="plyViewerError">{{ plyViewerError }}</div>
+    <div id="designer-ply-view-host" class="ply-view-host"></div>
+    <div class="ply-modal-footer" *ngIf="selectedCase?.plyScanUrl as plyUrl">
+      <a class="btn-ply-download-inline" [href]="plyUrl" target="_blank" rel="noopener noreferrer" download>تحميل الملف</a>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ IMAGE MODAL ═══════ -->
+<div class="image-modal-overlay" [class.visible]="imageModalVisible" (click)="closeImageModal()">
+  <div class="image-modal-content" (click)="$event.stopPropagation()">
+    <button class="image-modal-close" (click)="closeImageModal()" type="button" aria-label="إغلاق">
+      <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+    <img [src]="selectedImage" [alt]="'صورة التصميم'" class="image-modal-img" decoding="async" (error)="onImageError($event)">
+  </div>
+</div>

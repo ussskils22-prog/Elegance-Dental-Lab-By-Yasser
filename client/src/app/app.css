@@ -1,0 +1,34 @@
+.main {
+  min-height: 100vh;
+}
+
+.app-boot {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: #f8fafc;
+  color: #334155;
+}
+
+.app-boot-spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 3px solid #e2e8f0;
+  border-top-color: #0ea5e9;
+  border-radius: 50%;
+  animation: app-boot-spin 0.75s linear infinite;
+}
+
+.app-boot-text {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+@keyframes app-boot-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

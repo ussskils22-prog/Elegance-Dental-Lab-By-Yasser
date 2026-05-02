@@ -1,0 +1,105 @@
+<div class="login-page">
+  <div class="login-shell" dir="rtl">
+    <div class="login-card">
+      <section class="form-panel">
+        <header class="form-header">
+          <div class="brand">
+            <span class="brand-icon" aria-hidden="true">
+              <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect width="32" height="32" rx="6" fill="currentColor" />
+                <path
+                  d="M9 11h14v2.5H9V11zm0 5h10v2.5H9V16zm0 5h14v2.5H9V21z"
+                  fill="#ffffff"
+                />
+              </svg>
+            </span>
+            <span class="brand-name">LabFlow Pro</span>
+          </div>
+          <h1 class="title">مرحباً بك مجدداً</h1>
+          <p class="subtitle">الرجاء إدخال بياناتك للوصول إلى لوحة التحكم</p>
+        </header>
+
+        <form class="login-form" (ngSubmit)="login()">
+          <div class="field">
+            <label for="login-username">البريد الإلكتروني <abbr title="مطلوب">*</abbr></label>
+            <div class="input-wrap">
+              <input
+                id="login-username"
+                name="email"
+                type="email"
+                [(ngModel)]="email"
+                autocomplete="username"
+                placeholder="أدخل البريد الإلكتروني"
+                required
+              />
+              <span class="input-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                  <path d="M12 12a4 4 0 1 0-4-4 4 4 0 0 0 4 4Z" />
+                  <path d="M4 21a8 8 0 0 1 16 0" />
+                </svg>
+              </span>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label-row">
+              <label for="login-password">كلمة المرور <abbr title="مطلوب">*</abbr></label>
+              <a class="link-forgot" href="#" (click)="$event.preventDefault()">نسيت كلمة المرور؟</a>
+            </div>
+            <div class="input-wrap">
+              <input
+                id="login-password"
+                name="password"
+                [type]="showPassword ? 'text' : 'password'"
+                [(ngModel)]="password"
+                autocomplete="current-password"
+                placeholder="••••••••"
+                required
+                minlength="6"
+              />
+              <button
+                type="button"
+                class="input-action"
+                (click)="togglePassword()"
+                [attr.aria-label]="showPassword ? 'إخفاء كلمة المرور' : 'عرض كلمة المرور'"
+                [attr.aria-pressed]="showPassword"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                  <path *ngIf="!showPassword" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" />
+                  <path *ngIf="!showPassword" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                  <path *ngIf="showPassword" d="M17.94 17.94C16.302 19.111 14.235 19.75 12 19.75c-6.146 0-11-7-11-7 1.941-3.173 4.78-5.58 7.919-6.628" />
+                  <path *ngIf="showPassword" d="M6.343 6.343A14.948 14.948 0 0 1 12 4.25c6.146 0 11 7 11 7-.73 1.192-1.617 2.26-2.626 3.172" />
+                  <path *ngIf="showPassword" d="M1 1l22 22" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-login" [disabled]="submitting">
+            {{ submitting ? 'جاري الدخول…' : 'تسجيل الدخول' }}
+          </button>
+          <p *ngIf="loginError" style="margin-top:10px;color:#dc2626;font-size:13px;">{{ loginError }}</p>
+        </form>
+
+        <footer class="form-footer">
+          <span class="version">V2.4.0 CLINICAL EDITION</span>
+          <span class="signup-hint">
+            ليس لديك حساب؟
+            <a href="#" (click)="$event.preventDefault()">اتصل بالإدارة</a>
+          </span>
+        </footer>
+      </section>
+
+      <aside class="hero-panel" aria-hidden="true">
+        <div class="hero-bg"></div>
+        <div class="hero-content">
+          <p class="hero-kicker">الجيل القادم من إدارة المختبرات</p>
+          <h2 class="hero-title">الدقة في كل تفاصيل التصنيع</h2>
+          <p class="hero-desc">
+            نظام متطور لإدارة سير العمل في مختبرات الأسنان يجمع بين التقنية الحديثة والدقة السريرية.
+          </p>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>

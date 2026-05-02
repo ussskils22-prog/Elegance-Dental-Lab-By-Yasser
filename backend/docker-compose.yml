@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: dental_mongo
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - dental_network
+
+  backend:
+    build: .
+    container_name: dental_backend
+    ports:
+      - "5000:5000"
+    environment:
+      MONGODB_URI: mongodb://root:password@mongodb:27017/dental-system
+      NODE_ENV: production
+      JWT_SECRET: your_secret_key
+      CORS_ORIGIN: http://localhost:4200
+    depends_on:
+      - mongodb
+    networks:
+      - dental_network
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+volumes:
+  mongodb_data:
+
+networks:
+  dental_network:
+    driver: bridge
