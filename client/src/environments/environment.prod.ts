@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://api.dentalclinic.com/api',
-  socketUrl: 'https://api.dentalclinic.com',
+  apiUrl: 'https://elegance-lab-production-8adf.up.railway.app/api',
+  socketUrl: 'https://elegance-lab-production-8adf.up.railway.app',
 };
