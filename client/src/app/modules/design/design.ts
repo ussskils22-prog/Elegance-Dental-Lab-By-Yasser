@@ -203,7 +203,8 @@ export class CaseDetailsComponent implements OnInit, OnDestroy {
       const searchLower = this.searchTerm.toLowerCase();
       filtered = filtered.filter(c =>
         c.patient.toLowerCase().includes(searchLower) ||
-        c.caseNumber.toLowerCase().includes(searchLower)
+        c.caseNumber.toLowerCase().includes(searchLower) ||
+        c.doctor.toLowerCase().includes(searchLower)
       );
     }
 
