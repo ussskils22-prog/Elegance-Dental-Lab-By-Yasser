@@ -107,6 +107,7 @@ export class Secretary implements OnInit, OnDestroy {
       { label: 'قيد الديزاين', value: inProgress, color: 'blue' as const },
       { label: 'تحت الخرط', value: underKhart, color: 'teal' as const },
       { label: 'جاهزة للفينيش', value: ready, color: 'green' as const },
+      { label: 'حالات منتهية', value: finished, color: 'gray' as const },
       { label: 'حالات خارجة', value: exited, color: 'teal' as const },
     ];
   });
