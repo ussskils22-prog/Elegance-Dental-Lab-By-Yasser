@@ -1043,7 +1043,7 @@ export class Admin implements OnInit, OnDestroy {
 
   deleteStaff(staff: StaffMember): void {
     if (!staff.id) return;
-    const ok = confirm(`حذف ${staff.name}؟ سيتم تحويل الحساب إلى غير نشط.`);
+    const ok = confirm(`هل أنت متأكد من حذف ${staff.name} نهائياً؟ لا يمكن التراجع عن هذا الإجراء.`);
     if (!ok) return;
     this.userApi.deleteUser(staff.id).subscribe({
       next: () => this.loadStaffFromApi(),
