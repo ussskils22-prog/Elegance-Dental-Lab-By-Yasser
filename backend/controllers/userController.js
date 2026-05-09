@@ -165,11 +165,7 @@ exports.updateUserStatus = async (req, res) => {
 // Delete user (soft delete)
 exports.deleteUser = async (req, res) => {
   try {
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { isActive: false, status: 'offline', lastSeen: new Date() },
-      { new: true }
-    ).select('-password');
+    const user = await User.findByIdAndDelete(req.params.id);
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
