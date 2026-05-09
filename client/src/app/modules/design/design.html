@@ -59,7 +59,7 @@
       الكل <span class="tab-count">{{ counts.all }}</span>
     </button>
     <button class="filter-tab filter-pending" [class.active]="activeFilter === 'pending'" (click)="setFilter('pending')">
-      انتظار <span class="tab-count">{{ counts.pending }}</span>
+      جديدة <span class="tab-count">{{ counts.pending }}</span>
     </button>
     <button class="filter-tab filter-progress" [class.active]="activeFilter === 'in-progress'" (click)="setFilter('in-progress')">
       تحت الديزاين <span class="tab-count">{{ counts['in-progress'] }}</span>
@@ -68,7 +68,7 @@
       تحت الخرط <span class="tab-count">{{ counts['under-khart'] }}</span>
     </button>
     <button class="filter-tab filter-ready" [class.active]="activeFilter === 'ready-for-finishing'" (click)="setFilter('ready-for-finishing')">
-      جاهزة <span class="tab-count">{{ counts['ready-for-finishing'] }}</span>
+      جاهزة للفينيش <span class="tab-count">{{ counts['ready-for-finishing'] }}</span>
     </button>
     <button class="filter-tab filter-finished" [class.active]="activeFilter === 'finished'" (click)="setFilter('finished')">
       منتهية <span class="tab-count">{{ counts.finished }}</span>

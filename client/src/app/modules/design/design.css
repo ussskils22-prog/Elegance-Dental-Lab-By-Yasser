@@ -155,11 +155,11 @@
 }
 
 .filter-pending.active   { background: var(--amber);  border-color: var(--amber); }
-.filter-progress.active  { background: var(--blue);   border-color: var(--blue); }
+.filter-progress.active  { background: #9333ea;       border-color: #9333ea; }
 .filter-under-khart.active { background: #0ea5a4; border-color: #0ea5a4; }
 .filter-revision.active  { background: var(--red);    border-color: var(--red); }
-.filter-ready.active     { background: #9333ea;       border-color: #9333ea; }
-.filter-finished.active  { background: var(--green);  border-color: var(--green); }
+.filter-ready.active     { background: #059669;       border-color: #059669; }
+.filter-finished.active  { background: #475569;       border-color: #475569; }
 
 .tab-count {
   background: rgba(255,255,255,.25);
@@ -1322,4 +1322,19 @@
   font-size: 13px;
   font-weight: 700;
   color: #0d9488;
+}
+
+.brand-elegance {
+  background: linear-gradient(135deg, #1e3a5f, #2563eb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.brand-elegance-text {
+  font-size: 1.2rem;
+  font-weight: 900;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-style: italic;
 }
