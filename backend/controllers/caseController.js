@@ -77,32 +77,8 @@ exports.createCase = async (req, res) => {
       caseType,
       priority,
       dueDate,
-      doctorName,
-    } = req.body;
-
-    // ============================================================
-    // CHECK: منع تكرار نفس المريض مع نفس الدكتور في حالة مفتوحة
-    // ============================================================
-    if (patientName && doctorName) {
-      const allActiveCases = await DentalCase.find({
-        status: { $nin: ['completed', 'exited'] },
-        patientName: { $regex: new RegExp(`^${patientName.trim()}$`, 'i') },
-      });
-
-      const duplicate = allActiveCases.find((c) => {
-        const meta = parseNotesMeta(c.notes || '');
-        const existingDoctor = (meta.doctor || meta.doctorName || '').trim().toLowerCase();
-        return existingDoctor === doctorName.trim().toLowerCase();
-      });
-
-      if (duplicate) {
-        return res.status(400).json({
-          success: false,
-          message: `يوجد حالة مفتوحة بالفعل للمريض "${patientName}" مع الدكتور "${doctorName}" (${duplicate.caseNumber})`,
-        });
-      }
-    }
-    // ============================================================
+    } =
+      req.body;
 
     const normalizedRequesterType = requesterType === 'student' ? 'student' : 'doctor';
     const isStudentCase = normalizedRequesterType === 'student';
@@ -142,6 +118,7 @@ exports.createCase = async (req, res) => {
     if (lastSaveError) throw lastSaveError;
     await newCase.populate('createdBy', 'fullName email');
 
+    // Create audit log (avoid storing full Mongoose doc in Mixed — circular refs / size)
     await AuditLog.create({
       caseId: newCase._id,
       caseNumber: newCase.caseNumber,
@@ -157,6 +134,7 @@ exports.createCase = async (req, res) => {
       },
     });
 
+    // Create notification
     await Notification.create({
       type: 'case_created',
       title: 'New Case Created',
@@ -359,6 +337,7 @@ exports.claimCase = async (req, res) => {
       return res.status(404).json({ message: 'Case not found' });
     }
 
+    // Check if already assigned
     if (dentalCase.assignedTo && dentalCase.assignedTo.toString() !== req.user.id) {
       return res.status(400).json({
         message: `Case is already assigned to another user`,
@@ -366,6 +345,7 @@ exports.claimCase = async (req, res) => {
       });
     }
 
+    // Assign case
     dentalCase.assignedTo = req.user.id;
     dentalCase.assignedAt = new Date();
     dentalCase.status = 'in_progress';
@@ -373,6 +353,7 @@ exports.claimCase = async (req, res) => {
     await dentalCase.save();
     await dentalCase.populate('assignedTo', 'fullName email role');
 
+    // Create audit log
     await AuditLog.create({
       caseId: dentalCase._id,
       caseNumber: dentalCase.caseNumber,
@@ -382,6 +363,7 @@ exports.claimCase = async (req, res) => {
       details: { newValue: req.user.id },
     });
 
+    // Create notification
     await Notification.create({
       type: 'case_assigned',
       title: 'Case Assigned',
@@ -439,6 +421,7 @@ exports.assignCase = async (req, res) => {
     await dentalCase.save();
     await dentalCase.populate('assignedTo', 'fullName email role');
 
+    // Create audit log
     await AuditLog.create({
       caseId: dentalCase._id,
       caseNumber: dentalCase.caseNumber,
@@ -448,6 +431,7 @@ exports.assignCase = async (req, res) => {
       details: { oldValue: oldAssignee, newValue: userId },
     });
 
+    // Create notification
     await Notification.create({
       type: oldAssignee ? 'case_reassigned' : 'case_assigned',
       title: oldAssignee ? 'Case Reassigned' : 'Case Assigned',
@@ -503,12 +487,14 @@ exports.moveStage = async (req, res) => {
     const oldStage = dentalCase.currentStage;
     dentalCase.currentStage = stage;
 
+    // Update stage timestamp
     if (stage !== 'waiting') {
       dentalCase.stageTimestamps[stage] = new Date();
     }
 
     await dentalCase.save();
 
+    // Create audit log
     await AuditLog.create({
       caseId: dentalCase._id,
       caseNumber: dentalCase.caseNumber,
@@ -518,6 +504,7 @@ exports.moveStage = async (req, res) => {
       details: { oldValue: oldStage, newValue: stage },
     });
 
+    // Create notification
     await Notification.create({
       type: 'case_moved',
       title: 'Case Stage Updated',
@@ -564,6 +551,7 @@ exports.completeCase = async (req, res) => {
 
     await dentalCase.save();
 
+    // Create audit log
     await AuditLog.create({
       caseId: dentalCase._id,
       caseNumber: dentalCase.caseNumber,
@@ -572,6 +560,7 @@ exports.completeCase = async (req, res) => {
       performedByName: req.user.fullName,
     });
 
+    // Create notification
     await Notification.create({
       type: 'case_completed',
       title: 'Case Completed',
@@ -687,6 +676,7 @@ exports.releaseCase = async (req, res) => {
 
     await dentalCase.save();
 
+    // Create audit log
     await AuditLog.create({
       caseId: dentalCase._id,
       caseNumber: dentalCase.caseNumber,
@@ -696,6 +686,7 @@ exports.releaseCase = async (req, res) => {
       details: { oldValue: oldAssignee },
     });
 
+    // Create notification
     await Notification.create({
       type: 'case_released',
       title: 'Case Released',
@@ -748,6 +739,7 @@ exports.updateCase = async (req, res) => {
     }
 
     if (req.user.role === 'designer') {
+      // Allow designer to edit any case; ownership is reassigned automatically on edit.
       const assignedTo = dentalCase.assignedTo ? dentalCase.assignedTo.toString() : null;
       if (!assignedTo || assignedTo !== req.user.id.toString()) {
         dentalCase.assignedTo = req.user.id;
@@ -765,6 +757,7 @@ exports.updateCase = async (req, res) => {
     if (req.user.role === 'finisher') {
       const assignedTo = dentalCase.assignedTo ? dentalCase.assignedTo.toString() : null;
       if (assignedTo && assignedTo !== req.user.id.toString()) {
+        // Allow handover in finishing stage (designer -> finisher).
         if (dentalCase.currentStage !== 'finishing' && dentalCase.currentStage !== 'completed') {
           return res.status(403).json({ message: 'You can only edit cases assigned to you' });
         }
@@ -772,6 +765,7 @@ exports.updateCase = async (req, res) => {
         dentalCase.assignedAt = new Date();
       }
       if (!assignedTo) {
+        // Auto-claim on first finisher edit only when case is already in finishing stage.
         if (dentalCase.currentStage !== 'finishing' && dentalCase.currentStage !== 'completed') {
           return res.status(403).json({ message: 'Case must be in finishing stage first' });
         }
@@ -793,7 +787,8 @@ exports.updateCase = async (req, res) => {
       caseType,
       priority,
       dueDate,
-    } = req.body;
+    } =
+      req.body;
 
     if (patientName !== undefined) dentalCase.patientName = patientName;
     if (patientEmail !== undefined) dentalCase.patientEmail = String(patientEmail).toLowerCase();
@@ -958,10 +953,11 @@ exports.reopenCase = async (req, res) => {
 
     const oldStage = dentalCase.currentStage;
     dentalCase.status = 'in_progress';
-    dentalCase.currentStage = 'design';
+    dentalCase.currentStage = 'design'; // Default to design stage
 
     await dentalCase.save();
 
+    // Create audit log
     await AuditLog.create({
       caseId: dentalCase._id,
       caseNumber: dentalCase.caseNumber,

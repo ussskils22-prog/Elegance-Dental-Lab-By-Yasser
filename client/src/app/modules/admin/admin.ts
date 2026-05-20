@@ -58,6 +58,12 @@ export interface AdminCaseRow {
   secretaryInstructions?: string;
   designNotes?: string;
   source: 'shared' | 'case';
+  // حقول إضافية من metadata
+  color?: string;
+  quantity?: number;
+  deliveryDate?: string;
+  deliveryTime?: string;
+  rawNotes?: string;
 }
 
 export interface MonthlyDoctorSummary {
@@ -172,6 +178,7 @@ export class Admin implements OnInit, OnDestroy {
   logout(): void {
     this.auth.performLogout(this.router);
   }
+
   ngOnInit(): void {
     this.restoreActiveNav();
     this.loadCasesFromApi();
@@ -239,7 +246,6 @@ export class Admin implements OnInit, OnDestroy {
     const sortedCases = [...this.adminCases].sort(
       (a, b) => this.getCaseTimestamp(b) - this.getCaseTimestamp(a)
     );
-
     if (!this.globalSearch.trim()) return sortedCases;
     const search = this.globalSearch.toLowerCase();
     return sortedCases.filter(c =>
@@ -537,71 +543,99 @@ export class Admin implements OnInit, OnDestroy {
   }
 
   exportFinancialYearReport(): void {
+    // فلترة الحالات الخارجة فقط
+    let cases = this.reportCases.filter(c => c.currentStage === 'exited');
+
     const selectedYear = Number(this.financialYearFilter);
-    if (!Number.isFinite(selectedYear)) {
-      return;
-    }
-
-    const targetYear = this.groupedFinancialSummary.find(year => year.year === selectedYear);
-    if (!targetYear) {
-      return;
-    }
-
     const selectedMonth = Number(this.financialMonthFilter);
-    const months = Number.isFinite(selectedMonth) && selectedMonth > 0
-      ? targetYear.months.filter(month => month.monthNumber === selectedMonth)
-      : targetYear.months;
 
-    if (!months.length) {
+    if (Number.isFinite(selectedYear) && selectedYear > 0) {
+      cases = cases.filter(c => {
+        const d = c.receivedAt ? new Date(c.receivedAt) : null;
+        return d && d.getFullYear() === selectedYear;
+      });
+    }
+
+    if (Number.isFinite(selectedMonth) && selectedMonth > 0) {
+      cases = cases.filter(c => {
+        const d = c.receivedAt ? new Date(c.receivedAt) : null;
+        return d && d.getMonth() + 1 === selectedMonth;
+      });
+    }
+
+    if (!cases.length) {
+      alert('لا توجد بيانات للتصدير');
       return;
     }
 
-    const rows = [
-      'السنة/Year,الشهر/Month,إجمالي الحالات/Total Cases,الحالات المدفوعة/Paid Cases,إجمالي المبلغ/Total Amount,المبلغ المدفوع/Paid Amount,المبلغ غير المدفوع/Unpaid Amount'
+    // الأعمدة المطلوبة
+    const header = [
+      'التاريخ',
+      'المريض',
+      'النوع',
+      'العدد',
+      'اللون',
+      'سعر افرادي',
+      'سعر اجمالي',
+      'مدفوع',
+      'الباقي',
+      'نوع التسليم'
     ];
 
-    months.forEach(month => {
-      rows.push([
-        selectedYear,
-        this.monthName(month.monthNumber),
-        month.cases,
-        month.paidCases,
-        month.totalSalary,
-        month.paidTotal,
-        month.unpaidTotal
-      ].join(','));
+    const dataRows = cases.map(c => {
+      // استخراج metadata من rawNotes
+      const meta = this.parseNotesMeta(c.rawNotes || '');
+      const quantity = Number(c.quantity ?? meta['quantity'] ?? 1) || 1;
+      const color = String(c.color ?? meta['color'] ?? '');
+      const deliveryDate = String(c.deliveryDate ?? meta['deliveryDate'] ?? '');
+      const deliveryTime = String(c.deliveryTime ?? meta['deliveryTime'] ?? '');
+      const deliveryType = deliveryDate
+        ? (deliveryTime ? `${deliveryDate} ${deliveryTime}` : deliveryDate)
+        : (c.dueDateDisplay && c.dueDateDisplay !== 'N/A' ? c.dueDateDisplay : '');
+
+      const salary = Number(c.salary || 0);
+      const totalPrice = salary * quantity;
+      const paidAmount = c.paid ? totalPrice : 0;
+      const remaining = totalPrice - paidAmount;
+
+      const date = c.receivedAt
+        ? new Date(c.receivedAt).toLocaleDateString('ar-EG', {
+            day: '2-digit', month: '2-digit', year: 'numeric'
+          })
+        : (c.receivedDateDisplay || '');
+
+      return [
+        date,
+        c.patientName || '',
+        c.caseType || '',
+        quantity,
+        color,
+        salary,
+        totalPrice,
+        c.paid ? 'مدفوع' : 'غير مدفوع',
+        remaining,
+        deliveryType,
+      ];
     });
 
-    rows.push('');
-    rows.push('السنة/Year,الشهر/Month,الدكتور/Doctor,الحالات المدفوعة/Paid Cases,المبلغ المدفوع/Paid Amount,إجمالي الحالات/Total Cases,إجمالي المبلغ/Total Amount');
+    // بناء CSV
+    const csvRows = [
+      header.map(h => `"${h}"`).join(','),
+      ...dataRows.map(row =>
+        row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+      )
+    ];
 
-    months.forEach(month => {
-      month.byDoctor.forEach(doctor => {
-        rows.push([
-          selectedYear,
-          this.monthName(month.monthNumber),
-          `"${doctor.doctorName.replace(/"/g, '""')}"`,
-          doctor.paidCases,
-          doctor.paidAmount,
-          doctor.cases,
-          doctor.totalSalary
-        ].join(','));
-      });
-    });
+    if (typeof document === 'undefined') return;
 
-    if (typeof document === 'undefined') {
-      return;
-    }
-
-    const csvContent = `\uFEFF${rows.join('\n')}`;
+    const csvContent = `\uFEFF${csvRows.join('\n')}`;
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
-    const monthSuffix = Number.isFinite(selectedMonth) && selectedMonth > 0
-      ? `-${String(selectedMonth).padStart(2, '0')}`
-      : '-all-months';
+    const yearSuffix = selectedYear > 0 ? `-${selectedYear}` : '';
+    const monthSuffix = selectedMonth > 0 ? `-${String(selectedMonth).padStart(2, '0')}` : '';
     anchor.href = url;
-    anchor.download = `financial-inventory-${selectedYear}${monthSuffix}.csv`;
+    anchor.download = `financial-report${yearSuffix}${monthSuffix}.csv`;
     document.body.appendChild(anchor);
     anchor.click();
     document.body.removeChild(anchor);
@@ -847,6 +881,11 @@ export class Admin implements OnInit, OnDestroy {
       finisherName: String(parsedMeta['finisherName'] ?? ''),
       secretaryInstructions: String(parsedMeta['instructions'] ?? ''),
       designNotes: String(parsedMeta['designNotes'] ?? ''),
+      color: String(parsedMeta['color'] ?? ''),
+      quantity: Number(parsedMeta['quantity'] ?? 1) || 1,
+      deliveryDate: String(parsedMeta['deliveryDate'] ?? ''),
+      deliveryTime: String(parsedMeta['deliveryTime'] ?? ''),
+      rawNotes: notes,
       source: 'case',
     };
   }
@@ -857,6 +896,10 @@ export class Admin implements OnInit, OnDestroy {
     const salaryAmountRaw = Number(row['salaryAmount']);
     const salary = Number.isFinite(salaryAmountRaw) ? salaryAmountRaw : 0;
     const paid = String(row['paymentStatus'] ?? 'unpaid').toLowerCase() === 'paid';
+
+    // استخراج notes من البيانات لو موجودة
+    const notes = String(row['notes'] ?? '');
+    const parsedMeta = this.parseNotesMeta(notes);
 
     return {
       id: String(row['id'] ?? ''),
@@ -882,6 +925,11 @@ export class Admin implements OnInit, OnDestroy {
       finisherName: '',
       secretaryInstructions: '',
       designNotes: '',
+      color: String(parsedMeta['color'] ?? ''),
+      quantity: Number(parsedMeta['quantity'] ?? 1) || 1,
+      deliveryDate: String(parsedMeta['deliveryDate'] ?? ''),
+      deliveryTime: String(parsedMeta['deliveryTime'] ?? ''),
+      rawNotes: notes,
       source: 'case',
     };
   }
