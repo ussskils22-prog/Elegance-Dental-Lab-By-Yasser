@@ -591,6 +591,95 @@ exports.completeCase = async (req, res) => {
   }
 };
 
+// Send completed case back for revision (secretary/admin)
+exports.requestRevision = async (req, res) => {
+  try {
+    const dentalCase = await DentalCase.findById(req.params.id);
+
+    if (!dentalCase) {
+      return res.status(404).json({ message: 'Case not found' });
+    }
+
+    if (!['admin', 'secretary'].includes(req.user.role)) {
+      return res.status(403).json({ message: 'Only admin or secretary can request revision' });
+    }
+
+    if (
+      req.user.role === 'secretary' &&
+      normalizeDocId(dentalCase.createdBy) !== normalizeDocId(req.user.id)
+    ) {
+      return res.status(403).json({ message: 'You can only edit cases you created' });
+    }
+
+    const isCompletedCase =
+      dentalCase.currentStage === 'completed' || dentalCase.status === 'completed';
+    if (!isCompletedCase) {
+      return res.status(400).json({ message: 'Revision is only available for completed cases' });
+    }
+
+    if (dentalCase.status === 'exited') {
+      return res.status(400).json({ message: 'Exited cases cannot be sent for revision' });
+    }
+
+    const prefix = '__META__\n';
+    const raw = dentalCase.notes || '';
+    let meta = parseNotesMeta(raw);
+    if (!raw.startsWith(prefix) && raw.trim()) {
+      meta = { ...meta, instructions: raw.slice(0, 8000) };
+    }
+    if (!meta || typeof meta !== 'object') meta = {};
+
+    meta.uiStatusOverride = 'needs-revision';
+
+    const oldStage = dentalCase.currentStage;
+    dentalCase.notes = sanitizeNotesMetaString(`${prefix}${JSON.stringify(meta)}`);
+    dentalCase.status = 'in_progress';
+    dentalCase.currentStage = 'design';
+    dentalCase.stageTimestamps.design = new Date();
+    await dentalCase.save();
+
+    await AuditLog.create({
+      caseId: dentalCase._id,
+      caseNumber: dentalCase.caseNumber,
+      action: 'reopened',
+      performedBy: req.user.id,
+      performedByName: req.user.fullName,
+      details: { oldValue: oldStage, newValue: 'design', notes: 'needs-revision' },
+    });
+
+    await Notification.create({
+      type: 'case_moved',
+      title: 'Case Needs Revision',
+      message: `Case ${dentalCase.caseNumber} was sent back for revision by ${req.user.fullName}`,
+      caseId: dentalCase._id,
+      caseNumber: dentalCase.caseNumber,
+      relatedUser: req.user.id,
+      targetAudience: ['all'],
+    });
+
+    emitToAll('case:moved-stage', {
+      caseId: String(dentalCase._id),
+      caseNumber: dentalCase.caseNumber,
+      oldStage,
+      newStage: dentalCase.currentStage,
+      timestamp: new Date(),
+    });
+    emitCaseUpdated(dentalCase, req.user);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Case sent for revision successfully',
+      case: dentalCase,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to request revision',
+      error: error.message,
+    });
+  }
+};
+
 // Exit completed case (secretary/admin)
 exports.exitCase = async (req, res) => {
   try {

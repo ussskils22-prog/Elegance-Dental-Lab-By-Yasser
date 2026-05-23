@@ -65,7 +65,14 @@ export class Secretary implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly socketSubs: Subscription[] = [];
   readonly activeFilter = signal<
-    'all' | 'pending' | 'in-progress' | 'under-khart' | 'ready-for-finishing' | 'finished' | 'exited'
+    | 'all'
+    | 'pending'
+    | 'in-progress'
+    | 'under-khart'
+    | 'ready-for-finishing'
+    | 'finished'
+    | 'needs-revision'
+    | 'exited'
   >('all');
   readonly casesLoading = signal(false);
   readonly saveInProgress = signal(false);
@@ -99,6 +106,7 @@ export class Secretary implements OnInit, OnDestroy {
     const underKhart = activeCases.filter(c => c.status === 'under-khart').length;
     const ready = activeCases.filter(c => c.status === 'ready-for-finishing').length;
     const finished = activeCases.filter(c => c.status === 'finished').length;
+    const needsRevision = activeCases.filter(c => c.status === 'needs-revision').length;
     const exited = allCases.filter(c => c.status === 'exited').length;
 
     return [
@@ -108,6 +116,7 @@ export class Secretary implements OnInit, OnDestroy {
       { label: 'تحت الخرط', value: underKhart, color: 'teal' as const },
       { label: 'جاهزة للفينيش', value: ready, color: 'green' as const },
       { label: 'حالات منتهية', value: finished, color: 'gray' as const },
+      { label: 'محتاجة تعديل', value: needsRevision, color: 'teal' as const },
       { label: 'حالات خارجة', value: exited, color: 'teal' as const },
     ];
   });
@@ -122,6 +131,7 @@ export class Secretary implements OnInit, OnDestroy {
       underKhart: activeCases.filter(c => c.status === 'under-khart').length,
       ready: activeCases.filter(c => c.status === 'ready-for-finishing').length,
       finished: activeCases.filter(c => c.status === 'finished').length,
+      needsRevision: activeCases.filter(c => c.status === 'needs-revision').length,
       exited: allCases.filter(c => c.status === 'exited').length,
     };
   });
@@ -215,7 +225,15 @@ export class Secretary implements OnInit, OnDestroy {
   }
 
   setFilter(
-    filter: 'all' | 'pending' | 'in-progress' | 'under-khart' | 'ready-for-finishing' | 'finished' | 'exited'
+    filter:
+      | 'all'
+      | 'pending'
+      | 'in-progress'
+      | 'under-khart'
+      | 'ready-for-finishing'
+      | 'finished'
+      | 'needs-revision'
+      | 'exited'
   ): void {
     this.activeFilter.set(filter);
   }
@@ -487,6 +505,26 @@ export class Secretary implements OnInit, OnDestroy {
     this.caseApi.exitCase(c.id).subscribe({
       next: () => {
         this.flash('تم إخراج الحالة بنجاح');
+        this.reloadCasesFromBackend();
+      },
+      error: (err: unknown) => {
+        this.flash(this.formatCaseApiError(err));
+      },
+    });
+  }
+
+  confirmRequestRevision(c: { id: string; caseNumber: string; status: string }): void {
+    if (c.status !== 'finished') {
+      this.flash('إرسال للتعديل متاح فقط للحالات المنتهية');
+      return;
+    }
+    const ok = confirm(`هل تريد إرسال الحالة ${c.caseNumber} إلى عمود التعديل؟`);
+    if (!ok) return;
+
+    this.caseApi.requestRevision(c.id).subscribe({
+      next: () => {
+        this.flash('تم نقل الحالة إلى عمود التعديل');
+        this.activeFilter.set('needs-revision');
         this.reloadCasesFromBackend();
       },
       error: (err: unknown) => {

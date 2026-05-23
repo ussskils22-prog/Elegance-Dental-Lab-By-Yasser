@@ -101,6 +101,11 @@ export class CaseApiService {
     return this.http.put(`${this.apiUrl}/${id}/exit`, {});
   }
 
+  /** إرجاع حالة منتهية لعمود «محتاجة تعديل» (سكرتير / أدمن) */
+  requestRevision(id: string): Observable<any> {
+    return this.http.put(`${this.apiUrl}/${id}/request-revision`, {});
+  }
+
   // Release case (Admin only)
   releaseCase(id: string): Observable<any> {
     return this.http.put(`${this.apiUrl}/${id}/release`, {});

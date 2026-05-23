@@ -115,6 +115,11 @@ router.post(
 // Complete case
 router.put('/:id/complete', caseController.completeCase);
 router.put('/:id/exit', authorize('admin', 'secretary'), caseController.exitCase);
+router.put(
+  '/:id/request-revision',
+  authorize('admin', 'secretary'),
+  caseController.requestRevision
+);
 
 // Release case - Admin only
 router.put('/:id/release', authorize('admin'), caseController.releaseCase);

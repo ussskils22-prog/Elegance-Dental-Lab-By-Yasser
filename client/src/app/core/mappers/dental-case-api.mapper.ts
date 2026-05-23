@@ -58,7 +58,7 @@ export type CaseMeta = {
   selectedFileName?: string;
   designImages?: string[];
   finishingNotes?: string;
-  uiStatusOverride?: 'in-progress' | 'under-khart' | 'ready-for-finishing';
+  uiStatusOverride?: 'in-progress' | 'under-khart' | 'ready-for-finishing' | 'needs-revision';
   plyScanPath?: string;
   plyFileName?: string;
 };
@@ -266,6 +266,7 @@ function mapUiStatus(doc: Record<string, unknown>, uiStatusOverride: string): De
   const s = String(doc['status'] ?? '');
   const stage = String(doc['currentStage'] ?? '');
   if (s === 'exited') return 'exited';
+  if (uiStatusOverride === 'needs-revision') return 'needs-revision';
   if (s === 'completed' || stage === 'completed') return 'finished';
   if (stage === 'khart') return 'under-khart';
   if (stage === 'finishing') return 'ready-for-finishing';
