@@ -1,0 +1,238 @@
+[33mcommit 8507b731964f30e7720d1c172fea6b389d5b5c45[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 23 18:34:01 2026 +0300
+
+    Revert "change delivery to received and update time format"
+    
+    This reverts commit f7466f18dde951c113112f5162c37fa8f25798a0.
+
+[33mcommit f7466f18dde951c113112f5162c37fa8f25798a0[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 23 18:31:50 2026 +0300
+
+    change delivery to received and update time format
+
+[33mcommit f1e7511f8a4f2c41d0c4e18d9a645f767b9e4e43[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 23 18:23:24 2026 +0300
+
+    fix revision status type
+
+[33mcommit f22ce82747c97ec370b41cfb358dbf8673227449[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 23 18:13:31 2026 +0300
+
+    add all dashboard stats cards with correct order
+
+[33mcommit 89f0173ba3fe763f12a582bb7480a411fa11c09c[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 23 18:09:47 2026 +0300
+
+    fix navbar centering and update dashboard stat order
+
+[33mcommit a72093df58871ca1f0a2aa03a736bc827f7aee81[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 23 18:01:05 2026 +0300
+
+    update navbar, remove student button, update stat labels
+
+[33mcommit 20bb82003c82d4d5955d440576834f974f642375[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 23 17:49:21 2026 +0300
+
+    remove student case button from secretary
+
+[33mcommit 237c4b28f77f6f4d12e3a4058cb2d35b7070b940[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Wed May 20 11:18:35 2026 +0300
+
+    rename ready status to جاهزة للفينيش
+
+[33mcommit dc59831aff4ad5c6d02c55c1a1e0b2e06c19871c[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Fri May 15 02:52:34 2026 +0300
+
+    feat: prevent duplicate patient+doctor cases
+
+[33mcommit 2dab93e8e3a7b704de43df0fdcb206d5e37306a9[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 16:21:58 2026 +0300
+
+    fix secretary navbar layout
+
+[33mcommit d56916e5d794921332d37b53ecdd3791065dff39[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 16:17:26 2026 +0300
+
+    match secretary navbar to design exactly
+
+[33mcommit 04f14103bad70d8d8d81380edeca228b56661c50[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 16:13:58 2026 +0300
+
+    fix navbar icons position in RTL
+
+[33mcommit 7473124a0e1207da026beb57e1131c95a00d39eb[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 16:10:34 2026 +0300
+
+    center Elegance in secretary navbar
+
+[33mcommit a03b220fbdfd5fd4b3038ef86b64a06261664a02[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 16:03:34 2026 +0300
+
+    center Elegance brand in secretary navbar
+
+[33mcommit 9ec55b48de958c0159bd2a14dec90042b4212f4b[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 16:00:44 2026 +0300
+
+    simplify secretary navbar like design
+
+[33mcommit dfdb41bb9d85b4348910b5755a2ef2beae2d5191[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 15:56:06 2026 +0300
+
+    update design page branding and filter colors
+
+[33mcommit 442e8d7e83162be7eb7270ec660a967e0598440c[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 15:53:05 2026 +0300
+
+    match secretary navbar to design style
+
+[33mcommit 76d3d6946e06281cefdc13269c1c56a7fe306779[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 15:41:27 2026 +0300
+
+    fix Elegance brand in design page
+
+[33mcommit 0313d443bcc38685d38d3150bd49daa170f86293[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 15:35:13 2026 +0300
+
+    update design page branding and filter colors
+
+[33mcommit 645ac3a9864e6f51efc096caa66936a55680abd4[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 15:21:25 2026 +0300
+
+    remove priority badge from design card
+
+[33mcommit 4781233aadf2f8fdabfa86f78865fb7b5e9bcf59[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 15:18:24 2026 +0300
+
+    swap doctor and patient order in design card
+
+[33mcommit 438b3a6b4173701ef66781ca2226b44b64a36f90[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 15:11:52 2026 +0300
+
+    add doctor name to design search
+
+[33mcommit 470d0dadbd9f990940c8632eb3c0d8b7ea19b0db[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 15:05:22 2026 +0300
+
+    rename انتظار to جديدة
+
+[33mcommit d87dafe96a6b9341c16a263f7c6b28df198d5022[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 14:58:46 2026 +0300
+
+    rebrand to Elegance
+
+[33mcommit 0a90e36cbd6127d06e4effdfbd0fdb17e593876f[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 14:54:22 2026 +0300
+
+    add Elegance branding card to dashboard
+
+[33mcommit c6efa2854e8ada3ad6237281cc71959fbbd091d1[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 14:49:56 2026 +0300
+
+    add finished cases stat card
+
+[33mcommit 93fe34b9d5e0df363b63097ece663cab9b001f3e[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 14:44:56 2026 +0300
+
+    change finished color to dark gray
+
+[33mcommit 5080ba3d96b5674cf11a5a5a6248304e554fef53[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 14:40:39 2026 +0300
+
+    fix ready filter color to green
+
+[33mcommit 6508bd0c91cd46921aa4ff072030c54dfeec65ca[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 14:36:24 2026 +0300
+
+    match design filter and badge colors to purple
+
+[33mcommit 06025b8f8e92fd6c0158772336375edd7d44df31[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 14:28:58 2026 +0300
+
+    rename ready status to جاهزة للفينيش
+
+[33mcommit fb78b6f9cfadfbfd8f6c1b259900c4b023e3ff4b[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 08:23:57 2026 +0300
+
+    fix: real delete staff
+
+[33mcommit 0ff0b651c11558d77e58ad3e9d5a297331e88a1d[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 08:14:51 2026 +0300
+
+    fix: real delete for staff
+
+[33mcommit 317f84727543dfffee60cdfe19c77a57941a89a1[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 08:00:21 2026 +0300
+
+    remove size from card display
+
+[33mcommit f4db6960bbedb0205e8e55477d5ff0e6b0cfb176[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sat May 9 07:33:14 2026 +0300
+
+    update secretary form
+
+[33mcommit e3911bc2097c60e825ec53a9cd35fc5c12b7d894[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sun May 3 23:20:34 2026 +0300
+
+    fix: add fileReplacements for production
+
+[33mcommit 1596302a4514c3b2b40d6243a239a2384282ed42[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sun May 3 22:57:04 2026 +0300
+
+    fix: point to railway backend
+
+[33mcommit 0355cfce852a5523399b5562e38a597819b8e3cd[m
+Author: yasser <usskilssss@gmail.com>
+Date:   Sun May 3 22:05:03 2026 +0300
+
+    fix: update environment and vercel config
+
+[33mcommit e3416f127c7efe9fa1563252ce857e26fd4a5c01[m
+Author: yosry <ysrymo63@gmail.com>
+Date:   Sun May 3 03:47:15 2026 +0300
+
+    Add Vercel deployment configuration
+    
+    - Add vercel.json for Vercel deployment settings
+    - Update build script to use production configuration
+
+[33mcommit 4f972709ff9371575fed6e9bcc846ace4649ce67[m
+Author: yosry <ysrymo63@gmail.com>
+Date:   Sun May 3 02:43:08 2026 +0300
+
+    first upload
