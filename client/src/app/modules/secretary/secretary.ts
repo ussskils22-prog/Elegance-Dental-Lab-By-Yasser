@@ -43,7 +43,7 @@ function emptyDraft(): CaseDraft {
     quantity: 1,
     date: dateWithTime,
     deliveryDate: '',
-    deliveryTime: currentTime,
+    deliveryTime: '',
   };
 }
 
@@ -63,7 +63,7 @@ export class Secretary implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly socketSubs: Subscription[] = [];
   readonly activeFilter = signal<
-    'all' | 'pending' | 'in-progress' | 'under-khart' | 'ready-for-finishing' | 'finished' | 'exited'
+    'all' | 'pending' | 'in-progress' | 'under-khart' | 'ready-for-finishing' | 'finished' | 'exited' | 'needs-revision'
   >('all');
   readonly casesLoading = signal(false);
   readonly saveInProgress = signal(false);
@@ -122,6 +122,7 @@ export class Secretary implements OnInit, OnDestroy {
       ready: activeCases.filter(c => c.status === 'ready-for-finishing').length,
       finished: activeCases.filter(c => c.status === 'finished').length,
       exited: allCases.filter(c => c.status === 'exited').length,
+      revision: activeCases.filter(c => c.status === 'needs-revision').length,
     };
   });
 
@@ -195,7 +196,7 @@ export class Secretary implements OnInit, OnDestroy {
   }
 
   setFilter(
-    filter: 'all' | 'pending' | 'in-progress' | 'under-khart' | 'ready-for-finishing' | 'finished' | 'exited'
+    filter: 'all' | 'pending' | 'in-progress' | 'under-khart' | 'ready-for-finishing' | 'finished' | 'exited' | 'needs-revision'
   ): void {
     this.activeFilter.set(filter);
   }
