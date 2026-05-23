@@ -100,7 +100,7 @@ export class Secretary implements OnInit, OnDestroy {
     const ready = activeCases.filter(c => c.status === 'ready-for-finishing').length;
     const finished = activeCases.filter(c => c.status === 'finished').length;
     const exited = allCases.filter(c => c.status === 'exited').length;
-    const revision = activeCases.filter(c => c.status === 'revision').length;
+    const revision = activeCases.filter(c => c.status === 'needs-revision').length;
 
     return [
       { label: 'إجمالي الحالات', value: total, color: 'blue' as const, hint: total > 0 ? '+12%' : undefined },
