@@ -43,7 +43,7 @@ function emptyDraft(): CaseDraft {
     quantity: 1,
     date: dateWithTime,
     deliveryDate: '',
-    deliveryTime: '',
+    deliveryTime: currentTime,
   };
 }
 
