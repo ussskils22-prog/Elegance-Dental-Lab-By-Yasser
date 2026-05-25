@@ -25,10 +25,12 @@ function emptyDraft(): CaseDraft {
   const month = months[today.getMonth()];
   const year = today.getFullYear();
 
+  // الوقت الحالي بصيغة HH:MM
   const hours = String(today.getHours()).padStart(2, '0');
   const minutes = String(today.getMinutes()).padStart(2, '0');
   const currentTime = `${hours}:${minutes}`;
 
+  // دمج التاريخ والوقت
   const dateWithTime = `${day} ${month} ${year} ${currentTime}`;
 
   return {
@@ -63,11 +65,12 @@ export class Secretary implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly socketSubs: Subscription[] = [];
   readonly activeFilter = signal<
-    'all' | 'pending' | 'in-progress' | 'under-khart' | 'ready-for-finishing' | 'finished' | 'exited' | 'needs-revision'
+    'all' | 'pending' | 'in-progress' | 'under-khart' | 'ready-for-finishing' | 'finished' | 'exited'
   >('all');
   readonly casesLoading = signal(false);
   readonly saveInProgress = signal(false);
 
+  // عرض الحالات من SharedCasesService مباشرة لتحديث فوري
   readonly cases = computed(() => {
     const allCases = this.sharedCases.cases();
     const selectedFilter = this.activeFilter();
@@ -97,17 +100,14 @@ export class Secretary implements OnInit, OnDestroy {
     const ready = activeCases.filter(c => c.status === 'ready-for-finishing').length;
     const finished = activeCases.filter(c => c.status === 'finished').length;
     const exited = allCases.filter(c => c.status === 'exited').length;
-    const revision = activeCases.filter(c => c.status === 'needs-revision').length;
 
     return [
       { label: 'إجمالي الحالات', value: total, color: 'blue' as const, hint: total > 0 ? '+12%' : undefined },
-      { label: 'الحالات الجديدة', value: pending, color: 'green' as const },
-      { label: 'الحالات قيد الديزاين', value: inProgress, color: 'purple' as const },
-      { label: 'الحالات تحت الخرط', value: underKhart, color: 'teal' as const },
-      { label: 'الحالات جاهزة للفينيش', value: ready, color: 'green' as const },
-      { label: 'الحالات الجاهزة للتسليم', value: finished, color: 'gray' as const },
-      { label: 'الحالات الخارجة', value: exited, color: 'teal' as const },
-      { label: 'الحالات الراجعة تعديل', value: revision, color: 'amber' as const },
+      { label: 'حالات جديدة', value: pending, color: 'green' as const },
+      { label: 'قيد الديزاين', value: inProgress, color: 'blue' as const },
+      { label: 'تحت الخرط', value: underKhart, color: 'teal' as const },
+      { label: 'جاهزة للتسليم', value: ready, color: 'green' as const },
+      { label: 'حالات خارجة', value: exited, color: 'teal' as const },
     ];
   });
 
@@ -122,7 +122,6 @@ export class Secretary implements OnInit, OnDestroy {
       ready: activeCases.filter(c => c.status === 'ready-for-finishing').length,
       finished: activeCases.filter(c => c.status === 'finished').length,
       exited: allCases.filter(c => c.status === 'exited').length,
-      revision: activeCases.filter(c => c.status === 'needs-revision').length,
     };
   });
 
@@ -140,6 +139,9 @@ export class Secretary implements OnInit, OnDestroy {
   readonly dialogMode = signal<'create' | 'create-student' | 'edit'>('create');
   editingId: string | null = null;
   formDraft: CaseDraft = emptyDraft();
+  /** ملف مسح .ply اختياري عند الإنشاء/التعديل */
+  selectedPlyFile: File | null = null;
+  /** اسم ملف PLY المحفوظ مسبقاً (وضع التعديل) */
   existingPlyFileName: string | null = null;
 
   readonly filterOpen = signal(false);
@@ -168,14 +170,30 @@ export class Secretary implements OnInit, OnDestroy {
     this.socketService.connect();
     const reload = () => this.reloadCasesFromBackend();
     this.socketSubs.push(
-      this.socketService.onCaseCreated().subscribe((evt) => { if (evt) reload(); }),
-      this.socketService.onCaseAssigned().subscribe((evt) => { if (evt) reload(); }),
-      this.socketService.onCaseReassigned().subscribe((evt) => { if (evt) reload(); }),
-      this.socketService.onCaseMovedStage().subscribe((evt) => { if (evt) reload(); }),
-      this.socketService.onCaseCompleted().subscribe((evt) => { if (evt) reload(); }),
-      this.socketService.onCaseReleased().subscribe((evt) => { if (evt) reload(); }),
-      this.socketService.onCaseUpdated().subscribe((evt) => { if (evt) reload(); }),
-      this.socketService.onCaseDeleted().subscribe((evt) => { if (evt) reload(); })
+      this.socketService.onCaseCreated().subscribe((evt) => {
+        if (evt) reload();
+      }),
+      this.socketService.onCaseAssigned().subscribe((evt) => {
+        if (evt) reload();
+      }),
+      this.socketService.onCaseReassigned().subscribe((evt) => {
+        if (evt) reload();
+      }),
+      this.socketService.onCaseMovedStage().subscribe((evt) => {
+        if (evt) reload();
+      }),
+      this.socketService.onCaseCompleted().subscribe((evt) => {
+        if (evt) reload();
+      }),
+      this.socketService.onCaseReleased().subscribe((evt) => {
+        if (evt) reload();
+      }),
+      this.socketService.onCaseUpdated().subscribe((evt) => {
+        if (evt) reload();
+      }),
+      this.socketService.onCaseDeleted().subscribe((evt) => {
+        if (evt) reload();
+      })
     );
   }
 
@@ -196,7 +214,7 @@ export class Secretary implements OnInit, OnDestroy {
   }
 
   setFilter(
-    filter: 'all' | 'pending' | 'in-progress' | 'under-khart' | 'ready-for-finishing' | 'finished' | 'exited' | 'needs-revision'
+    filter: 'all' | 'pending' | 'in-progress' | 'under-khart' | 'ready-for-finishing' | 'finished' | 'exited'
   ): void {
     this.activeFilter.set(filter);
   }
@@ -206,6 +224,7 @@ export class Secretary implements OnInit, OnDestroy {
     this.editingId = null;
     this.formDraft = emptyDraft();
     this.existingPlyFileName = null;
+    this.clearPlySelection();
     this.dialogOpen.set(true);
     this.menuOpenId.set(null);
   }
@@ -215,6 +234,7 @@ export class Secretary implements OnInit, OnDestroy {
     this.editingId = null;
     this.formDraft = emptyDraft();
     this.existingPlyFileName = null;
+    this.clearPlySelection();
     this.dialogOpen.set(true);
     this.menuOpenId.set(null);
   }
@@ -223,6 +243,7 @@ export class Secretary implements OnInit, OnDestroy {
     this.dialogMode.set('edit');
     this.editingId = c.id;
     this.existingPlyFileName = c.plyFileName || null;
+    this.clearPlySelection();
     const delivery = String(c.deliveryDate || '');
     const dateMatch = delivery.match(/^(\d{4}-\d{2}-\d{2})(?:\s+(.+))?$/);
     this.formDraft = {
@@ -246,6 +267,30 @@ export class Secretary implements OnInit, OnDestroy {
   closeDialog(): void {
     this.dialogOpen.set(false);
     this.existingPlyFileName = null;
+    this.clearPlySelection();
+  }
+
+  onPlyFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) {
+      this.selectedPlyFile = null;
+      return;
+    }
+    const name = file.name.toLowerCase();
+    if (!name.endsWith('.ply')) {
+      this.flash('يُسمح فقط بملفات بصيغة .ply');
+      input.value = '';
+      this.selectedPlyFile = null;
+      return;
+    }
+    this.selectedPlyFile = file;
+  }
+
+  clearPlySelection(): void {
+    this.selectedPlyFile = null;
+    const el = document.getElementById('secretaryPlyInput') as HTMLInputElement | null;
+    if (el) el.value = '';
   }
 
   save(): void {
@@ -258,7 +303,7 @@ export class Secretary implements OnInit, OnDestroy {
       this.dialogMode() === 'create-student' || existing?.requesterType === 'student';
 
     if (!d.doctor.trim() || !d.workType.trim()) {
-      this.flash('يرجى تعبئة اسم الدكتور ونوع العمل');
+      this.flash('يرجى تعبئة اسم الطبيب ونوع العمل');
       return;
     }
     if (!d.patient?.trim()) {
@@ -296,19 +341,48 @@ export class Secretary implements OnInit, OnDestroy {
         ? (() => {
             const scanPath = toStoredCaseImagePath(existing.plyScanUrl);
             return scanPath
-              ? { plyScanPath: scanPath, plyFileName: existing.plyFileName }
+              ? {
+                  plyScanPath: scanPath,
+                  plyFileName: existing.plyFileName,
+                }
               : undefined;
           })()
         : undefined;
 
     if (this.dialogMode() === 'create' || this.dialogMode() === 'create-student') {
       this.saveInProgress.set(true);
+      const ply = this.selectedPlyFile;
       this.caseApi.createCase(buildCreateCasePayload(formPayload)).subscribe({
-        next: () => {
-          this.saveInProgress.set(false);
-          this.flash('تمت إضافة الحالة في النظام');
-          this.closeDialog();
-          this.reloadCasesFromBackend();
+        next: (res) => {
+          const caseId = String(
+            (res as { case?: { _id?: string; id?: string } })?.case?._id ??
+              (res as { case?: { id?: string } })?.case?.id ??
+              ''
+          );
+          const done = (msg: string) => {
+            this.saveInProgress.set(false);
+            this.flash(msg);
+            this.closeDialog();
+            this.reloadCasesFromBackend();
+          };
+          if (ply && caseId) {
+            this.caseApi.uploadCasePly(caseId, ply).subscribe({
+              next: () => done('تمت إضافة الحالة ورفع ملف PLY'),
+              error: (err: unknown) => {
+                this.saveInProgress.set(false);
+                const detail = this.formatCaseApiError(err);
+                this.flash(
+                  detail
+                    ? `تم إنشاء الحالة، لكن فشل رفع PLY: ${detail}`
+                    : 'تم إنشاء الحالة لكن تعذر رفع ملف PLY'
+                );
+                this.closeDialog();
+                this.reloadCasesFromBackend();
+              },
+            });
+          } else {
+            done('تمت إضافة الحالة في النظام');
+          }
         },
         error: (err: unknown) => {
           this.saveInProgress.set(false);
@@ -320,20 +394,41 @@ export class Secretary implements OnInit, OnDestroy {
 
     if (this.editingId) {
       this.saveInProgress.set(true);
+      const ply = this.selectedPlyFile;
       this.caseApi
         .updateCase(this.editingId, buildCreateCasePayload(formPayload, plyPreserveMeta))
         .subscribe({
-          next: () => {
+        next: () => {
+          const done = () => {
             this.saveInProgress.set(false);
             this.flash('تم حفظ التعديلات');
             this.closeDialog();
             this.reloadCasesFromBackend();
-          },
-          error: (err: unknown) => {
-            this.saveInProgress.set(false);
-            this.flash(this.formatCaseApiError(err));
-          },
-        });
+          };
+          if (ply) {
+            this.caseApi.uploadCasePly(this.editingId!, ply).subscribe({
+              next: () => done(),
+              error: (err: unknown) => {
+                this.saveInProgress.set(false);
+                const detail = this.formatCaseApiError(err);
+                this.flash(
+                  detail
+                    ? `تم حفظ بيانات الحالة، لكن فشل رفع PLY: ${detail}`
+                    : 'تم حفظ التعديلات لكن تعذر رفع/استبدال ملف PLY'
+                );
+                this.closeDialog();
+                this.reloadCasesFromBackend();
+              },
+            });
+          } else {
+            done();
+          }
+        },
+        error: (err: unknown) => {
+          this.saveInProgress.set(false);
+          this.flash(this.formatCaseApiError(err));
+        },
+      });
     }
   }
 
@@ -343,51 +438,6 @@ export class Secretary implements OnInit, OnDestroy {
       return this.sharedCases.getCaseById(this.editingId)?.requesterType === 'student';
     }
     return false;
-  }
-
-  // ===== 12-hour time helpers =====
-  get12Hour(): number {
-    const t = this.formDraft.deliveryTime || '';
-    const [h] = t.split(':').map(Number);
-    if (!h && h !== 0) return 12;
-    const h12 = h % 12;
-    return h12 === 0 ? 12 : h12;
-  }
-
-  getMinute(): number {
-    const t = this.formDraft.deliveryTime || '';
-    const parts = t.split(':');
-    return parts[1] ? Number(parts[1]) : 0;
-  }
-
-  getAmPm(): string {
-    const t = this.formDraft.deliveryTime || '';
-    const [h] = t.split(':').map(Number);
-    if (!h && h !== 0) return 'AM';
-    return h >= 12 ? 'PM' : 'AM';
-  }
-
-  setHour12(val: number): void {
-    const ampm = this.getAmPm();
-    let h24 = Number(val) % 12;
-    if (ampm === 'PM') h24 += 12;
-    const mins = String(this.getMinute()).padStart(2, '0');
-    this.formDraft.deliveryTime = `${String(h24).padStart(2, '0')}:${mins}`;
-  }
-
-  setMinute(val: number): void {
-    const h = this.get12Hour();
-    const ampm = this.getAmPm();
-    let h24 = Number(h) % 12;
-    if (ampm === 'PM') h24 += 12;
-    this.formDraft.deliveryTime = `${String(h24).padStart(2, '0')}:${String(val).padStart(2, '0')}`;
-  }
-
-  setAmPm(val: string): void {
-    let h24 = Number(this.get12Hour()) % 12;
-    if (val === 'PM') h24 += 12;
-    const mins = String(this.getMinute()).padStart(2, '0');
-    this.formDraft.deliveryTime = `${String(h24).padStart(2, '0')}:${mins}`;
   }
 
   private formatCaseApiError(err: unknown): string {
@@ -432,6 +482,7 @@ export class Secretary implements OnInit, OnDestroy {
     }
     const ok = confirm(`هل تريد إخراج الحالة ${c.caseNumber} نهائيًا؟`);
     if (!ok) return;
+
     this.caseApi.exitCase(c.id).subscribe({
       next: () => {
         this.flash('تم إخراج الحالة بنجاح');
@@ -451,9 +502,15 @@ export class Secretary implements OnInit, OnDestroy {
   @HostListener('document:click', ['$event'])
   onDocumentClick(ev: MouseEvent): void {
     const el = ev.target as HTMLElement;
-    if (el.closest('.menu-anchor')) return;
-    if (el.closest('.notifications-anchor')) return;
-    if (el.closest('.filter-anchor')) return;
+    if (el.closest('.menu-anchor')) {
+      return;
+    }
+    if (el.closest('.notifications-anchor')) {
+      return;
+    }
+    if (el.closest('.filter-anchor')) {
+      return;
+    }
     this.menuOpenId.set(null);
     this.notificationsOpen.set(false);
     this.filterOpen.set(false);
@@ -491,12 +548,19 @@ export class Secretary implements OnInit, OnDestroy {
     const patientHasAllTokens = queryTokens.every(token => patient.includes(token));
     const doctorHasAllTokens = queryTokens.every(token => doctor.includes(token));
 
+    // Priority 1: patient/doctor starts with query
     if (patient.startsWith(query)) return 120;
     if (doctor.startsWith(query)) return 110;
+
+    // Priority 1.5: all query words found in patient/doctor
     if (patientHasAllTokens) return 105;
     if (doctorHasAllTokens) return 95;
+
+    // Priority 2: patient/doctor contains query
     if (patient.includes(query)) return 100;
     if (doctor.includes(query)) return 90;
+
+    // Priority 3: case number / work fields
     if (caseNumber.includes(query)) return 80;
     if (workType.includes(query)) return 60;
     if (workDetail.includes(query)) return 50;
