@@ -103,11 +103,12 @@ export class Secretary implements OnInit, OnDestroy {
 
     return [
       { label: 'إجمالي الحالات', value: total, color: 'blue' as const, hint: total > 0 ? '+12%' : undefined },
-      { label: 'حالات جديدة', value: pending, color: 'green' as const },
-      { label: 'قيد الديزاين', value: inProgress, color: 'blue' as const },
-      { label: 'تحت الخرط', value: underKhart, color: 'teal' as const },
-      { label: 'جاهزة للتسليم', value: ready, color: 'green' as const },
-      { label: 'حالات خارجة', value: exited, color: 'teal' as const },
+      { label: 'الحالات الجديدة', value: pending, color: 'green' as const },
+      { label: 'الحالات قيد الديزاين', value: inProgress, color: 'blue' as const },
+      { label: 'الحالات تحت الخرط', value: underKhart, color: 'teal' as const },
+      { label: 'الحالات الجاهزة للتسليم', value: ready, color: 'green' as const },
+      { label: 'الحالات المنتهية', value: finished, color: 'blue' as const },
+      { label: 'الحالات الخارجة', value: exited, color: 'teal' as const },
     ];
   });
 
