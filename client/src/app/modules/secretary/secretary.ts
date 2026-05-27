@@ -136,7 +136,7 @@ export class Secretary implements OnInit, OnDestroy {
   }
 
   readonly dialogOpen = signal(false);
-  readonly dialogMode = signal<'create' | 'create-student' | 'edit'>('create');
+  readonly dialogMode = signal<'create' | 'edit'>('create');
   editingId: string | null = null;
   formDraft: CaseDraft = emptyDraft();
   /** ملف مسح .ply اختياري عند الإنشاء/التعديل */
@@ -229,16 +229,6 @@ export class Secretary implements OnInit, OnDestroy {
     this.menuOpenId.set(null);
   }
 
-  openCreateStudent(): void {
-    this.dialogMode.set('create-student');
-    this.editingId = null;
-    this.formDraft = emptyDraft();
-    this.existingPlyFileName = null;
-    this.clearPlySelection();
-    this.dialogOpen.set(true);
-    this.menuOpenId.set(null);
-  }
-
   openEdit(c: any): void {
     this.dialogMode.set('edit');
     this.editingId = c.id;
@@ -299,8 +289,7 @@ export class Secretary implements OnInit, OnDestroy {
       this.dialogMode() === 'edit' && this.editingId
         ? this.sharedCases.getCaseById(this.editingId)
         : undefined;
-    const isStudentCase =
-      this.dialogMode() === 'create-student' || existing?.requesterType === 'student';
+    const isStudentCase = existing?.requesterType === 'student';
 
     if (!d.doctor.trim() || !d.workType.trim()) {
       this.flash('يرجى تعبئة اسم الطبيب ونوع العمل');
@@ -349,7 +338,7 @@ export class Secretary implements OnInit, OnDestroy {
           })()
         : undefined;
 
-    if (this.dialogMode() === 'create' || this.dialogMode() === 'create-student') {
+    if (this.dialogMode() === 'create') {
       this.saveInProgress.set(true);
       const ply = this.selectedPlyFile;
       this.caseApi.createCase(buildCreateCasePayload(formPayload)).subscribe({
@@ -433,7 +422,6 @@ export class Secretary implements OnInit, OnDestroy {
   }
 
   isStudentDialog(): boolean {
-    if (this.dialogMode() === 'create-student') return true;
     if (this.dialogMode() === 'edit' && this.editingId) {
       return this.sharedCases.getCaseById(this.editingId)?.requesterType === 'student';
     }
