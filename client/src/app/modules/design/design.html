@@ -1,36 +1,58 @@
-<!-- ═══════════════════════════════════════════════ NAVBAR ═══ -->
-<nav class="navbar">
-  <button class="nav-icon-btn" (click)="handleNavAction()" aria-label="رجوع أو قائمة">
-    <svg *ngIf="view === 'detail'" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-      <polyline points="9 18 15 12 9 6"/>
-    </svg>
-    <svg *ngIf="view === 'list'" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-      <line x1="3" y1="6"  x2="21" y2="6"/>
-      <line x1="3" y1="12" x2="21" y2="12"/>
-      <line x1="3" y1="18" x2="21" y2="18"/>
-    </svg>
-  </button>
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="avatar" aria-label="Elegance Precision Labs Logo">
+        <div class="elegance-logo-container">
+          <svg viewBox="0 0 100 100" fill="none" class="elegance-logo-svg">
+            <!-- Option 2: Interlocking high-tech strand design representing modern precision & DNA -->
+            <path d="M 32,25 C 20,25 15,45 25,68 C 32,82 46,85 48,72 C 44,64 36,48 40,36 C 44,24 52,28 58,26" stroke="url(#logo-grad)" stroke-width="5.5" stroke-linecap="round" />
+            <path d="M 68,25 C 80,25 85,45 75,68 C 68,82 54,85 52,72 C 56,64 64,48 60,36 C 56,24 48,28 42,26" stroke="url(#logo-grad)" stroke-width="5.5" stroke-linecap="round" />
+            <defs>
+              <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#2563eb" />
+                <stop offset="100%" stop-color="#0d9488" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+      </div>
+    </div>
 
-  <div class="nav-brand">
-    <span class="brand-elegance"><span class="brand-elegance-text">Elegance</span></span>
-  </div>
+    <div class="topbar-center">
+      <div class="elegance-navbar-brand">
+        <span class="elegance-navbar-dot"></span>
+        <span class="elegance-navbar-title">Elegance</span>
+        <span class="elegance-navbar-dot"></span>
+      </div>
+      <p class="elegance-navbar-sub">Precision Labs</p>
+    </div>
 
-  <div class="nav-actions">
-    <button type="button" class="nav-icon-btn" aria-label="تسجيل الخروج" title="تسجيل الخروج" (click)="logout()">
-      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
-      </svg>
-    </button>
-    <button type="button" class="nav-icon-btn" aria-label="إشعارات">
-      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-      </svg>
-      <span class="notif-dot"></span>
-    </button>
-    <div class="nav-avatar">م</div>
-  </div>
-</nav>
+    <div class="topbar-right notifications-anchor">
+      @if (view === 'detail') {
+        <button type="button" class="icon-btn" aria-label="رجوع" (click)="handleNavAction()" title="رجوع" style="margin-left: 8px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+      }
+      <button type="button" class="icon-btn" aria-label="تسجيل الخروج" (click)="logout()" title="تسجيل الخروج">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+        </svg>
+      </button>
+      <button type="button" class="icon-btn" aria-label="الإشعارات" (click)="toggleNotifications($event)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5" />
+          <path stroke-linecap="round" d="M12 21a2 2 0 0 0 2-2H10a2 2 0 0 0 2 2z" />
+        </svg>
+      </button>
+      @if (notificationsOpen()) {
+        <div class="notifications-panel" (click)="$event.stopPropagation()">
+          <p class="notifications-title">الإشعارات</p>
+          <p class="notifications-empty">لا توجد إشعارات جديدة</p>
+        </div>
+      }
+    </div>
+  </header>
 
 
 <!-- ═══════════════════════════════════════════════

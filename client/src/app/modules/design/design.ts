@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, HostListener, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -61,6 +61,9 @@ export class CaseDetailsComponent implements OnInit, OnDestroy {
   activeFilter: CaseStatus | 'all' = 'all';
   searchTerm        = '';
 
+  /* ── Notifications ── */
+  readonly notificationsOpen = signal(false);
+
   /** معاينة مسح PLY (Three.js) */
   plyViewerOpen = false;
   plyViewerLoading = false;
@@ -75,6 +78,20 @@ export class CaseDetailsComponent implements OnInit, OnDestroy {
 
   logout(): void {
     this.flushDesignerChanges(() => this.auth.performLogout(this.router));
+  }
+
+  toggleNotifications(ev: Event): void {
+    ev.stopPropagation();
+    this.notificationsOpen.update((v) => !v);
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(ev: MouseEvent): void {
+    const el = ev.target as HTMLElement;
+    if (el.closest('.notifications-anchor')) {
+      return;
+    }
+    this.notificationsOpen.set(false);
   }
 
   handleNavAction(): void {

@@ -566,29 +566,16 @@ export class Secretary implements OnInit, OnDestroy {
     query: string
   ): number {
     const doctor = this.normalizeSearchText(caseItem.doctor).replace(/^د\s+/, '').replace(/^dr\s+/, '');
-    const patient = this.normalizeSearchText(caseItem.patient);
     const caseNumber = this.normalizeSearchText(caseItem.caseNumber);
     const workType = this.normalizeSearchText(caseItem.workType);
     const workDetail = this.normalizeSearchText(caseItem.workDetail);
     const color = this.normalizeSearchText(caseItem.color);
     const size = this.normalizeSearchText(caseItem.size);
-    const queryTokens = query.split(' ').filter(Boolean);
-    const patientHasAllTokens = queryTokens.every(token => patient.includes(token));
-    const doctorHasAllTokens = queryTokens.every(token => doctor.includes(token));
 
-    // Priority 1: patient/doctor starts with query
-    if (patient.startsWith(query)) return 120;
+    // 1. Doctor's name MUST start with the query (First Name match)
     if (doctor.startsWith(query)) return 110;
 
-    // Priority 1.5: all query words found in patient/doctor
-    if (patientHasAllTokens) return 105;
-    if (doctorHasAllTokens) return 95;
-
-    // Priority 2: patient/doctor contains query
-    if (patient.includes(query)) return 100;
-    if (doctor.includes(query)) return 90;
-
-    // Priority 3: case number / work fields
+    // 2. Case number / work fields
     if (caseNumber.includes(query)) return 80;
     if (workType.includes(query)) return 60;
     if (workDetail.includes(query)) return 50;
