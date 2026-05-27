@@ -74,8 +74,20 @@ export class SharedCasesService {
     deliveryTime?: string;
     enteredBy: string;
   }): void {
+    const formatTimeTo12Hour = (timeStr: string): string => {
+      if (!timeStr) return '';
+      const parts = timeStr.trim().split(':');
+      if (parts.length < 2) return timeStr;
+      let hour = parseInt(parts[0], 10);
+      const minute = parts[1];
+      if (isNaN(hour)) return timeStr;
+      const ampm = hour >= 12 ? 'م' : 'ص';
+      hour = hour % 12;
+      hour = hour ? hour : 12;
+      return `${hour}:${minute} ${ampm}`;
+    };
+    const deliveryInfo = data.deliveryDate ? `${data.deliveryDate}${data.deliveryTime ? ' ' + formatTimeTo12Hour(data.deliveryTime) : ''}` : '';
     const caseNumber = `LF-${this.caseCounter++}`;
-    const deliveryInfo = data.deliveryDate ? `${data.deliveryDate}${data.deliveryTime ? ' ' + data.deliveryTime : ''}` : '';
     const newCase: DentalCase = {
       id: Math.random().toString(36).substr(2, 9),
       caseNumber,
