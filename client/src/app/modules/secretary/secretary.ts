@@ -141,13 +141,13 @@ export class Secretary implements OnInit, OnDestroy {
     const exited = allCases.filter(c => c.status === 'exited').length;
 
     return [
-      { label: 'إجمالي الحالات', value: total, color: 'blue' as const, hint: total > 0 ? '+12%' : undefined },
-      { label: 'الحالات الجديدة', value: pending, color: 'green' as const },
-      { label: 'الحالات قيد الديزاين', value: inProgress, color: 'blue' as const },
+      { label: 'إجمالي الحالات', value: total, color: 'purple' as const, hint: total > 0 ? '+12%' : undefined },
+      { label: 'الحالات الجديدة', value: pending, color: 'amber' as const },
+      { label: 'الحالات قيد الديزاين', value: inProgress, color: 'royal' as const },
       { label: 'الحالات تحت الخرط', value: underKhart, color: 'teal' as const },
-      { label: 'الحالات الجاهزة للتسليم', value: ready, color: 'green' as const },
-      { label: 'الحالات المنتهية', value: finished, color: 'blue' as const },
-      { label: 'الحالات الخارجة', value: exited, color: 'teal' as const },
+      { label: 'الحالات الجاهزة للتسليم', value: ready, color: 'violet' as const },
+      { label: 'الحالات المنتهية', value: finished, color: 'emerald' as const },
+      { label: 'الحالات الخارجة', value: exited, color: 'rose' as const },
     ];
   });
 
