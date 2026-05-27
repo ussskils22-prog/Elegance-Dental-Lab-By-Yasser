@@ -90,20 +90,20 @@ export class SecretaryService {
   getCasePhase(caseId: string): { label: string; status: string; color: string } {
     const dentalCase = this.sharedCases.getCaseById(caseId);
     if (!dentalCase) {
-      return { label: 'قيد الانتظار', status: 'pending', color: 'pending' };
+      return { label: 'الجديدة', status: 'pending', color: 'pending' };
     }
 
     const phaseMap: Record<string, { label: string; color: string }> = {
-      pending: { label: 'قيد الانتظار', color: 'pending' },
-      'in-progress': { label: 'تحت الديزاين', color: 'design' },
-      'under-khart': { label: 'تحت الخرط', color: 'khart' },
+      pending: { label: 'الجديدة', color: 'pending' },
+      'in-progress': { label: 'ديزاين', color: 'design' },
+      'under-khart': { label: 'خرط', color: 'khart' },
       'needs-revision': { label: 'محتاجة تعديل', color: 'revision' },
-      'ready-for-finishing': { label: 'جاهزة للفينيش', color: 'finishing' },
+      'ready-for-finishing': { label: 'جاهزة', color: 'finishing' },
       finished: { label: 'منتهية', color: 'finished' },
-      exited: { label: 'خروج', color: 'exited' },
+      exited: { label: 'خارجة', color: 'exited' },
     };
 
-    const phase = phaseMap[dentalCase.status] || { label: 'قيد الانتظار', color: 'pending' };
+    const phase = phaseMap[dentalCase.status] || { label: 'الجديدة', color: 'pending' };
     return { label: phase.label, status: dentalCase.status, color: phase.color };
   }
 
