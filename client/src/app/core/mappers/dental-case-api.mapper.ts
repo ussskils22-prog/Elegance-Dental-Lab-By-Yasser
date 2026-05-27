@@ -153,6 +153,19 @@ export function buildCreateCasePayload(
   };
 }
 
+export function formatTimeTo12Hour(timeStr: string): string {
+  if (!timeStr) return '';
+  const parts = timeStr.trim().split(':');
+  if (parts.length < 2) return timeStr;
+  let hour = parseInt(parts[0], 10);
+  const minute = parts[1];
+  if (isNaN(hour)) return timeStr;
+  const ampm = hour >= 12 ? 'م' : 'ص';
+  hour = hour % 12;
+  hour = hour ? hour : 12; // 0 becomes 12
+  return `${hour}:${minute} ${ampm}`;
+}
+
 export function mapApiCaseToDentalCase(doc: Record<string, unknown>): DentalCase {
   const id = String(doc['_id'] ?? doc['id'] ?? '');
   const meta = parseMeta(String(doc['notes'] ?? ''));
@@ -183,7 +196,7 @@ export function mapApiCaseToDentalCase(doc: Record<string, unknown>): DentalCase
   }
   let deliveryDisplay = '';
   if (deliveryDate) {
-    deliveryDisplay = deliveryTime ? `${deliveryDate} ${deliveryTime}` : deliveryDate;
+    deliveryDisplay = deliveryTime ? `${deliveryDate} ${formatTimeTo12Hour(deliveryTime)}` : deliveryDate;
   }
   const caseNumber = String(doc['caseNumber'] ?? '');
   const patientName = String(doc['patientName'] ?? '');

@@ -42,7 +42,7 @@ function emptyDraft(): CaseDraft {
     workDetail: '',
     color: '',
     size: '',
-    quantity: 1,
+    quantity: '1' as any,
     date: dateWithTime,
     deliveryDate: '',
     deliveryTime: '',
@@ -52,7 +52,7 @@ function emptyDraft(): CaseDraft {
 @Component({
   selector: 'app-secretary',
   standalone: true,
-  imports: [CommonModule, FormsModule, PatientLabelPipe, SizeFormatPipe],
+  imports: [CommonModule, FormsModule, PatientLabelPipe],
   templateUrl: './secretary.html',
   styleUrl: './secretary.css',
 })
@@ -139,7 +139,7 @@ export class Secretary implements OnInit, OnDestroy {
   readonly dialogOpen = signal(false);
   readonly dialogMode = signal<'create' | 'edit'>('create');
   editingId: string | null = null;
-  formDraft: CaseDraft = emptyDraft();
+  formDraft: any = emptyDraft();
   /** ملف مسح .ply اختياري عند الإنشاء/التعديل */
   selectedPlyFile: File | null = null;
   /** اسم ملف PLY المحفوظ مسبقاً (وضع التعديل) */
@@ -319,8 +319,8 @@ export class Secretary implements OnInit, OnDestroy {
       workType: d.workType.trim(),
       workDetail: (d.workDetail || '').trim(),
       color: (d.color || '').trim(),
-      size: (d.size || '').trim(),
-      quantity: d.quantity,
+      size: '',
+      quantity: Number(d.quantity) || 1,
       date: d.date,
       deliveryDate: d.deliveryDate || '',
       deliveryTime: d.deliveryTime || '',
