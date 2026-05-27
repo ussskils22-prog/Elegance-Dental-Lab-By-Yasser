@@ -188,6 +188,38 @@
   cursor: pointer; flex-shrink: 0;
 }
 
+/* Notifications dropdown */
+.notifications-anchor {
+  position: relative;
+}
+
+.notifications-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  min-width: 220px;
+  padding: 1rem;
+  background: var(--white);
+  border-radius: 14px;
+  box-shadow: 0 12px 36px rgba(15, 38, 79, 0.15);
+  border: 1px solid var(--gray-200);
+  z-index: 300;
+}
+
+.notifications-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--blue);
+}
+
+.notifications-empty {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--gray-500);
+}
+
+
 /* ══════════════════════════════════════════════════
    LIST VIEW
 ══════════════════════════════════════════════════ */
