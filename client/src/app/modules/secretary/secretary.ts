@@ -25,10 +25,13 @@ function emptyDraft(): CaseDraft {
   const month = months[today.getMonth()];
   const year = today.getFullYear();
 
-  // الوقت الحالي بصيغة HH:MM
-  const hours = String(today.getHours()).padStart(2, '0');
+  // الوقت الحالي بصيغة HH:MM م/ص
+  const rawHours = today.getHours();
+  const ampm = rawHours >= 12 ? 'م' : 'ص';
+  const hours12 = rawHours % 12 || 12;
+  const hours = String(hours12).padStart(2, '0');
   const minutes = String(today.getMinutes()).padStart(2, '0');
-  const currentTime = `${hours}:${minutes}`;
+  const currentTime = `${hours}:${minutes} ${ampm}`;
 
   // دمج التاريخ والوقت
   const dateWithTime = `${day} ${month} ${year} ${currentTime}`;
@@ -57,6 +60,42 @@ function emptyDraft(): CaseDraft {
   styleUrl: './secretary.css',
 })
 export class Secretary implements OnInit, OnDestroy {
+  formatDateValue(val: string): { date: string; time: string } {
+    if (!val) return { date: '', time: '' };
+    const parts = val.trim().split(' ');
+    if (parts.length >= 4) {
+      const datePart = parts.slice(0, 3).join(' ');
+      let timePart = parts.slice(3).join(' ');
+      if (timePart && !timePart.includes('م') && !timePart.includes('ص')) {
+        timePart = this.localTimeTo12Hour(timePart);
+      }
+      return { date: datePart, time: timePart };
+    }
+    const dateMatch = val.match(/^(\d{4}-\d{2}-\d{2})(?:\s+(.+))?$/);
+    if (dateMatch) {
+      const datePart = dateMatch[1];
+      let timePart = dateMatch[2] ? dateMatch[2].trim() : '';
+      if (timePart && !timePart.includes('م') && !timePart.includes('ص')) {
+        timePart = this.localTimeTo12Hour(timePart);
+      }
+      return { date: datePart, time: timePart };
+    }
+    return { date: val, time: '' };
+  }
+
+  private localTimeTo12Hour(timeStr: string): string {
+    const clean = timeStr.trim().slice(0, 5);
+    const parts = clean.split(':');
+    if (parts.length < 2) return timeStr;
+    let hour = parseInt(parts[0], 10);
+    const minute = parts[1];
+    if (isNaN(hour)) return timeStr;
+    const ampm = hour >= 12 ? 'م' : 'ص';
+    hour = hour % 12;
+    hour = hour ? hour : 12;
+    return `${hour}:${minute} ${ampm}`;
+  }
+
   private readonly svc = inject(SecretaryService);
   private readonly sharedCases = inject(SharedCasesService);
   private readonly auth = inject(AuthService);
