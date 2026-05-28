@@ -566,6 +566,7 @@ export class Secretary implements OnInit, OnDestroy {
     query: string
   ): number {
     const doctor = this.normalizeSearchText(caseItem.doctor).replace(/^د\s+/, '').replace(/^dr\s+/, '');
+    const patient = this.normalizeSearchText(caseItem.patient);
     const caseNumber = this.normalizeSearchText(caseItem.caseNumber);
     const queryTokens = query.split(' ').filter(Boolean);
     const patientHasAllTokens = queryTokens.every(token => patient.includes(token));
