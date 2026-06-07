@@ -125,7 +125,6 @@
       *ngFor="let c of filteredCases; let i = index"
       [class]="'case-card status-' + c.status"
       [style.animation-delay]="i * 60 + 'ms'"
-      (click)="openCase(c)"
       [class.finished-card]="c.status === 'finished'"
     >
       <div class="case-main">
@@ -167,11 +166,9 @@
           </div>
         </div>
       </div>
-      <div class="case-actions menu-anchor">
-        <button type="button" class="icon-btn" aria-label="تعديل" (click)="openCase(c); $event.stopPropagation()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 20h9M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
-          </svg>
+      <div class="case-actions">
+        <button type="button" class="btn-view" aria-label="عرض التفاصيل" (click)="openCase(c)">
+          عرض
         </button>
       </div>
     </div>

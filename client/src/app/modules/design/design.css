@@ -382,7 +382,6 @@
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
   transition: transform 0.2s ease, box-shadow .2s, border-color .2s;
   animation: fadeUp .35s ease both;
-  cursor: pointer;
   overflow: hidden;
 }
 .case-card:hover:not(.finished-card) {
@@ -574,24 +573,21 @@
   flex-shrink: 0;
 }
 
-.case-actions .icon-btn {
-  background: transparent;
-  border: none;
-  color: #94a3b8;
+.btn-view {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
   cursor: pointer;
-  padding: 5px;
-  border-radius: 6px;
   transition: all 0.2s;
 }
 
-.case-actions .icon-btn:hover {
-  background: #f0f4fa;
-  color: #64748b;
-}
-
-.case-actions .icon-btn svg {
-  width: 20px;
-  height: 20px;
+.btn-view:hover {
+  background: #dbeafe;
+  color: #1d4ed8;
 }
 
 /* ── Empty state ── */
