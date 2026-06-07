@@ -128,57 +128,42 @@
       (click)="openCase(c)"
       [class.finished-card]="c.status === 'finished'"
     >
-      <!-- Left accent bar -->
-      <div class="case-accent" [ngClass]="c.priority"></div>
-
-      <!-- Main content -->
-      <div class="case-body">
-        <div class="case-top-row">
-          <div class="case-id-group">
-            <span class="case-number">{{ c.caseNumber }}</span>
-
-          </div>
-          <span class="case-status-badge" [ngClass]="c.status">{{ statusLabel(c.status) }}</span>
+      <div class="case-main">
+        <div class="case-head">
+          <span class="case-id">{{ c.caseNumber }}</span>
+          <span class="case-phase-badge" [ngClass]="c.status">
+            {{ statusLabel(c.status) }}
+          </span>
         </div>
-
-        <div class="case-patient-row">
-          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-          </svg>
-          <span class="case-patient">{{ c.doctor }}</span>
-          <span class="case-requester-badge" [class.student]="c.requesterType === 'student'">
+        <div class="case-people">
+          <div class="doctor">{{ c.doctor }}</div>
+          <span class="requester-badge" [class.requester-badge--student]="c.requesterType === 'student'">
             {{ c.requesterType === 'student' ? 'طالب' : 'دكتور' }}
           </span>
-          <span class="case-ply-chip" *ngIf="c.plyScanUrl" title="مرفق مسح PLY">PLY</span>
+          <div class="patient">{{ c.patient }}</div>
         </div>
-
-        <div class="case-meta-row">
-          <div class="case-meta-item">
-            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-            </svg>
-            {{ c.patient }}
-          </div>
-          <div class="case-meta-item">
-            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-              <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>
-              <line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-            تسليم: {{ c.deliveryDate }}
+        <div class="case-work">
+          <div class="work-type">{{ c.workType }}</div>
+          <div class="work-detail">{{ c.workDetail }}</div>
+          <a *ngIf="c.plyScanUrl" class="case-ply-link" [href]="c.plyScanUrl" target="_blank" rel="noopener noreferrer" (click)="$event.stopPropagation()">
+              تنزيل / فتح ملف PLY
+              <span class="case-ply-name" *ngIf="c.plyFileName">({{ c.plyFileName }})</span>
+          </a>
+          <div class="case-spec">
+            <span class="spec-item">Color: {{ c.color }}</span>
+            <span class="spec-item">Qty: {{ c.quantity }}</span>
           </div>
         </div>
-      </div>
-
-      <!-- Arrow or finished check -->
-      <div class="case-arrow" *ngIf="c.status !== 'finished'">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-      </div>
-      <div class="case-finished-icon" *ngIf="c.status === 'finished'">
-        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-          <polyline points="20 6 9 17 4 12"/>
-        </svg>
+        <div class="case-meta">
+          <div class="date-block">
+            <span class="date-label">تاريخ الاستلام</span>
+            <span class="date-value">{{ (c.receivedDate || '').split(' ')[0] }}</span>
+          </div>
+          <div class="date-block" *ngIf="c.deliveryDate">
+            <span class="date-label">تاريخ التسليم</span>
+            <span class="date-value">{{ (c.deliveryDate || '').split(' ')[0] }}</span>
+          </div>
+        </div>
       </div>
     </div>
 
