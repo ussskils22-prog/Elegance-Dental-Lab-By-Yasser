@@ -388,91 +388,170 @@
 }
 .finished-card { cursor: default; opacity: .75; }
 
-/* Accent bar */
-.case-accent {
-  width: 5px; flex-shrink: 0;
-  border-radius: 0 4px 4px 0;
+/* Main Content Area */
+.case-main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 1.25rem 1.5rem;
 }
-.case-accent.emergency { background: var(--red); }
-.case-accent.normal    { background: var(--blue); }
-.case-accent.low       { background: var(--gray-300); }
 
-.case-body {
-  flex: 1; padding: 16px 18px;
-  display: flex; flex-direction: column; gap: 8px;
+/* Section 1: Doctor/Patient */
+.case-head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 180px;
+  gap: 6px;
+  min-width: 0;
+  max-width: 220px;
+}
+
+.case-id,
+.doctor,
+.patient,
+.work-type,
+.work-detail,
+.spec-item {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.case-id {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.case-phase-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 6px;
+  margin-top: 6px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.case-phase-badge.pending { background: #fef3c7; color: #b45309; border: 1px solid #fcd34d; }
+.case-phase-badge.in-progress { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+.case-phase-badge.under-khart { background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4; }
+.case-phase-badge.needs-revision { background: #fff5f5; color: #c53030; border: 1px solid #feb2b2; }
+.case-phase-badge.ready-for-finishing { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
+.case-phase-badge.finished { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+.case-phase-badge.exited { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
+
+.case-people {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.doctor {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.patient {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.requester-badge {
+  display: inline-flex;
+  width: fit-content;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #1e40af;
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+}
+
+.requester-badge.requester-badge--student {
+  color: #6d28d9;
+  background: #ede9fe;
+  border-color: #ddd6fe;
+}
+
+/* Section 2: Work Details */
+.case-work {
+  text-align: center;
+  min-width: 0;
+  max-width: 320px;
+}
+
+.work-type {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.case-spec {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 6px;
+  justify-content: center;
+}
+
+.spec-item {
+  background: #f8fafc;
+  color: #64748b;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  border: 1px solid #edf2f7;
+}
+
+/* Section 3: Date & Progress */
+.case-meta {
+  display: flex;
+  align-items: center;
+  gap: 3rem;
   min-width: 0;
 }
 
-.case-top-row {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 10px; flex-wrap: wrap;
+.date-block {
+  text-align: center;
 }
 
-.case-id-group { display: flex; align-items: center; gap: 8px; }
-
-.case-number {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px; font-weight: 600;
-  color: var(--navy);
+.date-label {
+  display: block;
+  font-size: 0.7rem;
+  color: #cbd5e1;
+  margin-bottom: 2px;
 }
 
-.case-priority-badge {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
-  padding: 3px 9px; border-radius: 12px;
+.date-value {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #475569;
 }
-.case-priority-badge.emergency { background: var(--red-light);   color: var(--red);   }
-.case-priority-badge.normal    { background: var(--blue-light);  color: var(--blue);  }
-.case-priority-badge.low       { background: var(--gray-100);    color: var(--gray-500); }
 
-.case-status-badge {
-  font-size: 11px; font-weight: 700;
-  padding: 4px 11px; border-radius: 12px;
-}
-.case-status-badge.pending            { background: var(--amber-light); color: var(--amber); }
-.case-status-badge.in-progress        { background: #e9d5ff;  color: #56038d;  }
-.case-status-badge.under-khart        { background: #ccfbf1;  color: #0f766e;  }
-.case-status-badge.needs-revision     { background: var(--red-light);   color: var(--red);   }
-.case-status-badge.ready-for-finishing { background: #dcfce7; color: #16a34a; }
-.case-status-badge.finished           { background: #dbf0ff; color: #0f4f7a; }
-
-.case-patient-row {
-  display: flex;
+.case-ply-link {
+  display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 7px 8px;
-  color: var(--gray-700);
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 4px 10px;
+  border-radius: 6px;
+  text-decoration: none;
+  margin-top: 6px;
 }
-.case-patient { font-size: 15px; font-weight: 700; }
 
-.case-requester-badge {
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-  padding: 2px 8px;
-  border-radius: 10px;
+.case-ply-link:hover {
   background: #dbeafe;
-  color: #1e40af;
 }
-
-.case-requester-badge.student {
-  background: #ede9fe;
-  color: #6d28d9;
-}
-
-.case-meta-row {
-  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
-}
-.case-meta-item {
-  display: flex; align-items: center; gap: 5px;
-  font-size: 12px; color: var(--gray-400);
-}
-
-.case-arrow, .case-finished-icon {
-  display: flex; align-items: center; justify-content: center;
-  padding: 0 16px; flex-shrink: 0;
-}
-.case-arrow { color: var(--gray-300); }
-.case-finished-icon { color: var(--green); }
 
 /* ── Empty state ── */
 .empty-state {
