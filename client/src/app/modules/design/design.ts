@@ -103,7 +103,7 @@ export class CaseDetailsComponent implements OnInit, OnDestroy {
   /* ── Work stages shown inside detail view ── */
   workStages: WorkStage[] = [
     { id: 'in-progress',    label: 'تحت الديزاين',    icon: 'clock'   },
-    { id: 'under-khart', label: 'تحت الخرط', icon: 'clock' },
+
     { id: 'ready-for-finishing', label: 'جاهزة للفينيش', icon: 'check' },
   ];
 
