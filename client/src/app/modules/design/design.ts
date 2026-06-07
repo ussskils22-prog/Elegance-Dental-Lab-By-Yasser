@@ -47,6 +47,7 @@ export class CaseDetailsComponent implements OnInit, OnDestroy {
   private socketSubs: Subscription[] = [];
   private autosaveTimer: ReturnType<typeof setTimeout> | null = null;
   private isAutosaving = false;
+  private reloadDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   /* ── View state ── */
   view: 'list' | 'detail' = 'list';
@@ -183,38 +184,38 @@ export class CaseDetailsComponent implements OnInit, OnDestroy {
       clearTimeout(this.autosaveTimer);
       this.autosaveTimer = null;
     }
+    if (this.reloadDebounceTimer) {
+      clearTimeout(this.reloadDebounceTimer);
+      this.reloadDebounceTimer = null;
+    }
     this.socketSubs.forEach((s) => s.unsubscribe());
     this.disposePlyInternals();
   }
 
   private connectRealtimeUpdates(): void {
     this.socketService.connect();
+    const scheduleReload = () => this.scheduleBackgroundReload();
     this.socketSubs.push(
-      this.socketService.onCaseCreated().subscribe((evt) => {
-        if (evt) this.reloadCasesFromBackend(false);
-      }),
-      this.socketService.onCaseMovedStage().subscribe((evt) => {
-        if (evt) this.reloadCasesFromBackend(false);
-      }),
-      this.socketService.onCaseAssigned().subscribe((evt) => {
-        if (evt) this.reloadCasesFromBackend(false);
-      }),
-      this.socketService.onCaseReassigned().subscribe((evt) => {
-        if (evt) this.reloadCasesFromBackend(false);
-      }),
-      this.socketService.onCaseCompleted().subscribe((evt) => {
-        if (evt) this.reloadCasesFromBackend(false);
-      }),
-      this.socketService.onCaseReleased().subscribe((evt) => {
-        if (evt) this.reloadCasesFromBackend(false);
-      }),
-      this.socketService.onCaseUpdated().subscribe((evt) => {
-        if (evt) this.reloadCasesFromBackend(false);
-      }),
-      this.socketService.onCaseDeleted().subscribe((evt) => {
-        if (evt) this.reloadCasesFromBackend(false);
-      })
+      this.socketService.onCaseCreated().subscribe((evt) => { if (evt) scheduleReload(); }),
+      this.socketService.onCaseMovedStage().subscribe((evt) => { if (evt) scheduleReload(); }),
+      this.socketService.onCaseAssigned().subscribe((evt) => { if (evt) scheduleReload(); }),
+      this.socketService.onCaseReassigned().subscribe((evt) => { if (evt) scheduleReload(); }),
+      this.socketService.onCaseCompleted().subscribe((evt) => { if (evt) scheduleReload(); }),
+      this.socketService.onCaseReleased().subscribe((evt) => { if (evt) scheduleReload(); }),
+      this.socketService.onCaseUpdated().subscribe((evt) => { if (evt) scheduleReload(); }),
+      this.socketService.onCaseDeleted().subscribe((evt) => { if (evt) scheduleReload(); })
     );
+  }
+
+  /** تأخير تحديث القائمة 2 ثانية لتجنب الوميض المتكرر */
+  private scheduleBackgroundReload(): void {
+    if (this.reloadDebounceTimer) {
+      clearTimeout(this.reloadDebounceTimer);
+    }
+    this.reloadDebounceTimer = setTimeout(() => {
+      this.reloadDebounceTimer = null;
+      this.reloadCasesFromBackend(false);
+    }, 2000);
   }
 
   private reloadCasesFromBackend(showErrorToast: boolean = true): void {
@@ -243,8 +244,14 @@ export class CaseDetailsComponent implements OnInit, OnDestroy {
 
   /* ════════ COMPUTED ════════ */
 
+  /** الحالات المرئية للديزاينر - تستثني الخارجة (exited) */
+  get designerVisibleCases(): DentalCase[] {
+    return this.cases.filter(c => c.status !== 'exited');
+  }
+
   get filteredCases(): DentalCase[] {
-    let filtered = this.cases;
+    // الديزاينر لا يرى الحالات الخارجة
+    let filtered = this.designerVisibleCases;
 
     // Apply status filter
     if (this.activeFilter !== 'all') {
@@ -265,14 +272,15 @@ export class CaseDetailsComponent implements OnInit, OnDestroy {
   }
 
   get counts() {
+    const visible = this.designerVisibleCases;
     return {
-      all:            this.cases.length,
-      pending:        this.cases.filter(c => c.status === 'pending').length,
-      'in-progress':  this.cases.filter(c => c.status === 'in-progress').length,
-      'needs-revision': this.cases.filter(c => c.status === 'needs-revision').length,
-      'ready-for-finishing': this.cases.filter(c => c.status === 'ready-for-finishing').length,
-      'under-khart': this.cases.filter(c => c.status === 'under-khart').length,
-      finished:       this.cases.filter(c => c.status === 'finished').length,
+      all:            visible.length,
+      pending:        visible.filter(c => c.status === 'pending').length,
+      'in-progress':  visible.filter(c => c.status === 'in-progress').length,
+      'needs-revision': visible.filter(c => c.status === 'needs-revision').length,
+      'ready-for-finishing': visible.filter(c => c.status === 'ready-for-finishing').length,
+      'under-khart': visible.filter(c => c.status === 'under-khart').length,
+      finished:       visible.filter(c => c.status === 'finished').length,
     };
   }
 
