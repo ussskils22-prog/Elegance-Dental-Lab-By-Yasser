@@ -177,7 +177,9 @@ export function mapApiCaseToDentalCase(doc: Record<string, unknown>): DentalCase
   const quantity =
     typeof quantityRaw === 'number' && !Number.isNaN(quantityRaw)
       ? quantityRaw
-      : Number(quantityRaw) || 1;
+      : quantityRaw !== undefined && quantityRaw !== null && quantityRaw !== '' && !Number.isNaN(Number(quantityRaw))
+        ? Number(quantityRaw)
+        : 1;
   const deliveryDate = String(meta['deliveryDate'] ?? '');
   const deliveryTime = String(meta['deliveryTime'] ?? '');
   const receivedDateMeta = String(meta['receivedDate'] ?? '');
