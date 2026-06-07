@@ -187,7 +187,8 @@ export class Secretary implements OnInit, OnDestroy {
   /** Work Type chip options */
   readonly workTypeOptions = [
     'Try in', 'Zr', 'Zr Ger', 'Pmma Cad',
-    'Emax', 'Peek', 'Titanium', 'Night Gard'
+    'Emax', 'Peek', 'Titanium', 'Night Gard',
+    'Mokup', 'cast'
   ];
   selectedWorkTypes = new Set<string>();
   workTypeError = '';
@@ -196,8 +197,7 @@ export class Secretary implements OnInit, OnDestroy {
    * Toggle a work type chip.
    * Rules:
    *  - At least 1 must be selected
-   *  - Only allowed combos of 2: (Zr + Try in) or (Zr Ger + Try in)
-   *  - Otherwise only 1 selection at a time
+   *  - Only one selection allowed at a time (no mixing)
    */
   toggleWorkType(type: string): void {
     this.workTypeError = '';
@@ -205,34 +205,9 @@ export class Secretary implements OnInit, OnDestroy {
       // Uncheck
       this.selectedWorkTypes.delete(type);
     } else {
-      // Check — apply constraints
-      const current = [...this.selectedWorkTypes];
-      if (current.length === 0) {
-        // First selection, always allowed
-        this.selectedWorkTypes.add(type);
-      } else if (current.length === 1) {
-        const existing = current[0];
-        // Check if the pair is allowed
-        const allowedPairs = [
-          new Set(['Zr', 'Try in']),
-          new Set(['Zr Ger', 'Try in']),
-        ];
-        const proposedPair = new Set([existing, type]);
-        const isAllowed = allowedPairs.some(
-          pair => pair.size === proposedPair.size && [...pair].every(v => proposedPair.has(v))
-        );
-        if (isAllowed) {
-          this.selectedWorkTypes.add(type);
-        } else {
-          // Replace: only one type allowed
-          this.selectedWorkTypes.clear();
-          this.selectedWorkTypes.add(type);
-        }
-      } else {
-        // Already 2 selected, replace all with new
-        this.selectedWorkTypes.clear();
-        this.selectedWorkTypes.add(type);
-      }
+      // Replace with new selection
+      this.selectedWorkTypes.clear();
+      this.selectedWorkTypes.add(type);
     }
     // Sync to formDraft
     this.formDraft.workType = [...this.selectedWorkTypes].join(' + ');
@@ -240,24 +215,6 @@ export class Secretary implements OnInit, OnDestroy {
 
   isWorkTypeSelected(type: string): boolean {
     return this.selectedWorkTypes.has(type);
-  }
-
-  isWorkTypeDisabled(type: string): boolean {
-    if (this.selectedWorkTypes.has(type)) return false;
-    if (this.selectedWorkTypes.size === 0) return false;
-    if (this.selectedWorkTypes.size >= 2) return false; // will replace
-    // size === 1, check if adding this would form an allowed pair
-    const existing = [...this.selectedWorkTypes][0];
-    const allowedPairs = [
-      new Set(['Zr', 'Try in']),
-      new Set(['Zr Ger', 'Try in']),
-    ];
-    const proposedPair = new Set([existing, type]);
-    const wouldBePair = allowedPairs.some(
-      pair => pair.size === proposedPair.size && [...pair].every(v => proposedPair.has(v))
-    );
-    // Not disabled — either it forms a valid pair, or it will replace
-    return false;
   }
 
   readonly filterOpen = signal(false);
