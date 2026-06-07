@@ -100,6 +100,42 @@ export class CaseDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
+  formatDateValue(val: string): { date: string; time: string } {
+    if (!val) return { date: '', time: '' };
+    const parts = val.trim().split(' ');
+    if (parts.length >= 4) {
+      const datePart = parts.slice(0, 3).join(' ');
+      let timePart = parts.slice(3).join(' ');
+      if (timePart && !timePart.includes('م') && !timePart.includes('ص')) {
+        timePart = this.localTimeTo12Hour(timePart);
+      }
+      return { date: datePart, time: timePart };
+    }
+    const dateMatch = val.match(/^(\d{4}-\d{2}-\d{2})(?:\s+(.+))?$/);
+    if (dateMatch) {
+      const datePart = dateMatch[1];
+      let timePart = dateMatch[2] ? dateMatch[2].trim() : '';
+      if (timePart && !timePart.includes('م') && !timePart.includes('ص')) {
+        timePart = this.localTimeTo12Hour(timePart);
+      }
+      return { date: datePart, time: timePart };
+    }
+    return { date: val, time: '' };
+  }
+
+  private localTimeTo12Hour(timeStr: string): string {
+    const clean = timeStr.trim().slice(0, 5);
+    const parts = clean.split(':');
+    if (parts.length < 2) return timeStr;
+    let hour = parseInt(parts[0], 10);
+    const minute = parts[1];
+    if (isNaN(hour)) return timeStr;
+    const ampm = hour >= 12 ? 'م' : 'ص';
+    hour = hour % 12;
+    hour = hour ? hour : 12;
+    return `${hour}:${minute} ${ampm}`;
+  }
+
   /* ── Work stages shown inside detail view ── */
   workStages: WorkStage[] = [
     { id: 'in-progress',    label: 'تحت الديزاين',    icon: 'clock'   },
