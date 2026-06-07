@@ -1,109 +1,177 @@
-<div class="finishing-page">
-  <div class="header-card">
-    <div class="list-header">
-      <div>
-        <h1 class="list-title">Finishing Queue</h1>
-        <p class="list-subtitle">ترتيب الحالات الجاهزة من الديزاين وإنهاؤها للمحاسبة</p>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
-        <button
-          type="button"
-          (click)="logout()"
-          title="Logout"
-          style="padding:8px 12px;border-radius:10px;border:1px solid var(--color-border-secondary,#e2e8f0);background:transparent;cursor:pointer;font-size:12px;color:inherit;"
-        >
-          Logout
-        </button>
-        <div class="list-total-badge">{{ counts.all }} حالة</div>
+<div class="finisher" dir="rtl">
+
+  <!-- Toast -->
+  @if (toast) {
+    <div class="toast" role="status">{{ toast }}</div>
+  }
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="avatar" aria-label="Elegance Precision Labs Logo">
+        <div class="elegance-logo-container">
+          <svg viewBox="0 0 100 100" fill="none" class="elegance-logo-svg">
+            <path d="M 32,25 C 20,25 15,45 25,68 C 32,82 46,85 48,72 C 44,64 36,48 40,36 C 44,24 52,28 58,26" stroke="url(#logo-grad-f)" stroke-width="5.5" stroke-linecap="round" />
+            <path d="M 68,25 C 80,25 85,45 75,68 C 68,82 54,85 52,72 C 56,64 64,48 60,36 C 56,24 48,28 42,26" stroke="url(#logo-grad-f)" stroke-width="5.5" stroke-linecap="round" />
+            <defs>
+              <linearGradient id="logo-grad-f" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#2563eb" />
+                <stop offset="100%" stop-color="#0d9488" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
       </div>
     </div>
 
-    <div class="search">
-      <input type="text" [(ngModel)]="searchTerm" placeholder="Search by case, patient, doctor..." />
-    </div>
-  </div>
-
-  <div class="layout">
-    <div class="queue-card">
-      <div class="card-title-row">
-        <h2>Cases</h2>
-        <span class="mini-badge">{{ queueCases.length }}</span>
+    <div class="topbar-center">
+      <div class="elegance-navbar-brand">
+        <span class="elegance-navbar-dot"></span>
+        <span class="elegance-navbar-title">Elegance</span>
+        <span class="elegance-navbar-dot"></span>
       </div>
-      <div class="empty" *ngIf="!queueCases.length">لا توجد حالات في هذا التصنيف.</div>
-      <button
-        class="case-row"
-        [class.active]="selectedCase?.id === c.id"
-        *ngFor="let c of queueCases"
-        (click)="takeCase(c)"
-      >
-        <div class="case-main">
-          <strong>{{ c.caseNumber }}</strong>
-          <div class="patient">{{ c.patient }}</div>
-          <span class="requester-badge" [class.student]="c.requesterType === 'student'">
-            {{ c.requesterType === 'student' ? 'طالب' : 'دكتور' }}
-          </span>
-          <div class="case-meta">{{ c.deliveryDate || 'No delivery date' }}</div>
-        </div>
-        <div class="case-side">
-          <small class="doctor">{{ c.doctor }}</small>
-          <span class="status-badge ready">Ready</span>
-        </div>
+      <p class="elegance-navbar-sub">Precision Labs</p>
+    </div>
+
+    <div class="topbar-right">
+      <button type="button" class="icon-btn" aria-label="تسجيل الخروج" (click)="logout()" title="تسجيل الخروج">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+        </svg>
       </button>
     </div>
+  </header>
 
-    <div class="details-card" *ngIf="selectedCase; else selectHint">
-      <div class="card-title-row">
-        <h2>Case Details</h2>
-        <span class="status-chip">In Finishing</span>
+  <main class="dashboard">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-text">
+        <h1>قسم الفينيش</h1>
+        <p>الحالات الجاهزة من الديزاين وإنهاؤها للمحاسبة</p>
       </div>
-      <div class="details-grid">
-        <div><span>Case</span><strong>{{ selectedCase.caseNumber }}</strong></div>
-        <div><span>Patient</span><strong>{{ selectedCase.patient }}</strong></div>
-        <div><span>Doctor</span><strong>{{ selectedCase.doctor }}</strong></div>
-        <div><span>Requester</span><strong>{{ selectedCase.requesterType === 'student' ? 'طالب' : 'دكتور' }}</strong></div>
-        <div><span>Phone</span><strong>{{ selectedCase.patientPhone || '-' }}</strong></div>
-        <div><span>Delivery</span><strong>{{ selectedCase.deliveryDate || '-' }}</strong></div>
-      </div>
+      <div class="list-total-badge">{{ queueCases.length }} حالة</div>
+    </div>
 
-      <div class="detail-block">
-        <span class="detail-block-title">Secretary Details</span>
-        <div class="work-chips">
-          <span class="work-chip">Type: {{ selectedCase.workType || '-' }}</span>
-          <span class="work-chip">Detail: {{ selectedCase.workDetail || '-' }}</span>
-          <span class="work-chip">Color: {{ selectedCase.color || '-' }}</span>
-          <span class="work-chip">Size: {{ selectedCase.size || '-' }}</span>
-          <span class="work-chip">Qty: {{ selectedCase.quantity || 0 }}</span>
-        </div>
-        <div class="note-preview">
-          {{ selectedCase.instructions || 'لا توجد ملاحظات من السكرتيرة.' }}
-        </div>
-      </div>
-
-      <div class="detail-block">
-        <span class="detail-block-title">Designer Notes</span>
-        <div class="note-preview">
-          {{ selectedCase.designNotes || 'لا توجد ملاحظات من الديزاينر بعد.' }}
-        </div>
-      </div>
-
-      <label>Finishing Notes</label>
-      <textarea rows="5" [(ngModel)]="notes" placeholder="Write finishing notes..."></textarea>
-
-      <div class="actions">
-        <button type="button" class="secondary" (click)="closeCase()">Cancel</button>
-        <button
-          type="button"
-          class="primary"
-          [disabled]="isCompleting"
-          (click)="markAsCompleted()"
-        >
-          {{ isCompleting ? 'Completing...' : 'Mark as Completed' }}
-        </button>
+    <!-- Search -->
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="11" cy="11" r="7" />
+            <path stroke-linecap="round" d="M20 20l-3.3-3.3" />
+          </svg>
+        </span>
+        <input
+          type="search"
+          class="search-input"
+          placeholder="ابحث برقم الحالة أو اسم الطبيب أو المريض..."
+          [(ngModel)]="searchTerm"
+        />
       </div>
     </div>
 
-    <ng-template #selectHint>
-      <div class="details-card hint">اختار حالة من القائمة علشان تبدأ شغل الفينيش.</div>
-    </ng-template>
-  </div>
+    <!-- Case List -->
+    <section class="case-list" aria-label="قائمة الحالات">
+      @for (c of queueCases; track c.id) {
+        <article class="case-card">
+          <div class="case-main">
+            <!-- Doctor / Patient -->
+            <div class="case-head">
+              <span class="case-id">{{ c.caseNumber }}</span>
+              <div class="doctor">{{ c.doctor }}</div>
+              @if (c.requesterType === 'student') {
+                <span class="requester-badge requester-badge--student">طالب</span>
+              } @else {
+                <span class="requester-badge">دكتور</span>
+              }
+              <div class="patient">المريض: {{ c.patient }}</div>
+            </div>
+
+            <!-- Work Details -->
+            <div class="case-work">
+              <div class="work-type">{{ c.workType }}</div>
+              <div class="work-detail">{{ c.workDetail }}</div>
+              <div class="case-spec">
+                <span class="spec-item">Color: {{ c.color }}</span>
+                <span class="spec-item">Qty: {{ c.quantity }}</span>
+              </div>
+            </div>
+
+            <!-- Dates -->
+            <div class="case-meta">
+              <div class="date-block">
+                <span class="date-label">تاريخ الاستلام</span>
+                <span class="date-value">{{ formatDateValue(c.receivedDate).date }}</span>
+                @if (formatDateValue(c.receivedDate).time) {
+                  <span class="time-value">{{ formatDateValue(c.receivedDate).time }}</span>
+                }
+              </div>
+              @if (c.deliveryDate) {
+                <div class="date-block">
+                  <span class="date-label">تاريخ التسليم</span>
+                  <span class="date-value">{{ formatDateValue(c.deliveryDate).date }}</span>
+                  @if (formatDateValue(c.deliveryDate).time) {
+                    <span class="time-value">{{ formatDateValue(c.deliveryDate).time }}</span>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Status badge -->
+            <span class="case-phase-badge finishing">جاهزة</span>
+          </div>
+
+          <!-- Exit Button -->
+          <div class="case-actions">
+            <button
+              type="button"
+              class="btn-exit"
+              aria-label="إخراج الحالة"
+              title="إخراج الحالة"
+              [disabled]="exitingId === c.id"
+              (click)="requestExit(c); $event.stopPropagation()"
+            >
+              @if (exitingId === c.id) {
+                <svg class="spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10" stroke-dasharray="31.4" stroke-dashoffset="10" stroke-linecap="round"/>
+                </svg>
+              }
+              إخراج
+            </button>
+          </div>
+        </article>
+      } @empty {
+        <p class="empty-list">لا توجد حالات جاهزة للفينيش.</p>
+      }
+    </section>
+  </main>
+
+  <!-- Confirm Exit Modal -->
+  @if (exitConfirmCase) {
+    <div class="modal-backdrop" role="presentation" (click)="cancelExit()">
+      <div class="modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+        <div class="modal-icon">
+          <svg width="28" height="28" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+        </div>
+        <h2 class="modal-title">تأكيد إخراج الحالة</h2>
+        <p class="modal-desc">
+          هل أنت متأكد من إخراج حالة
+          <strong>{{ exitConfirmCase.patient }}</strong>
+          رقم <strong>{{ exitConfirmCase.caseNumber }}</strong>؟
+        </p>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" (click)="cancelExit()">إلغاء</button>
+          <button type="button" class="btn-confirm-exit" [disabled]="exitingId === exitConfirmCase.id" (click)="confirmExit()">
+            @if (exitingId === exitConfirmCase.id) {
+              جارٍ الإخراج...
+            } @else {
+              نعم، إخراج الحالة
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
 </div>

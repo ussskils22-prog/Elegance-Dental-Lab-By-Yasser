@@ -6,7 +6,7 @@ import { Subscription } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { DentalCase, SharedCasesService } from '../../core/services/shared-cases.service';
 import { CaseApiService } from '../../core/services/case-api.service';
-import { buildDesignerNotesMeta, mapApiCaseToDentalCase, sanitizeCaseImageListForStorage } from '../../core/mappers/dental-case-api.mapper';
+import { mapApiCaseToDentalCase } from '../../core/mappers/dental-case-api.mapper';
 import { SocketService } from '../../core/services/socket.service';
 
 @Component({
@@ -23,11 +23,13 @@ export class Finishing implements OnInit, OnDestroy {
   private readonly caseApi = inject(CaseApiService);
   private readonly socketService = inject(SocketService);
   private socketSubs: Subscription[] = [];
+  private reloadDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-  selectedCase: DentalCase | null = null;
-  notes = '';
-  isCompleting = false;
   searchTerm = '';
+  exitConfirmCase: DentalCase | null = null;
+  exitingId: string | null = null;
+  toast = '';
+  private toastTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit(): void {
     this.reloadCasesFromBackend();
@@ -36,8 +38,15 @@ export class Finishing implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.socketSubs.forEach((s) => s.unsubscribe());
+    if (this.reloadDebounceTimer) clearTimeout(this.reloadDebounceTimer);
+    if (this.toastTimer) clearTimeout(this.toastTimer);
   }
 
+  logout(): void {
+    this.auth.performLogout(this.router);
+  }
+
+  /* ── Cases ── */
   private get readyForFinishingCases(): DentalCase[] {
     return this.sharedCasesService.cases().filter(c => c.status === 'ready-for-finishing');
   }
@@ -45,9 +54,7 @@ export class Finishing implements OnInit, OnDestroy {
   get queueCases(): DentalCase[] {
     const search = this.searchTerm.trim().toLowerCase();
     const queue = this.readyForFinishingCases;
-
     if (!search) return queue;
-
     return queue.filter(c =>
       c.caseNumber.toLowerCase().includes(search) ||
       c.patient.toLowerCase().includes(search) ||
@@ -55,92 +62,79 @@ export class Finishing implements OnInit, OnDestroy {
     );
   }
 
-  get counts() {
-    return {
-      all: this.readyForFinishingCases.length
-    };
+  /* ── Exit flow ── */
+  requestExit(c: DentalCase): void {
+    this.exitConfirmCase = c;
   }
 
-  takeCase(caseItem: DentalCase): void {
-    this.selectedCase = { ...caseItem };
-    this.notes = caseItem.finishingNotes || '';
+  cancelExit(): void {
+    this.exitConfirmCase = null;
   }
 
-  closeCase(): void {
-    this.selectedCase = null;
-    this.notes = '';
-  }
+  confirmExit(): void {
+    if (!this.exitConfirmCase) return;
+    const c = this.exitConfirmCase;
+    this.exitConfirmCase = null;
+    this.exitingId = c.id;
 
-  logout(): void {
-    this.auth.performLogout(this.router);
-  }
-
-  async markAsCompleted(): Promise<void> {
-    if (!this.selectedCase || this.selectedCase.status !== 'ready-for-finishing') return;
-
-    this.isCompleting = true;
-    const payload = this.buildFinisherUpdatePayload(this.selectedCase, this.notes);
-    this.caseApi.updateCase(this.selectedCase.id, payload).subscribe({
+    this.caseApi.completeCase(c.id).subscribe({
       next: () => {
-        this.caseApi.completeCase(this.selectedCase!.id).subscribe({
-          next: () => {
-            this.isCompleting = false;
-            this.reloadCasesFromBackend();
-            this.closeCase();
-          },
-          error: () => {
-            this.isCompleting = false;
-          },
-        });
+        this.exitingId = null;
+        this.showToast('تم إخراج الحالة بنجاح ✅');
+        this.reloadCasesFromBackend();
       },
       error: () => {
-        this.isCompleting = false;
+        this.exitingId = null;
+        this.showToast('فشل إخراج الحالة، حاول مرة أخرى');
       },
     });
   }
 
-  private buildFinisherUpdatePayload(dentalCase: DentalCase, finishingNotes: string): Record<string, unknown> {
-    const [deliveryDateRaw = '', deliveryTimeRaw = ''] = (dentalCase.deliveryDate || '').split(' ');
-    const dueDateIso =
-      /^\d{4}-\d{2}-\d{2}/.test(deliveryDateRaw)
-        ? new Date(`${deliveryDateRaw}T${(deliveryTimeRaw || '18:00').slice(0, 5)}:00`).toISOString()
-        : new Date().toISOString();
-
-    const notesMeta = buildDesignerNotesMeta({
-      requesterType: dentalCase.requesterType === 'student' ? 'student' : 'doctor',
-      doctor: dentalCase.doctor,
-      workDetail: dentalCase.workDetail,
-      color: dentalCase.color,
-      size: dentalCase.size,
-      quantity: dentalCase.quantity,
-      deliveryDate: deliveryDateRaw,
-      deliveryTime: deliveryTimeRaw,
-      receivedDate: dentalCase.receivedDate,
-      instructions: dentalCase.instructions || '',
-      designNotes: dentalCase.designNotes || '',
-      finishingNotes: finishingNotes || '',
-      selectedFileName: dentalCase.selectedFileName || '',
-      designImages: sanitizeCaseImageListForStorage(dentalCase.designImages),
-      uiStatusOverride:
-        dentalCase.status === 'under-khart'
-          ? 'under-khart'
-          : dentalCase.status === 'ready-for-finishing'
-            ? 'ready-for-finishing'
-            : 'in-progress',
-    });
-
-    return {
-      patientName: dentalCase.patient,
-      patientEmail: dentalCase.patientEmail || `case+${Date.now()}@mylab.com`,
-      patientPhone: dentalCase.patientPhone || '0000000000',
-      requesterType: dentalCase.requesterType === 'student' ? 'student' : 'doctor',
-      caseType: dentalCase.workType || 'General',
-      priority: dentalCase.priority === 'emergency' ? 'urgent' : dentalCase.priority,
-      dueDate: dueDateIso,
-      notes: notesMeta,
-    };
+  /* ── Toast ── */
+  showToast(msg: string): void {
+    this.toast = msg;
+    if (this.toastTimer) clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => { this.toast = ''; }, 3000);
   }
 
+  /* ── Date formatting ── */
+  formatDateValue(val: string): { date: string; time: string } {
+    if (!val) return { date: '', time: '' };
+    const parts = val.trim().split(' ');
+    if (parts.length >= 4) {
+      const datePart = parts.slice(0, 3).join(' ');
+      let timePart = parts.slice(3).join(' ');
+      if (timePart && !timePart.includes('م') && !timePart.includes('ص')) {
+        timePart = this.localTimeTo12Hour(timePart);
+      }
+      return { date: datePart, time: timePart };
+    }
+    const dateMatch = val.match(/^(\d{4}-\d{2}-\d{2})(?:\s+(.+))?$/);
+    if (dateMatch) {
+      const datePart = dateMatch[1];
+      let timePart = dateMatch[2] ? dateMatch[2].trim() : '';
+      if (timePart && !timePart.includes('م') && !timePart.includes('ص')) {
+        timePart = this.localTimeTo12Hour(timePart);
+      }
+      return { date: datePart, time: timePart };
+    }
+    return { date: val, time: '' };
+  }
+
+  private localTimeTo12Hour(timeStr: string): string {
+    const clean = timeStr.trim().slice(0, 5);
+    const parts = clean.split(':');
+    if (parts.length < 2) return timeStr;
+    let hour = parseInt(parts[0], 10);
+    const minute = parts[1];
+    if (isNaN(hour)) return timeStr;
+    const ampm = hour >= 12 ? 'م' : 'ص';
+    hour = hour % 12;
+    hour = hour ? hour : 12;
+    return `${hour}:${minute} ${ampm}`;
+  }
+
+  /* ── Backend ── */
   private reloadCasesFromBackend(): void {
     this.caseApi.getAllCases(1, 500).subscribe({
       next: (res) => {
@@ -152,33 +146,26 @@ export class Finishing implements OnInit, OnDestroy {
     });
   }
 
+  private scheduleBackgroundReload(): void {
+    if (this.reloadDebounceTimer) clearTimeout(this.reloadDebounceTimer);
+    this.reloadDebounceTimer = setTimeout(() => {
+      this.reloadDebounceTimer = null;
+      this.reloadCasesFromBackend();
+    }, 2000);
+  }
+
   private connectRealtimeUpdates(): void {
     this.socketService.connect();
+    const reload = () => this.scheduleBackgroundReload();
     this.socketSubs.push(
-      this.socketService.onCaseCreated().subscribe((evt) => {
-        if (evt) this.reloadCasesFromBackend();
-      }),
-      this.socketService.onCaseMovedStage().subscribe((evt) => {
-        if (evt) this.reloadCasesFromBackend();
-      }),
-      this.socketService.onCaseAssigned().subscribe((evt) => {
-        if (evt) this.reloadCasesFromBackend();
-      }),
-      this.socketService.onCaseReassigned().subscribe((evt) => {
-        if (evt) this.reloadCasesFromBackend();
-      }),
-      this.socketService.onCaseReleased().subscribe((evt) => {
-        if (evt) this.reloadCasesFromBackend();
-      }),
-      this.socketService.onCaseCompleted().subscribe((evt) => {
-        if (evt) this.reloadCasesFromBackend();
-      }),
-      this.socketService.onCaseUpdated().subscribe((evt) => {
-        if (evt) this.reloadCasesFromBackend();
-      }),
-      this.socketService.onCaseDeleted().subscribe((evt) => {
-        if (evt) this.reloadCasesFromBackend();
-      })
+      this.socketService.onCaseCreated().subscribe((e) => { if (e) reload(); }),
+      this.socketService.onCaseMovedStage().subscribe((e) => { if (e) reload(); }),
+      this.socketService.onCaseAssigned().subscribe((e) => { if (e) reload(); }),
+      this.socketService.onCaseReassigned().subscribe((e) => { if (e) reload(); }),
+      this.socketService.onCaseReleased().subscribe((e) => { if (e) reload(); }),
+      this.socketService.onCaseCompleted().subscribe((e) => { if (e) reload(); }),
+      this.socketService.onCaseUpdated().subscribe((e) => { if (e) reload(); }),
+      this.socketService.onCaseDeleted().subscribe((e) => { if (e) reload(); })
     );
   }
 }
