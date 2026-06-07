@@ -371,15 +371,19 @@
 }
 
 .case-card {
-  display: flex; align-items: stretch;
-  background: var(--white);
-  border-radius: var(--radius);
-  border: 1px solid var(--gray-200);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-  cursor: pointer;
-  transition: transform .2s, box-shadow .2s, border-color .2s;
+  display: flex;
+  flex-direction: row; /* Flex will follow direction: rtl automatically */
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid #f1f5f9;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, box-shadow .2s, border-color .2s;
   animation: fadeUp .35s ease both;
+  cursor: pointer;
+  overflow: hidden;
 }
 .case-card:hover:not(.finished-card) {
   transform: translateY(-3px);
@@ -396,7 +400,6 @@
   align-items: center;
   justify-content: space-between;
   gap: 2rem;
-  padding: 1.25rem 1.5rem;
 }
 
 /* Section 1: Doctor/Patient */
@@ -519,20 +522,30 @@
 }
 
 .date-block {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
 }
 
 .date-label {
-  display: block;
-  font-size: 0.7rem;
-  color: #cbd5e1;
-  margin-bottom: 2px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--gray-400); /* mapping --muted to --gray-400 if --muted is undefined */
+  text-transform: uppercase;
 }
 
 .date-value {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #475569;
+  font-weight: 800;
+  font-size: 0.92rem;
+  color: var(--navy); /* mapping --text to --navy */
+}
+
+.time-value {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-top: 2px;
 }
 
 .case-ply-link {
@@ -551,6 +564,34 @@
 
 .case-ply-link:hover {
   background: #dbeafe;
+}
+
+/* Actions */
+.case-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.case-actions .icon-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.case-actions .icon-btn:hover {
+  background: #f0f4fa;
+  color: #64748b;
+}
+
+.case-actions .icon-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 /* ── Empty state ── */
