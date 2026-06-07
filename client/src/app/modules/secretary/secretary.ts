@@ -188,7 +188,7 @@ export class Secretary implements OnInit, OnDestroy {
   readonly workTypeOptions = [
     'Try in', 'Zr', 'Zr Ger', 'Pmma Cad',
     'Emax', 'Peek', 'Titanium', 'Night Gard',
-    'Mokup', 'cast'
+    'Mokup', 'cast', 'Empty', 'Remake'
   ];
   selectedWorkTypes = new Set<string>();
   workTypeError = '';
@@ -196,25 +196,57 @@ export class Secretary implements OnInit, OnDestroy {
   /**
    * Toggle a work type chip.
    * Rules:
-   *  - At least 1 must be selected
-   *  - Only one selection allowed at a time (no mixing)
+   *  - عادي: اختيار واحد فقط
+   *  - لو Remake محدد: يقدر يختار Remake + نوع واحد تاني بس
+   *  - Empty: اختيار واحد فقط بدون تركيب
    */
   toggleWorkType(type: string): void {
     this.workTypeError = '';
+
     if (this.selectedWorkTypes.has(type)) {
       // Uncheck
       this.selectedWorkTypes.delete(type);
     } else {
-      // Replace with new selection
-      this.selectedWorkTypes.clear();
-      this.selectedWorkTypes.add(type);
+      const isRemakeActive = this.selectedWorkTypes.has('Remake');
+      const isSelectingRemake = type === 'Remake';
+      const isSelectingEmpty = type === 'Empty';
+
+      if (isSelectingEmpty) {
+        // Empty: اختيار مستقل - يمسح كل حاجة
+        this.selectedWorkTypes.clear();
+        this.selectedWorkTypes.add('Empty');
+      } else if (isSelectingRemake) {
+        // تحديد Remake: يمسح أي اختيار سابق ما عدا نوع واحد تاني
+        const otherSelected = [...this.selectedWorkTypes].filter(t => t !== 'Remake' && t !== 'Empty');
+        this.selectedWorkTypes.clear();
+        this.selectedWorkTypes.add('Remake');
+        // يحتفظ بنوع واحد فقط لو كان موجود
+        if (otherSelected.length > 0) {
+          this.selectedWorkTypes.add(otherSelected[0]);
+        }
+      } else if (isRemakeActive) {
+        // Remake شغال: يقدر يختار نوع تاني واحد بس معاه
+        const otherSelected = [...this.selectedWorkTypes].filter(t => t !== 'Remake');
+        // يمسح الاختيار السابق ويحط الجديد
+        otherSelected.forEach(t => this.selectedWorkTypes.delete(t));
+        this.selectedWorkTypes.add(type);
+      } else {
+        // عادي: اختيار واحد فقط
+        this.selectedWorkTypes.clear();
+        this.selectedWorkTypes.add(type);
+      }
     }
+
     // Sync to formDraft
     this.formDraft.workType = [...this.selectedWorkTypes].join(' + ');
   }
 
   isWorkTypeSelected(type: string): boolean {
     return this.selectedWorkTypes.has(type);
+  }
+
+  get isRemakeMode(): boolean {
+    return this.selectedWorkTypes.has('Remake');
   }
 
   readonly filterOpen = signal(false);
