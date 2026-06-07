@@ -80,9 +80,7 @@
     <button class="filter-tab filter-progress" [class.active]="activeFilter === 'in-progress'" (click)="setFilter('in-progress')">
       تحت الديزاين <span class="tab-count">{{ counts['in-progress'] }}</span>
     </button>
-    <button class="filter-tab filter-under-khart" [class.active]="activeFilter === 'under-khart'" (click)="setFilter('under-khart')">
-      تحت الخرط <span class="tab-count">{{ counts['under-khart'] }}</span>
-    </button>
+
     <button class="filter-tab filter-ready" [class.active]="activeFilter === 'ready-for-finishing'" (click)="setFilter('ready-for-finishing')">
       جاهزة للفينيش <span class="tab-count">{{ counts['ready-for-finishing'] }}</span>
     </button>
