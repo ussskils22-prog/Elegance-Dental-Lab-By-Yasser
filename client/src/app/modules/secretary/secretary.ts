@@ -184,6 +184,82 @@ export class Secretary implements OnInit, OnDestroy {
   /** اسم ملف PLY المحفوظ مسبقاً (وضع التعديل) */
   existingPlyFileName: string | null = null;
 
+  /** Work Type chip options */
+  readonly workTypeOptions = [
+    'Try in', 'Zr', 'Zr Ger', 'Pmma Cad',
+    'Emax', 'Peek', 'Titanium', 'Night Gard'
+  ];
+  selectedWorkTypes = new Set<string>();
+  workTypeError = '';
+
+  /**
+   * Toggle a work type chip.
+   * Rules:
+   *  - At least 1 must be selected
+   *  - Only allowed combos of 2: (Zr + Try in) or (Zr Ger + Try in)
+   *  - Otherwise only 1 selection at a time
+   */
+  toggleWorkType(type: string): void {
+    this.workTypeError = '';
+    if (this.selectedWorkTypes.has(type)) {
+      // Uncheck
+      this.selectedWorkTypes.delete(type);
+    } else {
+      // Check — apply constraints
+      const current = [...this.selectedWorkTypes];
+      if (current.length === 0) {
+        // First selection, always allowed
+        this.selectedWorkTypes.add(type);
+      } else if (current.length === 1) {
+        const existing = current[0];
+        // Check if the pair is allowed
+        const allowedPairs = [
+          new Set(['Zr', 'Try in']),
+          new Set(['Zr Ger', 'Try in']),
+        ];
+        const proposedPair = new Set([existing, type]);
+        const isAllowed = allowedPairs.some(
+          pair => pair.size === proposedPair.size && [...pair].every(v => proposedPair.has(v))
+        );
+        if (isAllowed) {
+          this.selectedWorkTypes.add(type);
+        } else {
+          // Replace: only one type allowed
+          this.selectedWorkTypes.clear();
+          this.selectedWorkTypes.add(type);
+        }
+      } else {
+        // Already 2 selected, replace all with new
+        this.selectedWorkTypes.clear();
+        this.selectedWorkTypes.add(type);
+      }
+    }
+    // Sync to formDraft
+    this.formDraft.workType = [...this.selectedWorkTypes].join(' + ');
+  }
+
+  isWorkTypeSelected(type: string): boolean {
+    return this.selectedWorkTypes.has(type);
+  }
+
+  isWorkTypeDisabled(type: string): boolean {
+    if (this.selectedWorkTypes.has(type)) return false;
+    if (this.selectedWorkTypes.size === 0) return false;
+    if (this.selectedWorkTypes.size >= 2) return false; // will replace
+    // size === 1, check if adding this would form an allowed pair
+    const existing = [...this.selectedWorkTypes][0];
+    const allowedPairs = [
+      new Set(['Zr', 'Try in']),
+      new Set(['Zr Ger', 'Try in']),
+    ];
+    const proposedPair = new Set([existing, type]);
+    const wouldBePair = allowedPairs.some(
+      pair => pair.size === proposedPair.size && [...pair].every(v => proposedPair.has(v))
+    );
+    // Not disabled — either it forms a valid pair, or it will replace
+    return false;
+  }
+
   readonly filterOpen = signal(false);
   readonly menuOpenId = signal<string | null>(null);
   readonly notificationsOpen = signal(false);
@@ -263,6 +339,8 @@ export class Secretary implements OnInit, OnDestroy {
     this.dialogMode.set('create');
     this.editingId = null;
     this.formDraft = emptyDraft();
+    this.selectedWorkTypes = new Set<string>();
+    this.workTypeError = '';
     this.existingPlyFileName = null;
     this.clearPlySelection();
     this.dialogOpen.set(true);
@@ -290,6 +368,21 @@ export class Secretary implements OnInit, OnDestroy {
       deliveryDate: dateMatch ? dateMatch[1] : '',
       deliveryTime: dateMatch && dateMatch[2] ? dateMatch[2].trim().slice(0, 5) : '',
     };
+    // Restore selectedWorkTypes from saved string
+    this.selectedWorkTypes = new Set<string>();
+    this.workTypeError = '';
+    if (c.workType) {
+      const parts = c.workType.split('+').map((s: string) => s.trim()).filter((s: string) => s);
+      for (const p of parts) {
+        if (this.workTypeOptions.includes(p)) {
+          this.selectedWorkTypes.add(p);
+        }
+      }
+      // If none matched from chips, keep as-is in formDraft
+      if (this.selectedWorkTypes.size > 0) {
+        this.formDraft.workType = [...this.selectedWorkTypes].join(' + ');
+      }
+    }
     this.dialogOpen.set(true);
     this.menuOpenId.set(null);
   }
@@ -331,8 +424,13 @@ export class Secretary implements OnInit, OnDestroy {
         : undefined;
     const isStudentCase = existing?.requesterType === 'student';
 
-    if (!d.doctor.trim() || !d.workType.trim()) {
-      this.flash('يرجى تعبئة اسم الطبيب ونوع العمل');
+    if (!d.doctor.trim()) {
+      this.flash('يرجى تعبئة اسم الطبيب');
+      return;
+    }
+    if (this.selectedWorkTypes.size === 0) {
+      this.workTypeError = 'يرجى اختيار نوع عمل واحد على الأقل';
+      this.flash('يرجى اختيار نوع العمل');
       return;
     }
     if (!d.patient?.trim()) {
