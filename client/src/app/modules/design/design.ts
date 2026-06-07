@@ -690,6 +690,38 @@ export class CaseDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
+  updateCaseStatusFromCard(c: DentalCase, status: CaseStatus): void {
+    if (c.status === status) return;
+    c.status = status;
+    const apiStage =
+      status === 'ready-for-finishing' ? 'finishing' :
+      status === 'finished' ? 'completed' :
+      status === 'exited' ? 'exited' :
+      status === 'under-khart' ? 'khart' :
+      status === 'in-progress' ? 'design' : 'secretary';
+
+    const payload = this.buildUpdatePayload(c);
+    this.caseApi.updateCase(c.id, payload).subscribe({
+      next: () => {
+        this.caseApi.moveStage(c.id, apiStage).subscribe({
+          next: () => {
+            this.reloadCasesFromBackend(false);
+          },
+          error: () => {
+            this.sharedCasesService.syncCase({ ...c });
+          },
+        });
+      },
+      error: (err) => {
+        const msg = String(err?.error?.message || '');
+        if (msg.includes('assigned to you')) {
+          this.showToast('لا يمكنك حفظ هذه الحالة لأنها مسندة لمستخدم آخر');
+        }
+        this.sharedCasesService.syncCase({ ...c });
+      },
+    });
+  }
+
   private buildUpdatePayload(dentalCase: DentalCase): Record<string, unknown> {
     const dueDateIso =
       /^\d{4}-\d{2}-\d{2}/.test(dentalCase.deliveryDate || '')
