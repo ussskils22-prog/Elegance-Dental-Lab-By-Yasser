@@ -446,7 +446,7 @@ export class Secretary implements OnInit, OnDestroy {
       workDetail: (d.workDetail || '').trim(),
       color: (d.color || '').trim(),
       size: '',
-      quantity: Number(d.quantity) || 1,
+      quantity: d.quantity !== '' && d.quantity !== null && !isNaN(Number(d.quantity)) ? Number(d.quantity) : 1,
       date: d.date,
       deliveryDate: d.deliveryDate || '',
       deliveryTime: d.deliveryTime || '',
