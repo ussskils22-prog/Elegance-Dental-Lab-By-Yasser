@@ -256,12 +256,14 @@
 /* ── Filter Tabs ── */
 .filter-tabs {
   display: flex; gap: 8px; flex-wrap: wrap;
+  width: 100%;
   margin-bottom: 20px;
 }
 
 .filter-tab {
-  display: flex; align-items: center; gap: 6px;
-  padding: 7px 14px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  flex: 1;
+  padding: 8px 14px;
   border-radius: 20px;
   border: 1.5px solid var(--gray-200);
   background: var(--white);
@@ -466,7 +468,7 @@
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
 }
 .doctor-name {
-  font-size: 16px; font-weight: 800; color: var(--navy);
+  font-size: 18px; font-weight: 800; color: var(--navy);
 }
 .patient-row {
   display: flex; align-items: center; gap: 6px; color: var(--gray-500); font-size: 13px; font-weight: 700; padding-right: 42px;
