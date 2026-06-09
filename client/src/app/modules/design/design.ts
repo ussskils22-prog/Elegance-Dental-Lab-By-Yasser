@@ -288,6 +288,11 @@ export class CaseDetailsComponent implements OnInit, OnDestroy {
     return { emergency: 'طارئ', normal: 'عادي', low: 'منخفض' }[p];
   }
 
+  cleanDoctorName(name: string): string {
+    if (!name) return '';
+    return name.replace(/دكتور/g, '').replace(/د\./g, '').trim();
+  }
+
   statusLabel(s: CaseStatus): string {
     return {
       pending:          'قيد الانتظار',

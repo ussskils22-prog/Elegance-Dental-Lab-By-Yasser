@@ -77,10 +77,6 @@
     <button class="filter-tab filter-pending" [class.active]="activeFilter === 'pending'" (click)="setFilter('pending')">
       جديدة <span class="tab-count">{{ counts.pending }}</span>
     </button>
-    <button class="filter-tab filter-progress" [class.active]="activeFilter === 'in-progress'" (click)="setFilter('in-progress')">
-      تحت الديزاين <span class="tab-count">{{ counts['in-progress'] }}</span>
-    </button>
-
     <button class="filter-tab filter-ready" [class.active]="activeFilter === 'ready-for-finishing'" (click)="setFilter('ready-for-finishing')">
       جاهزة للفينيش <span class="tab-count">{{ counts['ready-for-finishing'] }}</span>
     </button>
@@ -144,9 +140,9 @@
           <div class="doctor-row">
             <div class="avatar-circle">د</div>
             <div class="doctor-info">
-              <span class="doctor-name">{{ c.doctor }}</span>
-              <span class="requester-badge" [class.requester-badge--student]="c.requesterType === 'student'">
-                {{ c.requesterType === 'student' ? 'طالب' : 'دكتور' }}
+              <span class="doctor-name">{{ cleanDoctorName(c.doctor) }}</span>
+              <span *ngIf="c.requesterType === 'student'" class="requester-badge requester-badge--student">
+                طالب
               </span>
             </div>
           </div>
