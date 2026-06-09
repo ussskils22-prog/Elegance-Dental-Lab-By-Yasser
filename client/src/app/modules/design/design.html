@@ -64,25 +64,9 @@
   <div class="list-header">
     <div>
       <h1 class="list-title">قائمة الحالات</h1>
-      <p class="list-subtitle">اختر حالة للبدء بالعمل عليها</p>
+      <p class="list-subtitle">الحالات الجديدة المعلقة للديزاين</p>
     </div>
-    <div class="list-total-badge">{{ cases.length }} حالة</div>
-  </div>
-
-  <!-- Filter tabs -->
-  <div class="filter-tabs">
-    <button class="filter-tab" [class.active]="activeFilter === 'all'" (click)="setFilter('all')">
-      الكل <span class="tab-count">{{ counts.all }}</span>
-    </button>
-    <button class="filter-tab filter-pending" [class.active]="activeFilter === 'pending'" (click)="setFilter('pending')">
-      جديدة <span class="tab-count">{{ counts.pending }}</span>
-    </button>
-    <button class="filter-tab filter-ready" [class.active]="activeFilter === 'ready-for-finishing'" (click)="setFilter('ready-for-finishing')">
-      جاهزة للفينيش <span class="tab-count">{{ counts['ready-for-finishing'] }}</span>
-    </button>
-    <button class="filter-tab filter-finished" [class.active]="activeFilter === 'finished'" (click)="setFilter('finished')">
-      منتهية <span class="tab-count">{{ counts.finished }}</span>
-    </button>
+    <div class="list-total-badge">{{ filteredCases.length }} حالة</div>
   </div>
 
   <!-- Search bar -->
