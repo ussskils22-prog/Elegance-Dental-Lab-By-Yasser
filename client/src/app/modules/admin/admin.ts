@@ -257,7 +257,11 @@ export class Admin implements OnInit, OnDestroy {
   }
 
   get completedCases(): AdminCaseRow[] {
-    return this.adminCases.filter(c => c.currentStage === 'completed');
+    return this.adminCases.filter(c => 
+      c.currentStage === 'completed' || 
+      c.currentStage === 'finished' || 
+      c.currentStage === 'exited'
+    );
   }
 
   get studentCases(): AdminCaseRow[] {

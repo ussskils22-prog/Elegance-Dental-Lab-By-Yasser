@@ -25,9 +25,9 @@ export class AdminDashboardService {
     const safeCases = Array.isArray(cases) ? cases : [];
     const safeStaff = Array.isArray(staffMembers) ? staffMembers : [];
 
-    const pendingCases = safeCases.filter(c => c.currentStage !== 'completed').length;
+    const pendingCases = safeCases.filter(c => c.currentStage !== 'completed' && c.currentStage !== 'finished' && c.currentStage !== 'exited').length;
     const totalRevenue = safeCases
-      .filter(c => c.currentStage === 'completed')
+      .filter(c => c.currentStage === 'completed' || c.currentStage === 'finished' || c.currentStage === 'exited')
       .reduce((sum, c) => sum + (Number.isFinite(c.salary) ? c.salary : 0), 0);
 
     const activeStaffCount = safeStaff.filter(staff => staff.status === 'active').length;
