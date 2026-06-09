@@ -143,7 +143,6 @@ export class Secretary implements OnInit, OnDestroy {
     return [
       { label: 'إجمالي الحالات', value: total, color: 'purple' as const, hint: total > 0 ? '+12%' : undefined },
       { label: 'الحالات الجديدة', value: pending, color: 'amber' as const },
-      { label: 'الحالات قيد الديزاين', value: inProgress, color: 'royal' as const },
 
       { label: 'الحالات الجاهزة للتسليم', value: ready, color: 'violet' as const },
       { label: 'الحالات المنتهية', value: finished, color: 'emerald' as const },
