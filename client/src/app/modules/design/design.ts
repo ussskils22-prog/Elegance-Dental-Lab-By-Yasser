@@ -59,7 +59,7 @@ export class CaseDetailsComponent implements OnInit, OnDestroy {
   showFinishConfirm = false;
   toastMsg          = '';
   toastVisible      = false;
-  activeFilter: CaseStatus | 'all' = 'all';
+  activeFilter: CaseStatus | 'all' = 'pending';
   searchTerm        = '';
 
   /* ── Notifications ── */
