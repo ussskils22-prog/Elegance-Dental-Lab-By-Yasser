@@ -166,19 +166,22 @@
           </div>
         </div>
       </div>
-      <div class="case-status-toggles">
-        <label class="status-checkbox">
-          <input type="checkbox"
-                 [checked]="c.status === 'in-progress'"
-                 (change)="updateCaseStatusFromCard(c, 'in-progress')">
-          <span>ديزاين</span>
-        </label>
-        <label class="status-checkbox">
-          <input type="checkbox"
-                 [checked]="c.status === 'ready-for-finishing'"
-                 (change)="updateCaseStatusFromCard(c, 'ready-for-finishing')">
+      <div class="case-status-actions">
+        <button type="button" 
+                class="btn-status-toggle" 
+                [class.is-ready]="c.status === 'ready-for-finishing'"
+                (click)="updateCaseStatusFromCard(c, 'ready-for-finishing')"
+                title="تحديد كـ جاهزة للفينيش">
+          <div class="toggle-icon">
+            <svg *ngIf="c.status !== 'ready-for-finishing'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12l5 5L20 7"></path>
+            </svg>
+            <svg *ngIf="c.status === 'ready-for-finishing'" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path>
+            </svg>
+          </div>
           <span>جاهزة</span>
-        </label>
+        </button>
       </div>
     </div>
 
