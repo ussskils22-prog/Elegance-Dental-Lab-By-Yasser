@@ -39,7 +39,7 @@
 
   display: block;
   font-family: 'Cairo', sans-serif;
-  background: var(--bg);
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2f6 100%);
   min-height: 100vh;
   direction: rtl;
   color: var(--gray-900);
@@ -372,24 +372,38 @@
 
 .case-card {
   display: flex;
-  flex-direction: row; /* Flex will follow direction: rtl automatically */
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 1.25rem 1.5rem;
-  border: 1px solid #f1f5f9;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-  transition: transform 0.2s ease, box-shadow .2s, border-color .2s;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03), inset 0 0 0 1px rgba(255,255,255,0.5);
+  transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
   animation: fadeUp .35s ease both;
+  position: relative;
   overflow: hidden;
 }
-.case-card:hover:not(.finished-card) {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-lg);
-  border-color: var(--gray-300);
+.case-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, transparent, rgba(37,99,235,0.15), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
-.finished-card { cursor: default; opacity: .75; }
+.case-card:hover:not(.finished-card) {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06), inset 0 0 0 1px rgba(255,255,255,1);
+  background: rgba(255, 255, 255, 0.98);
+}
+.case-card:hover:not(.finished-card)::before {
+  opacity: 1;
+}
+.finished-card { cursor: default; opacity: .75; filter: grayscale(20%); }
 
 /* Main Content Area */
 .case-main {
@@ -565,31 +579,79 @@
   background: #dbeafe;
 }
 
-/* Status Toggles (Checkboxes) */
-.case-status-toggles {
-  display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
-  margin-right: 1.5rem;
-}
-
-.status-checkbox {
+/* ── Premium Status Action Button ── */
+.case-status-actions {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--navy);
-  cursor: pointer;
-  user-select: none;
+  margin-right: 1.5rem;
+  padding-right: 1.5rem;
+  border-right: 1.5px dashed var(--gray-200);
 }
 
-.status-checkbox input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
+.btn-status-toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  background: transparent;
+  border: none;
   cursor: pointer;
-  accent-color: var(--blue);
-  border-radius: 4px;
+  font-family: 'Cairo', sans-serif;
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: var(--gray-500);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.btn-status-toggle:hover {
+  transform: translateY(-2px);
+  color: var(--blue);
+}
+
+.toggle-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--gray-100);
+  color: var(--gray-400);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--gray-200);
+  box-shadow: inset 0 2px 4px rgba(255,255,255,1);
+}
+
+.toggle-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.btn-status-toggle:hover .toggle-icon {
+  background: var(--blue-ultra);
+  color: var(--blue);
+  border-color: var(--blue-light);
+  box-shadow: 0 4px 12px rgba(37,99,235,0.15), inset 0 2px 4px rgba(255,255,255,1);
+}
+
+.btn-status-toggle.is-ready {
+  color: var(--green);
+}
+
+.btn-status-toggle.is-ready .toggle-icon {
+  background: var(--green);
+  color: white;
+  border-color: #15803d;
+  box-shadow: 0 6px 16px rgba(22,163,74,0.3), inset 0 2px 4px rgba(255,255,255,0.2);
+  animation: popReady 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popReady {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
 }
 
 /* ── Empty state ── */
