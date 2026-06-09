@@ -653,11 +653,11 @@ export class Admin implements OnInit, OnDestroy {
             <td>${r.caseType}</td>
             <td>${r.quantity}</td>
             <td>${r.color}</td>
-            <td>${r.salary}</td>
-            <td>${r.totalPrice}</td>
-            <td>${r.paid}</td>
-            <td>${r.remaining}</td>
-            <td class="${r.deliveryType.includes('نهائي') ? 'text-red' : ''}">${r.deliveryType}</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
           </tr>
       `;
     });
