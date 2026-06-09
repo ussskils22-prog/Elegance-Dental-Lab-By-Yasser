@@ -127,61 +127,90 @@
       [style.animation-delay]="i * 60 + 'ms'"
       [class.finished-card]="c.status === 'finished'"
     >
-      <div class="case-main">
-        <div class="case-head">
-          <span class="case-id">{{ c.caseNumber }}</span>
+      <div class="case-card-inner">
+        <!-- Col 1: ID & Status -->
+        <div class="card-col col-status">
+          <div class="case-id">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 11V7a5 5 0 0 1 10 0v4"/><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/></svg>
+            {{ c.caseNumber }}
+          </div>
           <span class="case-phase-badge" [ngClass]="c.status">
             {{ statusLabel(c.status) }}
           </span>
         </div>
-        <div class="case-people">
-          <div class="doctor">{{ c.doctor }}</div>
-          <span class="requester-badge" [class.requester-badge--student]="c.requesterType === 'student'">
-            {{ c.requesterType === 'student' ? 'طالب' : 'دكتور' }}
-          </span>
-          <div class="patient">{{ c.patient }}</div>
+
+        <!-- Col 2: People -->
+        <div class="card-col col-people">
+          <div class="doctor-row">
+            <div class="avatar-circle">د</div>
+            <div class="doctor-info">
+              <span class="doctor-name">{{ c.doctor }}</span>
+              <span class="requester-badge" [class.requester-badge--student]="c.requesterType === 'student'">
+                {{ c.requesterType === 'student' ? 'طالب' : 'دكتور' }}
+              </span>
+            </div>
+          </div>
+          <div class="patient-row">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span class="patient-name">{{ c.patient }}</span>
+          </div>
         </div>
-        <div class="case-work">
-          <div class="work-type">{{ c.workType }}</div>
-          <div class="work-detail">{{ c.workDetail }}</div>
-          <a *ngIf="c.plyScanUrl" class="case-ply-link" [href]="c.plyScanUrl" target="_blank" rel="noopener noreferrer" (click)="$event.stopPropagation()">
-              تنزيل / فتح ملف PLY
-              <span class="case-ply-name" *ngIf="c.plyFileName">({{ c.plyFileName }})</span>
+
+        <!-- Divider -->
+        <div class="card-divider"></div>
+
+        <!-- Col 3: Work Info -->
+        <div class="card-col col-work">
+          <div class="work-type-tag">{{ c.workType }}</div>
+          <div class="work-specs">
+            <span class="spec-pill" title="اللون" *ngIf="c.color">
+              <span class="spec-dot" [style.background]="c.color === 'A1' || c.color === 'B1' ? '#fde047' : '#e2e8f0'"></span>
+              {{ c.color }}
+            </span>
+            <span class="spec-pill" title="العدد" *ngIf="c.quantity">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+              العدد: {{ c.quantity }}
+            </span>
+          </div>
+          <a *ngIf="c.plyScanUrl" class="ply-download-btn" [href]="c.plyScanUrl" target="_blank" rel="noopener noreferrer" (click)="$event.stopPropagation()">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span class="ply-text">تحميل PLY</span>
           </a>
-          <div class="case-spec">
-            <span class="spec-item">Color: {{ c.color }}</span>
-            <span class="spec-item">Qty: {{ c.quantity }}</span>
+        </div>
+
+        <!-- Divider -->
+        <div class="card-divider"></div>
+
+        <!-- Col 4: Dates -->
+        <div class="card-col col-dates">
+          <div class="date-item">
+            <span class="date-lbl">الاستلام</span>
+            <span class="date-val">{{ formatDateValue(c.receivedDate).date }}</span>
+          </div>
+          <div class="date-item" *ngIf="c.deliveryDate">
+            <span class="date-lbl">التسليم</span>
+            <span class="date-val text-blue">{{ formatDateValue(c.deliveryDate).date }}</span>
           </div>
         </div>
-        <div class="case-meta">
-          <div class="date-block">
-            <span class="date-label">تاريخ الاستلام</span>
-            <span class="date-value">{{ formatDateValue(c.receivedDate).date }}</span>
-            <span class="time-value" *ngIf="formatDateValue(c.receivedDate).time">{{ formatDateValue(c.receivedDate).time }}</span>
-          </div>
-          <div class="date-block" *ngIf="c.deliveryDate">
-            <span class="date-label">تاريخ التسليم</span>
-            <span class="date-value">{{ formatDateValue(c.deliveryDate).date }}</span>
-            <span class="time-value" *ngIf="formatDateValue(c.deliveryDate).time">{{ formatDateValue(c.deliveryDate).time }}</span>
-          </div>
+
+        <!-- Col 5: Action -->
+        <div class="card-col col-action">
+          <button type="button" 
+                  class="btn-status-toggle" 
+                  [class.is-ready]="c.status === 'ready-for-finishing'"
+                  (click)="updateCaseStatusFromCard(c, 'ready-for-finishing')"
+                  title="تحديد كـ جاهزة للفينيش">
+            <div class="toggle-icon">
+              <svg *ngIf="c.status !== 'ready-for-finishing'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12l5 5L20 7"></path>
+              </svg>
+              <svg *ngIf="c.status === 'ready-for-finishing'" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path>
+              </svg>
+            </div>
+            <span>جاهزة</span>
+          </button>
         </div>
-      </div>
-      <div class="case-status-actions">
-        <button type="button" 
-                class="btn-status-toggle" 
-                [class.is-ready]="c.status === 'ready-for-finishing'"
-                (click)="updateCaseStatusFromCard(c, 'ready-for-finishing')"
-                title="تحديد كـ جاهزة للفينيش">
-          <div class="toggle-icon">
-            <svg *ngIf="c.status !== 'ready-for-finishing'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M5 12l5 5L20 7"></path>
-            </svg>
-            <svg *ngIf="c.status === 'ready-for-finishing'" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path>
-            </svg>
-          </div>
-          <span>جاهزة</span>
-        </button>
       </div>
     </div>
 

@@ -368,21 +368,16 @@
 
 /* ── Case Cards ── */
 .cases-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .case-card {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: space-between;
-  background: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-radius: 16px;
-  padding: 1.5rem;
   border: 1px solid rgba(255, 255, 255, 0.6);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03), inset 0 0 0 1px rgba(255,255,255,0.5);
   transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
@@ -408,53 +403,46 @@
 }
 .finished-card { cursor: default; opacity: .75; filter: grayscale(20%); }
 
-/* Main Content Area */
-.case-main {
+/* ── Card Inner Layout ── */
+.case-card-inner {
   display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-  align-items: stretch;
-  gap: 1.25rem;
-}
-
-/* Section 1: Doctor/Patient */
-.case-head {
-  display: flex;
-  flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  width: 100%;
+  padding: 1.25rem 1.5rem;
+  gap: 1.5rem;
 }
 
-.case-id,
-.doctor,
-.patient,
-.work-type,
-.work-detail,
-.spec-item {
-  overflow-wrap: anywhere;
-  word-break: break-word;
+.card-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
 }
 
+.card-divider {
+  width: 1.5px;
+  height: 50px;
+  background: var(--gray-200);
+}
+
+/* 1. Status Column */
+.col-status {
+  align-items: flex-start;
+  width: 130px;
+  flex-shrink: 0;
+}
 .case-id {
-  font-size: 0.8rem;
-  color: #94a3b8;
-  font-weight: 700;
-  margin-bottom: 0;
+  display: flex; align-items: center; gap: 6px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 700; color: var(--gray-500); margin-bottom: 6px;
 }
-
 .case-phase-badge {
   display: inline-block;
   font-size: 0.75rem;
   font-weight: 700;
   padding: 4px 10px;
   border-radius: 6px;
-  margin-top: 0;
   white-space: nowrap;
-  transition: all 0.2s ease;
 }
-
 .case-phase-badge.pending { background: #fef3c7; color: #b45309; border: 1px solid #fcd34d; }
 .case-phase-badge.in-progress { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
 .case-phase-badge.under-khart { background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4; }
@@ -463,149 +451,75 @@
 .case-phase-badge.finished { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
 .case-phase-badge.exited { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
 
-.case-people {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+/* 2. People Column */
+.col-people {
+  flex: 1;
+  min-width: 180px;
+}
+.doctor-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 6px;
+}
+.avatar-circle {
+  width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--blue), var(--navy)); color: white; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; flex-shrink: 0;
+}
+.doctor-info {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.doctor-name {
+  font-size: 16px; font-weight: 800; color: var(--navy);
+}
+.patient-row {
+  display: flex; align-items: center; gap: 6px; color: var(--gray-500); font-size: 13px; font-weight: 700; padding-right: 42px;
+}
+
+/* 3. Work Column */
+.col-work {
+  flex: 1;
+  min-width: 180px;
+  align-items: flex-start;
+}
+.work-type-tag {
+  background: var(--blue-ultra); color: var(--blue); padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 14px; margin-bottom: 8px; display: inline-block;
+}
+.work-specs {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;
+}
+.spec-pill {
+  display: inline-flex; align-items: center; gap: 6px; background: var(--gray-50); border: 1px solid var(--gray-200); padding: 3px 8px; border-radius: 8px; font-size: 12px; font-weight: 700; color: var(--gray-600);
+}
+.spec-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+.ply-download-btn {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #10b981; background: #ecfdf5; padding: 4px 10px; border-radius: 8px; text-decoration: none; transition: .2s; border: 1px solid #a7f3d0;
+}
+.ply-download-btn:hover { background: #d1fae5; }
+
+/* 4. Dates Column */
+.col-dates {
+  width: 140px;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.date-item {
+  display: flex; flex-direction: column; gap: 2px;
+}
+.date-lbl {
+  font-size: 11px; font-weight: 800; color: var(--gray-400); text-transform: uppercase;
+}
+.date-val {
+  font-size: 14px; font-weight: 800; color: var(--gray-700);
+}
+.text-blue { color: var(--blue); }
+
+/* 5. Action Column */
+.col-action {
+  width: 80px;
   align-items: center;
-  text-align: center;
-  padding: 1rem 0;
-  border-bottom: 1.5px dashed var(--gray-200);
-}
-
-.doctor {
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #1e293b;
-}
-
-.patient {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: #64748b;
-}
-
-.requester-badge {
-  display: inline-flex;
-  width: fit-content;
-  padding: 0.1rem 0.45rem;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 800;
-  color: #1e40af;
-  background: #dbeafe;
-  border: 1px solid #bfdbfe;
-}
-
-.requester-badge.requester-badge--student {
-  color: #6d28d9;
-  background: #ede9fe;
-  border-color: #ddd6fe;
-}
-
-/* Section 2: Work Details */
-.case-work {
-  text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.work-type {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: var(--blue);
-  background: var(--blue-ultra);
-  padding: 4px 12px;
-  border-radius: 20px;
-  display: inline-block;
-}
-
-.case-spec {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 6px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.spec-item {
-  background: #f8fafc;
-  color: #64748b;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  border: 1px solid #edf2f7;
-}
-
-/* Section 3: Date & Progress */
-.case-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--gray-50);
-  border-radius: 12px;
-  padding: 1rem;
-  gap: 1rem;
-}
-
-.date-block {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-
-.date-label {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--gray-400); /* mapping --muted to --gray-400 if --muted is undefined */
-  text-transform: uppercase;
-}
-
-.date-value {
-  font-weight: 800;
-  font-size: 0.92rem;
-  color: var(--navy); /* mapping --text to --navy */
-}
-
-.time-value {
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #64748b;
-  margin-top: 2px;
-}
-
-.case-ply-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #2563eb;
-  background: #eff6ff;
-  padding: 4px 10px;
-  border-radius: 6px;
-  text-decoration: none;
-  margin-top: 6px;
-}
-
-.case-ply-link:hover {
-  background: #dbeafe;
+  flex-shrink: 0;
 }
 
 /* ── Premium Status Action Button ── */
-.case-status-actions {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-top: 1.5px dashed var(--gray-200);
-  margin-top: 1rem;
-  padding-top: 1.25rem;
-}
-
 .btn-status-toggle {
   display: flex;
   flex-direction: column;
@@ -670,6 +584,34 @@
   0% { transform: scale(1); }
   50% { transform: scale(1.15); }
   100% { transform: scale(1); }
+}
+
+@media (max-width: 1024px) {
+  .case-card-inner {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  .card-divider {
+    display: none;
+  }
+  .col-status, .col-people, .col-work, .col-dates, .col-action {
+    width: 100%;
+    min-width: 100%;
+    align-items: center;
+    text-align: center;
+    padding-bottom: 1rem;
+    border-bottom: 1px dashed var(--gray-200);
+  }
+  .patient-row {
+    padding-right: 0; justify-content: center;
+  }
+  .col-action {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .case-id {
+    justify-content: center;
+  }
 }
 
 /* ── Empty state ── */
