@@ -547,22 +547,30 @@ export class Admin implements OnInit, OnDestroy {
   }
 
   exportFinancialYearReport(): void {
-    // فلترة الحالات الخارجة فقط
-    let cases = this.reportCases.filter(c => c.currentStage === 'exited');
+    // فلترة الحالات الخارجة أو المنتهية (المكتملة عموماً)
+    let cases = this.completedCases;
 
     const selectedYear = Number(this.financialYearFilter);
     const selectedMonth = Number(this.financialMonthFilter);
+    const doctorSearch = this.financialDoctorSearch.trim().toLowerCase();
+
+    if (doctorSearch) {
+      cases = cases.filter(c => {
+        const doctorName = this.normalizeDoctorName(c.doctorName || c.assignedTo || '');
+        return doctorName.toLowerCase().includes(doctorSearch);
+      });
+    }
 
     if (Number.isFinite(selectedYear) && selectedYear > 0) {
       cases = cases.filter(c => {
-        const d = c.receivedAt ? new Date(c.receivedAt) : null;
+        const d = this.normalizeDate(c.receivedAt) || this.parseDate(c.receivedDateDisplay);
         return d && d.getFullYear() === selectedYear;
       });
     }
 
     if (Number.isFinite(selectedMonth) && selectedMonth > 0) {
       cases = cases.filter(c => {
-        const d = c.receivedAt ? new Date(c.receivedAt) : null;
+        const d = this.normalizeDate(c.receivedAt) || this.parseDate(c.receivedDateDisplay);
         return d && d.getMonth() + 1 === selectedMonth;
       });
     }
@@ -572,22 +580,7 @@ export class Admin implements OnInit, OnDestroy {
       return;
     }
 
-    // الأعمدة المطلوبة
-    const header = [
-      'التاريخ',
-      'المريض',
-      'النوع',
-      'العدد',
-      'اللون',
-      'سعر افرادي',
-      'سعر اجمالي',
-      'مدفوع',
-      'الباقي',
-      'نوع التسليم'
-    ];
-
     const dataRows = cases.map(c => {
-      // استخراج metadata من rawNotes
       const meta = this.parseNotesMeta(c.rawNotes || '');
       const quantity = Number(c.quantity ?? meta['quantity'] ?? 1) || 1;
       const color = String(c.color ?? meta['color'] ?? '');
@@ -595,51 +588,96 @@ export class Admin implements OnInit, OnDestroy {
       const deliveryTime = String(c.deliveryTime ?? meta['deliveryTime'] ?? '');
       const deliveryType = deliveryDate
         ? (deliveryTime ? `${deliveryDate} ${deliveryTime}` : deliveryDate)
-        : (c.dueDateDisplay && c.dueDateDisplay !== 'N/A' ? c.dueDateDisplay : '');
+        : (c.dueDateDisplay && c.dueDateDisplay !== 'N/A' ? c.dueDateDisplay : 'نهائي');
 
       const salary = Number(c.salary || 0);
       const totalPrice = salary * quantity;
       const paidAmount = c.paid ? totalPrice : 0;
       const remaining = totalPrice - paidAmount;
 
-      const date = c.receivedAt
-        ? new Date(c.receivedAt).toLocaleDateString('ar-EG', {
-            day: '2-digit', month: '2-digit', year: 'numeric'
-          })
+      const dateObj = this.normalizeDate(c.receivedAt) || this.parseDate(c.receivedDateDisplay);
+      const date = dateObj
+        ? dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '/')
         : (c.receivedDateDisplay || '');
 
-      return [
+      return {
         date,
-        c.patientName || '',
-        c.caseType || '',
+        patientName: c.patientName || '',
+        caseType: c.caseType || '',
         quantity,
         color,
         salary,
         totalPrice,
-        c.paid ? 'مدفوع' : 'غير مدفوع',
+        paid: c.paid ? totalPrice : 0,
         remaining,
-        deliveryType,
-      ];
+        deliveryType
+      };
     });
 
-    // بناء CSV
-    const csvRows = [
-      header.map(h => `"${h}"`).join(','),
-      ...dataRows.map(row =>
-        row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
-      )
-    ];
+    let html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+      <meta charset="utf-8">
+      <style>
+        table { border-collapse: collapse; font-family: 'Calibri', sans-serif; }
+        th { background-color: #A9D08E; color: #000; border: 1pt solid #000; font-weight: bold; text-align: center; padding: 5px; }
+        td { border: 1pt solid #000; text-align: center; padding: 5px; }
+        .row-data { background-color: #E2EFDA; }
+        .text-red { color: #C00000; }
+      </style>
+    </head>
+    <body dir="rtl">
+      <table>
+        <thead>
+          <tr>
+            <th>التاريخ</th>
+            <th>المريض</th>
+            <th>النوع</th>
+            <th>العدد</th>
+            <th>اللون</th>
+            <th>سعر افرادي</th>
+            <th>سعر اجمالي</th>
+            <th>مدفوع</th>
+            <th>الباقي</th>
+            <th>نوع التسليم</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+
+    dataRows.forEach(r => {
+      html += `
+          <tr class="row-data">
+            <td>${r.date}</td>
+            <td>${r.patientName}</td>
+            <td>${r.caseType}</td>
+            <td>${r.quantity}</td>
+            <td>${r.color}</td>
+            <td>${r.salary}</td>
+            <td>${r.totalPrice}</td>
+            <td>${r.paid}</td>
+            <td>${r.remaining}</td>
+            <td class="${r.deliveryType.includes('نهائي') ? 'text-red' : ''}">${r.deliveryType}</td>
+          </tr>
+      `;
+    });
+
+    html += `
+        </tbody>
+      </table>
+    </body>
+    </html>
+    `;
 
     if (typeof document === 'undefined') return;
 
-    const csvContent = `\uFEFF${csvRows.join('\n')}`;
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\uFEFF' + html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     const yearSuffix = selectedYear > 0 ? `-${selectedYear}` : '';
     const monthSuffix = selectedMonth > 0 ? `-${String(selectedMonth).padStart(2, '0')}` : '';
     anchor.href = url;
-    anchor.download = `financial-report${yearSuffix}${monthSuffix}.csv`;
+    anchor.download = `financial-report${yearSuffix}${monthSuffix}.xls`;
     document.body.appendChild(anchor);
     anchor.click();
     document.body.removeChild(anchor);
