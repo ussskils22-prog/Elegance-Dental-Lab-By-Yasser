@@ -64,6 +64,7 @@ export interface AdminCaseRow {
   deliveryDate?: string;
   deliveryTime?: string;
   rawNotes?: string;
+  exitedAt?: Date;  // تاريخ الخروج الفعلي من stageTimestamps
 }
 
 export interface MonthlyDoctorSummary {
@@ -595,9 +596,10 @@ export class Admin implements OnInit, OnDestroy {
       const paidAmount = c.paid ? totalPrice : 0;
       const remaining = totalPrice - paidAmount;
 
-      const dateObj = this.normalizeDate(c.receivedAt) || this.parseDate(c.receivedDateDisplay);
-      const date = dateObj
-        ? dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' }).replace(/\//g, '/')
+      // تاريخ الخروج: نستخدم exitedAt (stageTimestamps.exited/completed) وليس receivedAt
+      const exitDateObj = c.exitedAt || this.normalizeDate(c.receivedAt) || this.parseDate(c.receivedDateDisplay);
+      const date = exitDateObj
+        ? exitDateObj.toLocaleDateString('ar-EG', { day: '2-digit', month: '2-digit', year: 'numeric' })
         : (c.receivedDateDisplay || '');
 
       return {
@@ -653,11 +655,11 @@ export class Admin implements OnInit, OnDestroy {
             <td>${r.caseType}</td>
             <td>${r.quantity}</td>
             <td>${r.color}</td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
-            <td></td>
+            <td>${r.salary > 0 ? r.salary : ''}</td>
+            <td>${r.totalPrice > 0 ? r.totalPrice : ''}</td>
+            <td>${r.paid > 0 ? r.paid : ''}</td>
+            <td class="${r.remaining > 0 ? 'text-red' : ''}">${r.remaining > 0 ? r.remaining : (r.remaining === 0 && r.totalPrice > 0 ? 'مدفوع' : '')}</td>
+            <td>${r.deliveryType}</td>
           </tr>
       `;
     });
@@ -929,6 +931,11 @@ export class Admin implements OnInit, OnDestroy {
       deliveryTime: String(parsedMeta['deliveryTime'] ?? ''),
       rawNotes: notes,
       source: 'case',
+      exitedAt: this.normalizeDate(
+        (doc['stageTimestamps'] as Record<string, unknown>)?.['exited'] ??
+        (doc['stageTimestamps'] as Record<string, unknown>)?.['completed'] ??
+        doc['updatedAt']
+      ),
     };
   }
 
