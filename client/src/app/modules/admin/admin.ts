@@ -585,22 +585,20 @@ export class Admin implements OnInit, OnDestroy {
       const meta = this.parseNotesMeta(c.rawNotes || '');
       const quantity = Number(c.quantity ?? meta['quantity'] ?? 1) || 1;
       const color = String(c.color ?? meta['color'] ?? '');
-      const deliveryDate = String(c.deliveryDate ?? meta['deliveryDate'] ?? '');
-      const deliveryTime = String(c.deliveryTime ?? meta['deliveryTime'] ?? '');
-      const deliveryType = deliveryDate
-        ? (deliveryTime ? `${deliveryDate} ${deliveryTime}` : deliveryDate)
-        : (c.dueDateDisplay && c.dueDateDisplay !== 'N/A' ? c.dueDateDisplay : 'نهائي');
 
       const salary = Number(c.salary || 0);
       const totalPrice = salary * quantity;
       const paidAmount = c.paid ? totalPrice : 0;
       const remaining = totalPrice - paidAmount;
 
-      // تاريخ الخروج: نستخدم exitedAt (stageTimestamps.exited/completed) وليس receivedAt
+      // تاريخ الخروج بأرقام إنجليزية
       const exitDateObj = c.exitedAt || this.normalizeDate(c.receivedAt) || this.parseDate(c.receivedDateDisplay);
       const date = exitDateObj
-        ? exitDateObj.toLocaleDateString('ar-EG', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        ? exitDateObj.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '/')
         : (c.receivedDateDisplay || '');
+
+      // تفاصيل السكرتير
+      const details = String(c.secretaryInstructions ?? meta['instructions'] ?? '');
 
       return {
         date,
@@ -612,7 +610,7 @@ export class Admin implements OnInit, OnDestroy {
         totalPrice,
         paid: c.paid ? totalPrice : 0,
         remaining,
-        deliveryType
+        details
       };
     });
 
@@ -642,6 +640,7 @@ export class Admin implements OnInit, OnDestroy {
             <th>مدفوع</th>
             <th>الباقي</th>
             <th>نوع التسليم</th>
+            <th>تفاصيل</th>
           </tr>
         </thead>
         <tbody>
@@ -659,7 +658,8 @@ export class Admin implements OnInit, OnDestroy {
             <td>${r.totalPrice > 0 ? r.totalPrice : ''}</td>
             <td>${r.paid > 0 ? r.paid : ''}</td>
             <td class="${r.remaining > 0 ? 'text-red' : ''}">${r.remaining > 0 ? r.remaining : (r.remaining === 0 && r.totalPrice > 0 ? 'مدفوع' : '')}</td>
-            <td>${r.deliveryType}</td>
+            <td></td>
+            <td style="text-align:right">${r.details}</td>
           </tr>
       `;
     });
