@@ -494,9 +494,9 @@
   width: 8px; height: 8px; border-radius: 50%;
 }
 .ply-download-btn {
-  display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #10b981; background: #ecfdf5; padding: 4px 10px; border-radius: 8px; text-decoration: none; transition: .2s; border: 1px solid #a7f3d0;
+  display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--green); background: var(--green-light); padding: 4px 10px; border-radius: 8px; text-decoration: none; transition: .2s; border: 1px solid var(--accent-green);
 }
-.ply-download-btn:hover { background: #d1fae5; }
+.ply-download-btn:hover { background: var(--badge-green-bg); }
 
 /* 4. Dates Column */
 .col-dates {
@@ -1468,13 +1468,13 @@
 }
 
 .btn-ply-download {
-  background: #f1f5f9;
-  color: #0f766e;
-  border: 1px solid #99f6e4;
+  background: var(--green-light);
+  color: var(--green);
+  border: 1px solid var(--accent-green);
 }
 
 .btn-ply-download:hover {
-  background: #ecfdf5;
+  background: var(--badge-green-bg);
 }
 
 /* نافذة معاينة Three.js */
