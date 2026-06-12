@@ -190,6 +190,7 @@ export class Secretary implements OnInit, OnDestroy {
     'Mokup', 'cast', 'Empty', 'Remake'
   ];
   selectedWorkTypes = new Set<string>();
+  workTypeQuantities: Record<string, number> = {};
   workTypeError = '';
 
   /**
@@ -203,41 +204,42 @@ export class Secretary implements OnInit, OnDestroy {
     this.workTypeError = '';
 
     if (this.selectedWorkTypes.has(type)) {
-      // Uncheck
       this.selectedWorkTypes.delete(type);
+      delete this.workTypeQuantities[type];
     } else {
-      const isRemakeActive = this.selectedWorkTypes.has('Remake');
-      const isSelectingRemake = type === 'Remake';
-      const isSelectingEmpty = type === 'Empty';
-
-      if (isSelectingEmpty) {
-        // Empty: اختيار مستقل - يمسح كل حاجة
+      if (type === 'Empty') {
         this.selectedWorkTypes.clear();
+        this.workTypeQuantities = {};
         this.selectedWorkTypes.add('Empty');
-      } else if (isSelectingRemake) {
-        // تحديد Remake: يمسح أي اختيار سابق ما عدا نوع واحد تاني
-        const otherSelected = [...this.selectedWorkTypes].filter(t => t !== 'Remake' && t !== 'Empty');
-        this.selectedWorkTypes.clear();
-        this.selectedWorkTypes.add('Remake');
-        // يحتفظ بنوع واحد فقط لو كان موجود
-        if (otherSelected.length > 0) {
-          this.selectedWorkTypes.add(otherSelected[0]);
-        }
-      } else if (isRemakeActive) {
-        // Remake شغال: يقدر يختار نوع تاني واحد بس معاه
-        const otherSelected = [...this.selectedWorkTypes].filter(t => t !== 'Remake');
-        // يمسح الاختيار السابق ويحط الجديد
-        otherSelected.forEach(t => this.selectedWorkTypes.delete(t));
-        this.selectedWorkTypes.add(type);
+        this.workTypeQuantities['Empty'] = 1;
       } else {
-        // عادي: اختيار واحد فقط
-        this.selectedWorkTypes.clear();
+        this.selectedWorkTypes.delete('Empty');
+        delete this.workTypeQuantities['Empty'];
         this.selectedWorkTypes.add(type);
+        this.workTypeQuantities[type] = 1;
       }
     }
+    this.updateWorkTypeString();
+  }
 
-    // Sync to formDraft
-    this.formDraft.workType = [...this.selectedWorkTypes].join(' + ');
+  onWorkTypeQtyChange(): void {
+    this.updateWorkTypeString();
+  }
+
+  updateWorkTypeString(): void {
+    let total = 0;
+    const parts: string[] = [];
+    for (const wt of this.selectedWorkTypes) {
+      const q = Number(this.workTypeQuantities[wt]) || 1;
+      total += q;
+      if (this.selectedWorkTypes.size > 1 || q > 1) {
+        parts.push(`${wt} (${q})`);
+      } else {
+        parts.push(wt);
+      }
+    }
+    this.formDraft.quantity = total || 1;
+    this.formDraft.workType = parts.join(' + ');
   }
 
   isWorkTypeSelected(type: string): boolean {
@@ -323,11 +325,12 @@ export class Secretary implements OnInit, OnDestroy {
     this.activeFilter.set(filter);
   }
 
-  openCreate(): void {
+  openCreateDialog(): void {
     this.dialogMode.set('create');
     this.editingId = null;
     this.formDraft = emptyDraft();
-    this.selectedWorkTypes = new Set<string>();
+    this.selectedWorkTypes.clear();
+    this.workTypeQuantities = {};
     this.workTypeError = '';
     this.existingPlyFileName = null;
     this.clearPlySelection();
@@ -358,17 +361,31 @@ export class Secretary implements OnInit, OnDestroy {
     };
     // Restore selectedWorkTypes from saved string
     this.selectedWorkTypes = new Set<string>();
+    this.workTypeQuantities = {};
     this.workTypeError = '';
     if (c.workType) {
       const parts = c.workType.split('+').map((s: string) => s.trim()).filter((s: string) => s);
       for (const p of parts) {
-        if (this.workTypeOptions.includes(p)) {
-          this.selectedWorkTypes.add(p);
+        const match = p.match(/^(.*?)(?:\s*\((\d+)\))?$/);
+        if (match) {
+          const wtName = match[1].trim();
+          const qty = match[2] ? parseInt(match[2], 10) : 1;
+          if (this.workTypeOptions.includes(wtName)) {
+            this.selectedWorkTypes.add(wtName);
+            this.workTypeQuantities[wtName] = qty;
+          }
         }
       }
-      // If none matched from chips, keep as-is in formDraft
+      if (this.selectedWorkTypes.size === 1) {
+        const onlyWt = [...this.selectedWorkTypes][0];
+        if (!c.workType.includes('(')) {
+          this.workTypeQuantities[onlyWt] = Number(c.quantity) || 1;
+        }
+      }
       if (this.selectedWorkTypes.size > 0) {
-        this.formDraft.workType = [...this.selectedWorkTypes].join(' + ');
+        this.updateWorkTypeString();
+      } else {
+        this.formDraft.workType = c.workType;
       }
     }
     this.dialogOpen.set(true);
