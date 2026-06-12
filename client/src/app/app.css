@@ -9,15 +9,15 @@
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  background: #f8fafc;
-  color: #334155;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .app-boot-spinner {
   width: 2.5rem;
   height: 2.5rem;
-  border: 3px solid #e2e8f0;
-  border-top-color: #0ea5e9;
+  border: 3px solid var(--border-primary);
+  border-top-color: var(--accent-primary);
   border-radius: 50%;
   animation: app-boot-spin 0.75s linear infinite;
 }
