@@ -14,6 +14,7 @@ import {
   toStoredCaseImagePath,
 } from '../../core/mappers/dental-case-api.mapper';
 import { SocketService } from '../../core/services/socket.service';
+import { ThemeService } from '../../core/services/theme.service';
 
 export type CasePriority = 'emergency' | 'normal' | 'low';
 export type CaseStatus =
@@ -44,6 +45,7 @@ export class CaseDetailsComponent implements OnInit, OnDestroy {
   private caseApi = inject(CaseApiService);
   private socketService = inject(SocketService);
   private cdr = inject(ChangeDetectorRef);
+  public themeService = inject(ThemeService);
   private socketSubs: Subscription[] = [];
   private autosaveTimer: ReturnType<typeof setTimeout> | null = null;
   private isAutosaving = false;

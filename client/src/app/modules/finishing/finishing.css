@@ -1,11 +1,11 @@
 :host {
-  --primary: #003366;
-  --primary-light: #0a4d8c;
-  --surface: #f5f7fb;
-  --card: #ffffff;
-  --text: #1a2b45;
-  --muted: #6b7c93;
-  --border: #e4eaf2;
+  --primary: var(--accent-primary);
+  --primary-light: var(--accent-blue);
+  --surface: var(--bg-primary);
+  --card: var(--bg-card);
+  --text: var(--text-primary);
+  --muted: var(--text-muted);
+  --border: var(--border-primary);
   display: block;
   min-height: 100vh;
   background: var(--surface);

@@ -1,1 +1,72 @@
 /* You can add global styles to this file, and also import other style files */
+:root {
+  /* LIGHT THEME TOKENS */
+  --bg-primary: #f5f7fa;
+  --bg-secondary: #eef1f6;
+  --bg-card: #ffffff;
+  
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  
+  --border-primary: #e2e8f0;
+  --border-secondary: #cbd5e1;
+  --border-tertiary: #d4dce6;
+
+  /* Accent Colors (Light) */
+  --accent-primary: #185FA5;
+  --accent-secondary: #E6F1FB;
+  --accent-blue: #2563eb;
+  --accent-green: #16a34a;
+  --accent-red: #dc2626;
+  --accent-amber: #d97706;
+
+  --badge-green-bg: #EAF3DE;
+  --badge-green-text: #3B6D11;
+  --badge-red-bg: #FCEBEB;
+  --badge-red-text: #A32D2D;
+  --badge-amber-bg: #FAEEDA;
+  --badge-amber-text: #854F0B;
+}
+
+body.dark-theme {
+  /* DARK THEME TOKENS */
+  --bg-primary: #0f172a;       /* Darkest background (page body) */
+  --bg-secondary: #1e293b;     /* Slightly lighter for panels/sidebars */
+  --bg-card: #1e293b;          /* Same as secondary or distinct for cards */
+  
+  --text-primary: #f8fafc;     /* White/Off-white for main text */
+  --text-secondary: #cbd5e1;   /* Light gray for secondary text */
+  --text-muted: #64748b;       /* Muted text */
+  
+  --border-primary: #334155;
+  --border-secondary: #475569;
+  --border-tertiary: #334155;
+
+  /* Accent Colors (Dark) */
+  --accent-primary: #3b82f6;   /* Brighter blue for dark mode visibility */
+  --accent-secondary: #1e3a8a; /* Darker blue background for accent chips */
+  --accent-blue: #60a5fa;
+  --accent-green: #4ade80;
+  --accent-red: #f87171;
+  --accent-amber: #fbbf24;
+
+  --badge-green-bg: rgba(74, 222, 128, 0.15);
+  --badge-green-text: #4ade80;
+  --badge-red-bg: rgba(248, 113, 113, 0.15);
+  --badge-red-text: #f87171;
+  --badge-amber-bg: rgba(251, 191, 36, 0.15);
+  --badge-amber-text: #fbbf24;
+}
+
+/* Base Body Styles */
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Common Global Transitions */
+* {
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}

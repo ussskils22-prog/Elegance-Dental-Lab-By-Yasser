@@ -11,6 +11,7 @@ import { CaseApiService } from '../../core/services/case-api.service';
 import { Subject, merge } from 'rxjs';
 import { filter, takeUntil } from 'rxjs/operators';
 import { SocketService } from '../../core/services/socket.service';
+import { ThemeService } from '../../core/services/theme.service';
 
 export interface StaffMember {
   id: string;
@@ -173,7 +174,8 @@ export class Admin implements OnInit, OnDestroy {
     private auth: AuthService,
     private userApi: UserApiService,
     private router: Router,
-    private socketService: SocketService
+    private socketService: SocketService,
+    public themeService: ThemeService
   ) {}
 
   logout(): void {
