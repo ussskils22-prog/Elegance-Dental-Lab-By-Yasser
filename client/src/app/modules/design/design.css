@@ -40,7 +40,7 @@
 
   display: block;
   font-family: 'Cairo', sans-serif;
-  background: linear-gradient(135deg, #f8fafc 0%, #eef2f6 100%);
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
   min-height: 100vh;
   direction: rtl;
   color: var(--gray-900);
@@ -377,12 +377,12 @@
 }
 
 .case-card {
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--white);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03), inset 0 0 0 1px rgba(255,255,255,0.5);
+  border: 1px solid var(--gray-200);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
   transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
   animation: fadeUp .35s ease both;
   position: relative;
@@ -758,7 +758,7 @@
 /* Notes */
 .notes-card {
   padding: 16px;
-  background: #ffffff;
+  background: var(--white);
   border-radius: var(--radius-md);
   border: 1px solid var(--gray-200);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -778,7 +778,7 @@
   gap: 8px;
   font-size: 13px;
   font-weight: 700;
-  color: #003366;
+  color: var(--blue);
   margin-bottom: 12px;
   direction: rtl;
   cursor: default;
@@ -803,7 +803,7 @@
   min-height: 120px;
   max-height: 280px;
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
-  background: #ffffff;
+  background: var(--gray-100);
   direction: rtl;
   line-height: 1.6;
   display: block;

@@ -180,7 +180,7 @@
 }
 
 .case-card:hover {
-  background: #fff;
+  background: var(--bg-card);
   border-color: #007bff;
   box-shadow: 0 4px 8px rgba(0, 123, 255, 0.15);
   transform: translateY(-2px);

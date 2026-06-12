@@ -201,19 +201,19 @@
   border-radius: 14px;
   font-size: 0.95rem;
   font-family: inherit;
-  background: #eef2f8;
+  background: var(--bg-secondary);
   color: var(--text);
   box-sizing: border-box;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.search-input::placeholder { color: #9aa8bc; }
+.search-input::placeholder { color: var(--text-muted); }
 
 .search-input:focus {
   outline: none;
-  border-color: #90caf9;
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(21, 101, 192, 0.12);
+  border-color: var(--primary);
+  background: var(--card);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
 /* ── Case List ── */
@@ -230,17 +230,17 @@
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  background: #ffffff;
+  background: var(--card);
   border-radius: 12px;
   padding: 1.25rem 1.5rem;
-  border: 1px solid #f1f5f9;
+  border: 1px solid var(--border);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   overflow: hidden;
 }
 
 .case-card:hover {
-  border-color: #e2e8f0;
+  border-color: var(--border-secondary);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
 }
 
@@ -273,13 +273,13 @@
 .doctor {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-primary);
   overflow-wrap: anywhere;
 }
 
 .patient {
   font-size: 0.85rem;
-  color: #64748b;
+  color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
 
@@ -311,13 +311,13 @@
 .work-type {
   font-size: 1rem;
   font-weight: 600;
-  color: #334155;
+  color: var(--text-primary);
   overflow-wrap: anywhere;
 }
 
 .work-detail {
   font-size: 0.85rem;
-  color: #64748b;
+  color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
 
@@ -330,12 +330,12 @@
 }
 
 .spec-item {
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 0.75rem;
-  border: 1px solid #edf2f7;
+  border: 1px solid var(--border);
 }
 
 /* Dates */
@@ -477,7 +477,7 @@
 }
 
 .modal {
-  background: #fff;
+  background: var(--card);
   border-radius: 20px;
   padding: 2rem;
   max-width: 440px;
@@ -501,13 +501,13 @@
 .modal-title {
   font-size: 1.25rem;
   font-weight: 800;
-  color: #1e293b;
+  color: var(--text-primary);
   margin: 0 0 0.75rem;
 }
 
 .modal-desc {
   font-size: 0.95rem;
-  color: #64748b;
+  color: var(--text-secondary);
   margin: 0 0 1.5rem;
   line-height: 1.6;
 }
@@ -520,10 +520,10 @@
 
 .btn-secondary {
   padding: 0.65rem 1.5rem;
-  border: 1.5px solid #e2e8f0;
+  border: 1.5px solid var(--border);
   border-radius: 12px;
-  background: #fff;
-  color: #64748b;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 0.95rem;
   font-weight: 700;
   font-family: inherit;
@@ -531,7 +531,7 @@
   transition: border-color 0.15s, background 0.15s;
 }
 
-.btn-secondary:hover { background: #f8fafc; border-color: #cbd5e1; }
+.btn-secondary:hover { background: var(--border); border-color: var(--border-secondary); color: var(--text-primary); }
 
 .btn-confirm-exit {
   padding: 0.65rem 1.5rem;
