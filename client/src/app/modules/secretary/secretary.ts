@@ -230,6 +230,10 @@ export class Secretary implements OnInit, OnDestroy {
     let total = 0;
     const parts: string[] = [];
     for (const wt of this.selectedWorkTypes) {
+      if (wt === 'Remake' || wt === 'Empty') {
+        parts.push(wt);
+        continue;
+      }
       const q = Number(this.workTypeQuantities[wt]) || 1;
       total += q;
       if (this.selectedWorkTypes.size > 1 || q > 1) {
@@ -240,6 +244,13 @@ export class Secretary implements OnInit, OnDestroy {
     }
     this.formDraft.quantity = total || 1;
     this.formDraft.workType = parts.join(' + ');
+  }
+
+  get hasWorkTypesWithQuantity(): boolean {
+    for (const wt of this.selectedWorkTypes) {
+      if (wt !== 'Remake' && wt !== 'Empty') return true;
+    }
+    return false;
   }
 
   isWorkTypeSelected(type: string): boolean {
