@@ -597,8 +597,8 @@ export class Admin implements OnInit, OnDestroy {
         ? exitDateObj.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '/')
         : (c.receivedDateDisplay || '');
 
-      // تفاصيل السكرتير
-      const details = String(c.secretaryInstructions ?? meta['instructions'] ?? '');
+      // تفاصيل السكرتير أو ملاحظات الحالة
+      const details = String(meta['workDetail'] || c.secretaryInstructions || meta['instructions'] || '');
 
       return {
         date,
@@ -676,10 +676,11 @@ export class Admin implements OnInit, OnDestroy {
     const blob = new Blob(['\uFEFF' + html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
+    const doctorSuffix = doctorSearch ? `-${doctorSearch.replace(/\s+/g, '-')}` : '';
     const yearSuffix = selectedYear > 0 ? `-${selectedYear}` : '';
     const monthSuffix = selectedMonth > 0 ? `-${String(selectedMonth).padStart(2, '0')}` : '';
     anchor.href = url;
-    anchor.download = `financial-report${yearSuffix}${monthSuffix}.xls`;
+    anchor.download = `financial-report${doctorSuffix}${yearSuffix}${monthSuffix}.xls`;
     document.body.appendChild(anchor);
     anchor.click();
     document.body.removeChild(anchor);
