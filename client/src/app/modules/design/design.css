@@ -446,13 +446,13 @@
   border-radius: 6px;
   white-space: nowrap;
 }
-.case-phase-badge.pending { background: #fef3c7; color: #b45309; border: 1px solid #fcd34d; }
-.case-phase-badge.in-progress { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
-.case-phase-badge.under-khart { background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4; }
-.case-phase-badge.needs-revision { background: #fff5f5; color: #c53030; border: 1px solid #feb2b2; }
-.case-phase-badge.ready-for-finishing { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
-.case-phase-badge.finished { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
-.case-phase-badge.exited { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
+.case-phase-badge.pending { background: var(--badge-amber-bg); color: var(--badge-amber-text); border: 1px solid var(--accent-amber); }
+.case-phase-badge.in-progress { background: var(--accent-secondary); color: var(--accent-blue); border: 1px solid rgba(37, 99, 235, 0.3); }
+.case-phase-badge.under-khart { background: rgba(13, 148, 136, 0.15); color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); }
+.case-phase-badge.needs-revision { background: var(--badge-red-bg); color: var(--badge-red-text); border: 1px solid var(--accent-red); }
+.case-phase-badge.ready-for-finishing { background: rgba(109, 40, 217, 0.15); color: #7c3aed; border: 1px solid rgba(109, 40, 217, 0.3); }
+.case-phase-badge.finished { background: var(--badge-green-bg); color: var(--badge-green-text); border: 1px solid var(--accent-green); }
+.case-phase-badge.exited { background: var(--badge-red-bg); color: var(--badge-red-text); border: 1px solid var(--accent-red); }
 
 /* 2. People Column */
 .col-people {
