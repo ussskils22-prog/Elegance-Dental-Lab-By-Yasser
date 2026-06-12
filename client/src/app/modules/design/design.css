@@ -40,7 +40,7 @@
 
   display: block;
   font-family: 'Cairo', sans-serif;
-  background: linear-gradient(135deg, #f8fafc 0%, #eef2f6 100%);
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
   min-height: 100vh;
   direction: rtl;
   color: var(--gray-900);
@@ -85,7 +85,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #003366, #60a5fa);
+  background: linear-gradient(135deg, var(--blue), #60a5fa);
   opacity: 0.7;
   display: inline-block;
 }
@@ -95,7 +95,7 @@
   font-weight: 900;
   letter-spacing: 4px;
   text-transform: uppercase;
-  background: linear-gradient(135deg, #0f172a 20%, #003366 100%);
+  background: linear-gradient(135deg, var(--navy) 20%, var(--blue) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -156,7 +156,7 @@
   height: 42px;
   border: none;
   border-radius: 12px;
-  background: #f0f4fa;
+  background: var(--gray-100);
   color: var(--gray-500);
   cursor: pointer;
   transition:
@@ -165,7 +165,7 @@
 }
 
 .icon-btn:hover {
-  background: #e3eaf5;
+  background: var(--gray-200);
   color: var(--blue);
 }
 
@@ -377,12 +377,12 @@
 }
 
 .case-card {
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--white);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03), inset 0 0 0 1px rgba(255,255,255,0.5);
+  border: 1px solid var(--gray-200);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
   transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
   animation: fadeUp .35s ease both;
   position: relative;
@@ -446,13 +446,13 @@
   border-radius: 6px;
   white-space: nowrap;
 }
-.case-phase-badge.pending { background: #fef3c7; color: #b45309; border: 1px solid #fcd34d; }
-.case-phase-badge.in-progress { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
-.case-phase-badge.under-khart { background: #f0fdfa; color: #0f766e; border: 1px solid #99f6e4; }
-.case-phase-badge.needs-revision { background: #fff5f5; color: #c53030; border: 1px solid #feb2b2; }
-.case-phase-badge.ready-for-finishing { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
-.case-phase-badge.finished { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
-.case-phase-badge.exited { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
+.case-phase-badge.pending { background: var(--badge-amber-bg); color: var(--badge-amber-text); border: 1px solid var(--accent-amber); }
+.case-phase-badge.in-progress { background: var(--accent-secondary); color: var(--accent-blue); border: 1px solid rgba(37, 99, 235, 0.3); }
+.case-phase-badge.under-khart { background: rgba(13, 148, 136, 0.15); color: #0d9488; border: 1px solid rgba(13, 148, 136, 0.3); }
+.case-phase-badge.needs-revision { background: var(--badge-red-bg); color: var(--badge-red-text); border: 1px solid var(--accent-red); }
+.case-phase-badge.ready-for-finishing { background: rgba(109, 40, 217, 0.15); color: #7c3aed; border: 1px solid rgba(109, 40, 217, 0.3); }
+.case-phase-badge.finished { background: var(--badge-green-bg); color: var(--badge-green-text); border: 1px solid var(--accent-green); }
+.case-phase-badge.exited { background: var(--badge-red-bg); color: var(--badge-red-text); border: 1px solid var(--accent-red); }
 
 /* 2. People Column */
 .col-people {
@@ -494,9 +494,9 @@
   width: 8px; height: 8px; border-radius: 50%;
 }
 .ply-download-btn {
-  display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #10b981; background: #ecfdf5; padding: 4px 10px; border-radius: 8px; text-decoration: none; transition: .2s; border: 1px solid #a7f3d0;
+  display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--green); background: var(--green-light); padding: 4px 10px; border-radius: 8px; text-decoration: none; transition: .2s; border: 1px solid var(--accent-green);
 }
-.ply-download-btn:hover { background: #d1fae5; }
+.ply-download-btn:hover { background: var(--badge-green-bg); }
 
 /* 4. Dates Column */
 .col-dates {
@@ -758,7 +758,7 @@
 /* Notes */
 .notes-card {
   padding: 16px;
-  background: #ffffff;
+  background: var(--white);
   border-radius: var(--radius-md);
   border: 1px solid var(--gray-200);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -778,7 +778,7 @@
   gap: 8px;
   font-size: 13px;
   font-weight: 700;
-  color: #003366;
+  color: var(--blue);
   margin-bottom: 12px;
   direction: rtl;
   cursor: default;
@@ -803,7 +803,7 @@
   min-height: 120px;
   max-height: 280px;
   transition: border-color 0.25s ease, box-shadow 0.25s ease;
-  background: #ffffff;
+  background: var(--gray-100);
   direction: rtl;
   line-height: 1.6;
   display: block;
@@ -1468,13 +1468,13 @@
 }
 
 .btn-ply-download {
-  background: #f1f5f9;
-  color: #0f766e;
-  border: 1px solid #99f6e4;
+  background: var(--green-light);
+  color: var(--green);
+  border: 1px solid var(--accent-green);
 }
 
 .btn-ply-download:hover {
-  background: #ecfdf5;
+  background: var(--badge-green-bg);
 }
 
 /* نافذة معاينة Three.js */
