@@ -241,6 +241,20 @@ export function mapApiCaseToDentalCase(doc: Record<string, unknown>): DentalCase
       ? salaryAmountRaw
       : Number(salaryAmountRaw) || Number(meta['studentPrice'] || 0);
 
+  const stageTimestamps = doc['stageTimestamps'] as Record<string, string> | undefined;
+  const exitedAtRaw = stageTimestamps?.['exited'] || doc['updatedAt'];
+  let exitedDisplay = '';
+  if (exitedAtRaw && mapUiStatus(doc, uiStatusOverride) === 'exited') {
+    try {
+      const d = new Date(String(exitedAtRaw));
+      const datePart = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      const timePart = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      exitedDisplay = `${datePart} ${timePart.replace('AM', 'ص').replace('PM', 'م')}`;
+    } catch {
+      exitedDisplay = '';
+    }
+  }
+
   return {
     id,
     caseNumber,
@@ -268,6 +282,7 @@ export function mapApiCaseToDentalCase(doc: Record<string, unknown>): DentalCase
     finishingNotes,
     plyScanUrl: plyScanUrl || undefined,
     plyFileName: plyFileName || undefined,
+    exitedAt: exitedDisplay || undefined,
   };
 }
 
