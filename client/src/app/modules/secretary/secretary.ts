@@ -17,6 +17,7 @@ import { SocketService } from '../../core/services/socket.service';
 import { CaseDraft, SecretaryService } from './secretary.service';
 import { PatientLabelPipe } from './patient-label.pipe';
 import { SizeFormatPipe } from './size-format.pipe';
+import { ThemeService } from '../../core/services/theme.service';
 
 function emptyDraft(): CaseDraft {
   const today = new Date();
@@ -102,6 +103,7 @@ export class Secretary implements OnInit, OnDestroy {
   private readonly caseApi = inject(CaseApiService);
   private readonly socketService = inject(SocketService);
   private readonly router = inject(Router);
+  public readonly themeService = inject(ThemeService);
   private readonly socketSubs: Subscription[] = [];
   readonly activeFilter = signal<
     'all' | 'pending' | 'in-progress' | 'under-khart' | 'ready-for-finishing' | 'finished' | 'exited'

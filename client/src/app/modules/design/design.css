@@ -2,29 +2,30 @@
    TOKENS
 ══════════════════════════════════════════════════ */
 :host {
-  --bg:          #eef1f6;
-  --white:       #ffffff;
-  --navy:        #1a2744;
-  --navy-mid:    #243460;
-  --blue:        #2563eb;
-  --blue-light:  #dbeafe;
-  --blue-ultra:  #eff6ff;
-  --green:       #16a34a;
-  --green-light: #dcfce7;
-  --red:         #dc2626;
-  --red-light:   #fee2e2;
-  --amber:       #d97706;
-  --amber-light: #fef3c7;
+  --bg:          var(--bg-primary);
+  --white:       var(--bg-card);
+  --navy:        var(--text-primary);
+  --navy-mid:    var(--border-secondary);
+  --blue:        var(--accent-primary);
+  --blue-light:  var(--accent-secondary);
+  --blue-ultra:  var(--bg-secondary);
+  --green:       var(--accent-green);
+  --green-light: var(--badge-green-bg);
+  --red:         var(--accent-red);
+  --red-light:   var(--badge-red-bg);
+  --amber:       var(--accent-amber);
+  --amber-light: var(--badge-amber-bg);
 
-  --gray-50:  #f8fafc;
-  --gray-100: #f1f5f9;
-  --gray-200: #e2e8f0;
-  --gray-300: #cbd5e1;
-  --gray-400: #94a3b8;
-  --gray-500: #64748b;
-  --gray-600: #475569;
-  --gray-700: #334155;
-  --gray-900: #0f172a;
+  --gray-50:  var(--bg-primary);
+  --gray-100: var(--bg-secondary);
+  --gray-200: var(--border-primary);
+  --gray-300: var(--border-secondary);
+  --gray-400: var(--text-muted);
+  --gray-500: var(--text-secondary);
+  --gray-600: var(--text-secondary);
+  --gray-700: var(--text-primary);
+  --gray-800: var(--text-primary);
+  --gray-900: var(--text-primary);
 
   --radius-xs: 6px;
   --radius-sm: 10px;

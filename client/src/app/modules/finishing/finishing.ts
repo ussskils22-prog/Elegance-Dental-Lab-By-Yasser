@@ -8,6 +8,7 @@ import { DentalCase, SharedCasesService } from '../../core/services/shared-cases
 import { CaseApiService } from '../../core/services/case-api.service';
 import { mapApiCaseToDentalCase } from '../../core/mappers/dental-case-api.mapper';
 import { SocketService } from '../../core/services/socket.service';
+import { ThemeService } from '../../core/services/theme.service';
 
 @Component({
   selector: 'app-finishing',
@@ -22,6 +23,7 @@ export class Finishing implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly caseApi = inject(CaseApiService);
   private readonly socketService = inject(SocketService);
+  public readonly themeService = inject(ThemeService);
   private socketSubs: Subscription[] = [];
   private reloadDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 

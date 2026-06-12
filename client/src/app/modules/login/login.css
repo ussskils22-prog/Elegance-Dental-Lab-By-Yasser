@@ -1,15 +1,15 @@
 /* LabFlow Pro — login (RTL form, fixed LTR column layout) */
 :host {
-  --primary: #0c3d8c;
-  --primary-mid: #1e5bb8;
+  --primary: var(--accent-primary);
+  --primary-mid: var(--accent-blue);
   --primary-dark: #082a5c;
-  --accent: #2563eb;
-  --page-bg: #e8edf5;
-  --card: #ffffff;
-  --text: #0f1f3d;
-  --muted: #5c6b8a;
-  --input-bg: #f1f4f9;
-  --input-border: #dce3f0;
+  --accent: var(--accent-primary);
+  --page-bg: var(--bg-primary);
+  --card: var(--bg-card);
+  --text: var(--text-primary);
+  --muted: var(--text-muted);
+  --input-bg: var(--bg-secondary);
+  --input-border: var(--border-primary);
   --radius-card: 20px;
   --radius-control: 12px;
   display: block;
