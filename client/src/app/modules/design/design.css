@@ -85,7 +85,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #003366, #60a5fa);
+  background: linear-gradient(135deg, var(--blue), #60a5fa);
   opacity: 0.7;
   display: inline-block;
 }
@@ -95,7 +95,7 @@
   font-weight: 900;
   letter-spacing: 4px;
   text-transform: uppercase;
-  background: linear-gradient(135deg, #0f172a 20%, #003366 100%);
+  background: linear-gradient(135deg, var(--navy) 20%, var(--blue) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -156,7 +156,7 @@
   height: 42px;
   border: none;
   border-radius: 12px;
-  background: #f0f4fa;
+  background: var(--gray-100);
   color: var(--gray-500);
   cursor: pointer;
   transition:
@@ -165,7 +165,7 @@
 }
 
 .icon-btn:hover {
-  background: #e3eaf5;
+  background: var(--gray-200);
   color: var(--blue);
 }
 
