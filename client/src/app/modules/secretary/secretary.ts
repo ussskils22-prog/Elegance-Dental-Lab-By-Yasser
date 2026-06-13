@@ -180,6 +180,92 @@ export class Secretary implements OnInit, OnDestroy {
   readonly dialogMode = signal<'create' | 'edit'>('create');
   editingId: string | null = null;
   formDraft: any = emptyDraft();
+
+  // Autocomplete Doctor logic
+  readonly uniqueDoctors = computed(() => {
+    const allCases = this.sharedCases.cases();
+    const doctors = allCases
+      .map(c => c.doctor?.trim())
+      .filter((name): name is string => !!name);
+    return Array.from(new Set(doctors)).sort();
+  });
+
+  readonly doctorSearchQuery = signal('');
+  readonly showDoctorSuggestions = signal(false);
+  readonly activeSuggestionIndex = signal(-1);
+
+  normalizeArabic(text: string): string {
+    if (!text) return '';
+    return text
+      .trim()
+      .replace(/[أإآا]/g, 'ا')
+      .replace(/ة/g, 'ه')
+      .replace(/ى/g, 'ي')
+      .replace(/\s+/g, ' ');
+  }
+
+  readonly filteredDoctors = computed(() => {
+    const input = this.doctorSearchQuery();
+    const unique = this.uniqueDoctors();
+    const normalizedInput = this.normalizeArabic(input);
+    if (!normalizedInput) {
+      return unique.slice(0, 10);
+    }
+    return unique.filter(doc => 
+      this.normalizeArabic(doc).includes(normalizedInput)
+    );
+  });
+
+  onDoctorInputChange(): void {
+    this.doctorSearchQuery.set(this.formDraft.doctor || '');
+    this.activeSuggestionIndex.set(-1);
+    this.showDoctorSuggestions.set(true);
+  }
+
+  onDoctorInputFocus(): void {
+    this.doctorSearchQuery.set(this.formDraft.doctor || '');
+    this.showDoctorSuggestions.set(true);
+    this.activeSuggestionIndex.set(-1);
+  }
+
+  onDoctorInputBlur(): void {
+    setTimeout(() => {
+      this.showDoctorSuggestions.set(false);
+    }, 200);
+  }
+
+  selectDoctor(doc: string): void {
+    this.formDraft.doctor = doc;
+    this.doctorSearchQuery.set(doc);
+    this.showDoctorSuggestions.set(false);
+    this.activeSuggestionIndex.set(-1);
+  }
+
+  onDoctorInputKeydown(event: KeyboardEvent): void {
+    const list = this.filteredDoctors();
+    if (!this.showDoctorSuggestions() || list.length === 0) {
+      return;
+    }
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      const nextIdx = (this.activeSuggestionIndex() + 1) % list.length;
+      this.activeSuggestionIndex.set(nextIdx);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      const prevIdx = (this.activeSuggestionIndex() - 1 + list.length) % list.length;
+      this.activeSuggestionIndex.set(prevIdx);
+    } else if (event.key === 'Enter') {
+      const activeIdx = this.activeSuggestionIndex();
+      if (activeIdx >= 0 && activeIdx < list.length) {
+        event.preventDefault();
+        this.selectDoctor(list[activeIdx]);
+      }
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      this.showDoctorSuggestions.set(false);
+    }
+  }
   /** ملف مسح .ply اختياري عند الإنشاء/التعديل */
   selectedPlyFile: File | null = null;
   /** اسم ملف PLY المحفوظ مسبقاً (وضع التعديل) */
