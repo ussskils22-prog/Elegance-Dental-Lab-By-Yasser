@@ -314,7 +314,7 @@
                 autocomplete="off"
                 [(ngModel)]="currentStaff.email"
                 placeholder="مثال: user@mylab.com"
-                [readonly]="isEditMode"
+                [attr.readonly]="isEditMode ? '' : null"
                 [required]="!isEditMode"
               />
             </div>
