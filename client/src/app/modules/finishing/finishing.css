@@ -64,7 +64,10 @@
   font-weight: 900;
   letter-spacing: 4px;
   text-transform: uppercase;
-  color: #fff;
+  background: linear-gradient(135deg, var(--text) 20%, var(--primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   line-height: 1;
 }
 
@@ -145,13 +148,19 @@
   height: 42px;
   border: none;
   border-radius: 12px;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.75);
+  background: var(--bg-secondary);
+  color: var(--muted);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
-.icon-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.icon-btn:hover {
+  background: var(--border-primary);
+  color: var(--primary);
+}
+
 .icon-btn svg { width: 22px; height: 22px; }
 
 /* ── Dashboard ── */
@@ -184,9 +193,8 @@
 }
 
 .list-total-badge {
-  background: rgba(255,255,255,0.12);
+  background: var(--primary);
   color: #fff;
-  border: 1px solid rgba(255,255,255,0.2);
   border-radius: 18px;
   padding: 5px 14px;
   font-size: 13px;
