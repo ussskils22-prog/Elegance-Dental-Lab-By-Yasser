@@ -33,7 +33,8 @@
       <p class="elegance-navbar-sub">Precision Labs</p>
     </div>
 
-    <div class="topbar-right">
+    <div class="topbar-right notifications-anchor">
+      <div class="list-total-badge">{{ queueCases.length }} حالة</div>
       <button type="button" class="icon-btn" aria-label="تغيير المظهر" (click)="themeService.toggleTheme()" title="تغيير المظهر">
         <svg *ngIf="!themeService.isDarkMode()" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
@@ -55,6 +56,18 @@
           <path stroke-linecap="round" stroke-linejoin="round" d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
         </svg>
       </button>
+      <button type="button" class="icon-btn" aria-label="الإشعارات" (click)="toggleNotifications($event)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2c0 .5-.2 1-.6 1.4L4 17h5" />
+          <path stroke-linecap="round" d="M12 21a2 2 0 0 0 2-2H10a2 2 0 0 0 2 2z" />
+        </svg>
+      </button>
+      @if (notificationsOpen) {
+        <div class="notifications-panel" (click)="$event.stopPropagation()">
+          <p class="notifications-title">الإشعارات</p>
+          <p class="notifications-empty">لا توجد إشعارات جديدة</p>
+        </div>
+      }
     </div>
   </header>
 
@@ -65,7 +78,6 @@
         <h1>قسم الفينيش</h1>
         <p>الحالات الجاهزة من الديزاين وإنهاؤها للمحاسبة</p>
       </div>
-      <div class="list-total-badge">{{ queueCases.length }} حالة</div>
     </div>
 
     <!-- Search -->
