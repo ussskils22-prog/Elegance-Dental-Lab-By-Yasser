@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -32,6 +32,12 @@ export class Finishing implements OnInit, OnDestroy {
   exitingId: string | null = null;
   toast = '';
   private toastTimer: ReturnType<typeof setTimeout> | null = null;
+  notificationsOpen = false;
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    this.notificationsOpen = false;
+  }
 
   ngOnInit(): void {
     this.reloadCasesFromBackend();
@@ -46,6 +52,11 @@ export class Finishing implements OnInit, OnDestroy {
 
   logout(): void {
     this.auth.performLogout(this.router);
+  }
+
+  toggleNotifications(e: Event): void {
+    e.stopPropagation();
+    this.notificationsOpen = !this.notificationsOpen;
   }
 
   /* ── Cases ── */
