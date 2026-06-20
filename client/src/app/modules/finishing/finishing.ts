@@ -149,7 +149,7 @@ export class Finishing implements OnInit, OnDestroy {
 
   /* ── Backend ── */
   private reloadCasesFromBackend(): void {
-    this.caseApi.getAllCases(1, 500).subscribe({
+    this.caseApi.getAllCases(1, 3000).subscribe({
       next: (res) => {
         const rows = (res?.data ?? []) as Record<string, unknown>[];
         const mapped = Array.isArray(rows) ? rows.map((r) => mapApiCaseToDentalCase(r)) : [];
