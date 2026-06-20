@@ -220,6 +220,7 @@ export class Secretary implements OnInit, OnDestroy {
     this.doctorSearchQuery.set(this.formDraft.doctor || '');
     this.activeSuggestionIndex.set(-1);
     this.showDoctorSuggestions.set(true);
+    this.onPatientInputChange();
   }
 
   onDoctorInputFocus(): void {
@@ -239,6 +240,7 @@ export class Secretary implements OnInit, OnDestroy {
     this.doctorSearchQuery.set(doc);
     this.showDoctorSuggestions.set(false);
     this.activeSuggestionIndex.set(-1);
+    this.onPatientInputChange();
   }
 
   onDoctorInputKeydown(event: KeyboardEvent): void {
@@ -274,12 +276,53 @@ export class Secretary implements OnInit, OnDestroy {
   /** Work Type chip options */
   readonly workTypeOptions = [
     'Try in', 'Zr', 'Zr Ger', 'Pmma Cad',
-    'Emax', 'Peek', 'Titanium', 'Night Gard',
+    'Emax', 'Peek', 'Titanium', 'Night Guard',
     'Mokup', 'cast', 'Empty', 'Remake'
   ];
   selectedWorkTypes = new Set<string>();
   workTypeQuantities: Record<string, number> = {};
   workTypeError = '';
+  nightGuardType: 'Soft' | 'Hard' | '' = '';
+  patientWarning = '';
+
+  setNightGuardType(type: 'Soft' | 'Hard'): void {
+    this.nightGuardType = type;
+    this.updateWorkTypeString();
+  }
+
+  onPatientInputChange(): void {
+    const name = (this.formDraft.patient || '').trim();
+    const doc = (this.formDraft.doctor || '').trim();
+    
+    if (!name) {
+      this.patientWarning = '';
+      return;
+    }
+    
+    const parts = name.split(/\s+/).filter((p: string) => p);
+    const isSingleWord = parts.length === 1;
+    
+    const exists = this.sharedCases.cases().some(c => 
+      c.status !== 'exited' &&
+      c.doctor?.trim().toLowerCase() === doc.toLowerCase() &&
+      c.patient?.trim().toLowerCase() === name.toLowerCase() &&
+      c.id !== this.editingId
+    );
+    
+    if (isSingleWord && exists) {
+      this.patientWarning = 'يرجى كتابة الاسم ثنائي. يوجد مريض بنفس الاسم لنفس الدكتور وسيتم ترقيمه تلقائياً.';
+    } else if (isSingleWord) {
+      this.patientWarning = 'يرجى كتابة الاسم ثنائي (مثال: محمد أحمد).';
+    } else if (exists) {
+      this.patientWarning = 'تنبيه: يوجد مريض بنفس الاسم لنفس الدكتور.';
+    } else {
+      this.patientWarning = '';
+    }
+  }
+
+  private escapeRegExp(string: string): string {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
 
   /**
    * Toggle a work type chip.
@@ -294,17 +337,24 @@ export class Secretary implements OnInit, OnDestroy {
     if (this.selectedWorkTypes.has(type)) {
       this.selectedWorkTypes.delete(type);
       delete this.workTypeQuantities[type];
+      if (type === 'Night Guard') {
+        this.nightGuardType = '';
+      }
     } else {
       if (type === 'Empty') {
         this.selectedWorkTypes.clear();
         this.workTypeQuantities = {};
         this.selectedWorkTypes.add('Empty');
         this.workTypeQuantities['Empty'] = 1;
+        this.nightGuardType = '';
       } else {
         this.selectedWorkTypes.delete('Empty');
         delete this.workTypeQuantities['Empty'];
         this.selectedWorkTypes.add(type);
         this.workTypeQuantities[type] = 1;
+        if (type === 'Night Guard') {
+          this.nightGuardType = 'Soft';
+        }
       }
     }
     this.updateWorkTypeString();
@@ -324,10 +374,20 @@ export class Secretary implements OnInit, OnDestroy {
       }
       const q = Number(this.workTypeQuantities[wt]) || 1;
       total += q;
+      
+      let displayName = wt;
+      if (wt === 'Night Guard') {
+        if (this.nightGuardType) {
+          displayName = `Night Guard ${this.nightGuardType}`;
+        } else {
+          displayName = 'Night Guard';
+        }
+      }
+      
       if (this.selectedWorkTypes.size > 1 || q > 1) {
-        parts.push(`${wt} (${q})`);
+        parts.push(`${displayName} (${q})`);
       } else {
-        parts.push(wt);
+        parts.push(displayName);
       }
     }
     this.formDraft.quantity = total || 1;
@@ -431,6 +491,8 @@ export class Secretary implements OnInit, OnDestroy {
     this.selectedWorkTypes.clear();
     this.workTypeQuantities = {};
     this.workTypeError = '';
+    this.nightGuardType = '';
+    this.patientWarning = '';
     this.existingPlyFileName = null;
     this.clearPlySelection();
     this.dialogOpen.set(true);
@@ -462,6 +524,8 @@ export class Secretary implements OnInit, OnDestroy {
     this.selectedWorkTypes = new Set<string>();
     this.workTypeQuantities = {};
     this.workTypeError = '';
+    this.nightGuardType = '';
+    this.patientWarning = '';
     if (c.workType) {
       const parts = c.workType.split('+').map((s: string) => s.trim()).filter((s: string) => s);
       for (const p of parts) {
@@ -469,7 +533,18 @@ export class Secretary implements OnInit, OnDestroy {
         if (match) {
           const wtName = match[1].trim();
           const qty = match[2] ? parseInt(match[2], 10) : 1;
-          if (this.workTypeOptions.includes(wtName)) {
+          
+          if (wtName.startsWith('Night Guard') || wtName.startsWith('Night Gard')) {
+            this.selectedWorkTypes.add('Night Guard');
+            this.workTypeQuantities['Night Guard'] = qty;
+            if (wtName.includes('Soft')) {
+              this.nightGuardType = 'Soft';
+            } else if (wtName.includes('Hard')) {
+              this.nightGuardType = 'Hard';
+            } else {
+              this.nightGuardType = 'Soft';
+            }
+          } else if (this.workTypeOptions.includes(wtName)) {
             this.selectedWorkTypes.add(wtName);
             this.workTypeQuantities[wtName] = qty;
           }
@@ -487,6 +562,10 @@ export class Secretary implements OnInit, OnDestroy {
         this.formDraft.workType = c.workType;
       }
     }
+    
+    // Trigger warnings immediately on edit open
+    this.onPatientInputChange();
+    
     this.dialogOpen.set(true);
     this.menuOpenId.set(null);
   }
@@ -550,11 +629,49 @@ export class Secretary implements OnInit, OnDestroy {
       return;
     }
 
+    let patientName = d.patient.trim();
+    const docName = d.doctor.trim();
+    
+    const parts = patientName.split(/\s+/).filter((p: string) => p);
+    const isSingleWord = parts.length === 1;
+    
+    if (isSingleWord) {
+      const existingCases = this.sharedCases.cases().filter(c => 
+        c.status !== 'exited' &&
+        c.doctor?.trim().toLowerCase() === docName.toLowerCase() &&
+        c.id !== this.editingId
+      );
+      
+      const matchPattern = new RegExp(`^${this.escapeRegExp(patientName)}(?:\\s+(\\d+))?$`, 'i');
+      
+      let maxNumber = 1;
+      let duplicateExists = false;
+      
+      for (const c of existingCases) {
+        const pName = (c.patient || '').trim();
+        const match = pName.match(matchPattern);
+        if (match) {
+          duplicateExists = true;
+          if (match[1]) {
+            const num = parseInt(match[1], 10);
+            if (num > maxNumber) {
+              maxNumber = num;
+            }
+          }
+        }
+      }
+      
+      if (duplicateExists) {
+        patientName = `${patientName} ${maxNumber + 1}`;
+        d.patient = patientName; // Update local form field
+      }
+    }
+
     const formPayload = {
       requesterType: isStudentCase ? ('student' as const) : ('doctor' as const),
       studentPrice: isStudentCase ? Number(d.studentPrice || 0) : 0,
-      doctor: d.doctor.trim(),
-      patient: d.patient.trim(),
+      doctor: docName,
+      patient: patientName,
       patientEmail: existing?.patientEmail?.trim() || undefined,
       patientPhone: d.patientPhone?.trim(),
       workType: d.workType.trim(),
