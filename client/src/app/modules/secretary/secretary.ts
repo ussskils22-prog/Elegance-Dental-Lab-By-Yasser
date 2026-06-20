@@ -285,6 +285,43 @@ export class Secretary implements OnInit, OnDestroy {
   nightGuardType: 'Soft' | 'Hard' | '' = '';
   patientWarning = '';
 
+  readonly passwordDialogOpen = signal(false);
+  passwordInput = '';
+  passwordError = '';
+  pendingAction: { type: 'edit' | 'delete'; caseItem: any } | null = null;
+
+  openPasswordProtection(type: 'edit' | 'delete', caseItem: any): void {
+    this.pendingAction = { type, caseItem };
+    this.passwordInput = '';
+    this.passwordError = '';
+    this.passwordDialogOpen.set(true);
+  }
+
+  verifyPasswordAndExecute(): void {
+    const allowedPasswords = ['1020', '1234'];
+    if (allowedPasswords.includes(this.passwordInput.trim())) {
+      this.passwordDialogOpen.set(false);
+      const action = this.pendingAction;
+      this.pendingAction = null;
+      if (action) {
+        if (action.type === 'edit') {
+          this.proceedWithEdit(action.caseItem);
+        } else if (action.type === 'delete') {
+          this.proceedWithDelete(action.caseItem);
+        } 
+      }
+    } else {
+      this.passwordError = 'كلمة المرور غير صحيحة!';
+    }
+  }
+
+  closePasswordDialog(): void {
+    this.passwordDialogOpen.set(false);
+    this.pendingAction = null;
+    this.passwordInput = '';
+    this.passwordError = '';
+  }
+
   setNightGuardType(type: 'Soft' | 'Hard'): void {
     this.nightGuardType = type;
     this.updateWorkTypeString();
@@ -500,6 +537,14 @@ export class Secretary implements OnInit, OnDestroy {
   }
 
   openEdit(c: any): void {
+    if (c.status === 'exited') {
+      this.openPasswordProtection('edit', c);
+      return;
+    }
+    this.proceedWithEdit(c);
+  }
+
+  proceedWithEdit(c: any): void {
     this.dialogMode.set('edit');
     this.editingId = c.id;
     this.existingPlyFileName = c.plyFileName || null;
@@ -809,6 +854,14 @@ export class Secretary implements OnInit, OnDestroy {
   }
 
   confirmDelete(c: any): void {
+    if (c.status === 'exited') {
+      this.openPasswordProtection('delete', c);
+      return;
+    }
+    this.proceedWithDelete(c);
+  }
+
+  proceedWithDelete(c: any): void {
     const ok = confirm(`هل تريد حذف الحالة ${c.caseNumber}؟`);
     if (!ok) return;
     this.caseApi.deleteCase(c.id).subscribe({
