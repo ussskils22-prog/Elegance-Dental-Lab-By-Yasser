@@ -860,7 +860,7 @@ export class Admin implements OnInit, OnDestroy {
   }
 
   private loadCasesFromApi(): void {
-    this.caseApi.getAllCases(1, 500).subscribe({
+    this.caseApi.getAllCases(1, 3000).subscribe({
       next: (res) => {
         const rows = (res?.data ?? []) as Record<string, unknown>[];
         this.adminCases = Array.isArray(rows) ? rows.map((row) => this.mapApiCaseToAdminCase(row)) : [];
