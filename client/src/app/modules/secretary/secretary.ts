@@ -106,7 +106,7 @@ export class Secretary implements OnInit, OnDestroy {
   public readonly themeService = inject(ThemeService);
   private readonly socketSubs: Subscription[] = [];
   readonly activeFilter = signal<
-    'all' | 'pending' | 'in-progress' | 'under-khart' | 'ready-for-finishing' | 'finished' | 'exited'
+    'all' | 'pending' | 'in-progress' | 'under-khart' | 'finished' | 'exited'
   >('all');
   readonly casesLoading = signal(false);
   readonly saveInProgress = signal(false);
@@ -136,17 +136,12 @@ export class Secretary implements OnInit, OnDestroy {
     const activeCases = allCases.filter(c => c.status !== 'exited');
     const total = allCases.length;
     const pending = activeCases.filter(c => c.status === 'pending').length;
-    const inProgress = activeCases.filter(c => c.status === 'in-progress').length;
-    const underKhart = activeCases.filter(c => c.status === 'under-khart').length;
-    const ready = activeCases.filter(c => c.status === 'ready-for-finishing').length;
     const finished = activeCases.filter(c => c.status === 'finished').length;
     const exited = allCases.filter(c => c.status === 'exited').length;
 
     return [
       { label: 'إجمالي الحالات', value: total, color: 'purple' as const, hint: total > 0 ? '+12%' : undefined },
       { label: 'الحالات الجديدة', value: pending, color: 'amber' as const },
-
-      { label: 'الحالات الجاهزة للتسليم', value: ready, color: 'violet' as const },
       { label: 'الحالات المنتهية', value: finished, color: 'emerald' as const },
       { label: 'الحالات الخارجة', value: exited, color: 'rose' as const },
     ];
@@ -160,7 +155,6 @@ export class Secretary implements OnInit, OnDestroy {
       pending: activeCases.filter(c => c.status === 'pending').length,
       inProgress: activeCases.filter(c => c.status === 'in-progress').length,
       underKhart: activeCases.filter(c => c.status === 'under-khart').length,
-      ready: activeCases.filter(c => c.status === 'ready-for-finishing').length,
       finished: activeCases.filter(c => c.status === 'finished').length,
       exited: allCases.filter(c => c.status === 'exited').length,
     };
@@ -516,7 +510,7 @@ export class Secretary implements OnInit, OnDestroy {
   }
 
   setFilter(
-    filter: 'all' | 'pending' | 'in-progress' | 'under-khart' | 'ready-for-finishing' | 'finished' | 'exited'
+    filter: 'all' | 'pending' | 'in-progress' | 'under-khart' | 'finished' | 'exited'
   ): void {
     this.activeFilter.set(filter);
   }

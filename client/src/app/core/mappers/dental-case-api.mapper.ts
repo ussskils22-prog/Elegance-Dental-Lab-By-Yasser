@@ -58,7 +58,7 @@ export type CaseMeta = {
   selectedFileName?: string;
   designImages?: string[];
   finishingNotes?: string;
-  uiStatusOverride?: 'in-progress' | 'under-khart' | 'ready-for-finishing' | 'needs-revision';
+  uiStatusOverride?: 'in-progress' | 'under-khart' | 'needs-revision';
   plyScanPath?: string;
   plyFileName?: string;
 };
@@ -297,9 +297,8 @@ function mapUiStatus(doc: Record<string, unknown>, uiStatusOverride: string): De
   const stage = String(doc['currentStage'] ?? '');
   if (s === 'exited') return 'exited';
   if (uiStatusOverride === 'needs-revision') return 'needs-revision';
-  if (s === 'completed' || stage === 'completed') return 'finished';
+  if (s === 'completed' || stage === 'completed' || stage === 'finishing') return 'finished';
   if (stage === 'khart') return 'under-khart';
-  if (stage === 'finishing') return 'ready-for-finishing';
   // Legacy: under-khart was only in notes meta before `khart` existed on currentStage
   if (stage === 'design' && uiStatusOverride === 'under-khart') return 'under-khart';
   if (stage === 'design') return 'in-progress';

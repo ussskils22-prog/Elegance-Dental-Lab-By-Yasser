@@ -17,7 +17,6 @@ export interface DentalCase {
     | 'pending'
     | 'in-progress'
     | 'needs-revision'
-    | 'ready-for-finishing'
     | 'under-khart'
     | 'finished'
     | 'exited';
