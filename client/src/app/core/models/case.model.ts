@@ -91,8 +91,3 @@ export interface SystemNotification {
   targetAudience: 'admin' | 'all' | string[]; // admin, specific role, or specific users
 }
 
-export interface CaseClaimRequest {
-  caseId: string;
-  userId: string;
-  timestamp: Date;
-}

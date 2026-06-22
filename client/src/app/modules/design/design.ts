@@ -21,7 +21,6 @@ export type CaseStatus =
   | 'pending'
   | 'in-progress'
   | 'needs-revision'
-  | 'ready-for-finishing'
   | 'under-khart'
   | 'finished'
   | 'exited';
@@ -142,8 +141,7 @@ export class CaseDetailsComponent implements OnInit, OnDestroy {
   /* ── Work stages shown inside detail view ── */
   workStages: WorkStage[] = [
     { id: 'in-progress',    label: 'تحت الديزاين',    icon: 'clock'   },
-
-    { id: 'ready-for-finishing', label: 'جاهزة للفينيش', icon: 'check' },
+    { id: 'finished',       label: 'منتهية',         icon: 'check'   },
   ];
 
   /* ── Cases list - مأخوذة من service مشترك ── */
@@ -276,13 +274,12 @@ export class CaseDetailsComponent implements OnInit, OnDestroy {
   get counts() {
     const visible = this.designerVisibleCases;
     return {
-      all:            visible.length,
-      pending:        visible.filter(c => c.status === 'pending').length,
-      'in-progress':  visible.filter(c => c.status === 'in-progress').length,
+      all:              visible.length,
+      pending:          visible.filter(c => c.status === 'pending').length,
+      'in-progress':    visible.filter(c => c.status === 'in-progress').length,
       'needs-revision': visible.filter(c => c.status === 'needs-revision').length,
-      'ready-for-finishing': visible.filter(c => c.status === 'ready-for-finishing').length,
-      'under-khart': visible.filter(c => c.status === 'under-khart').length,
-      finished:       visible.filter(c => c.status === 'finished').length,
+      'under-khart':    visible.filter(c => c.status === 'under-khart').length,
+      finished:         visible.filter(c => c.status === 'finished').length,
     };
   }
 
@@ -300,7 +297,6 @@ export class CaseDetailsComponent implements OnInit, OnDestroy {
       pending:          'قيد الانتظار',
       'in-progress':    'تحت الديزاين',
       'needs-revision': 'محتاجة تعديل',
-      'ready-for-finishing': 'جاهزة للفينيش',
       'under-khart':    'تحت الخرط',
       finished:         'منتهية',
       exited:           'خروج',
@@ -373,12 +369,12 @@ export class CaseDetailsComponent implements OnInit, OnDestroy {
     this.showFinishConfirm = false;
     await new Promise(r => setTimeout(r, 1600));
 
-    // ثم: تحويلها إلى جاهزة للفينيش ليستلمها قسم الـ Finishing
-    this.selectedCase.status = 'ready-for-finishing';
-    this.moveStageByStatus('ready-for-finishing');
+    // ثم: تحويلها إلى منتهية
+    this.selectedCase.status = 'finished';
+    this.moveStageByStatus('finished');
 
     this.isFinishing = false;
-    this.showToast('تم إرسال الحالة إلى قسم الفينيش ✅');
+    this.showToast('تم إنهاء الحالة بنجاح ✅');
     setTimeout(() => this.goBack(), 1800);
   }
 
@@ -677,9 +673,8 @@ export class CaseDetailsComponent implements OnInit, OnDestroy {
   private moveStageByStatus(status: CaseStatus): void {
     if (!this.selectedCase) return;
     const apiStage =
-      status === 'ready-for-finishing' ? 'finishing' :
-      status === 'finished' ? 'completed' :
-      status === 'exited' ? 'exited' :
+      status === 'finished'    ? 'completed' :
+      status === 'exited'      ? 'exited' :
       status === 'under-khart' ? 'khart' :
       status === 'in-progress' ? 'design' : 'secretary';
 
@@ -709,9 +704,8 @@ export class CaseDetailsComponent implements OnInit, OnDestroy {
     if (c.status === status) return;
     c.status = status;
     const apiStage =
-      status === 'ready-for-finishing' ? 'finishing' :
-      status === 'finished' ? 'completed' :
-      status === 'exited' ? 'exited' :
+      status === 'finished'    ? 'completed' :
+      status === 'exited'      ? 'exited' :
       status === 'under-khart' ? 'khart' :
       status === 'in-progress' ? 'design' : 'secretary';
 
@@ -763,9 +757,7 @@ export class CaseDetailsComponent implements OnInit, OnDestroy {
       uiStatusOverride:
         dentalCase.status === 'under-khart'
           ? 'under-khart'
-          : dentalCase.status === 'ready-for-finishing'
-            ? 'ready-for-finishing'
-            : 'in-progress',
+          : 'in-progress',
       ...(plyStored
         ? {
             plyScanPath: plyStored,

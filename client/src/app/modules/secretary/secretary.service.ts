@@ -98,7 +98,6 @@ export class SecretaryService {
       'in-progress': { label: 'ديزاين', color: 'design' },
       'under-khart': { label: 'خرط', color: 'khart' },
       'needs-revision': { label: 'محتاجة تعديل', color: 'revision' },
-      'ready-for-finishing': { label: 'جاهزة', color: 'finishing' },
       finished: { label: 'منتهية', color: 'finished' },
       exited: { label: 'خارجة', color: 'exited' },
     };
