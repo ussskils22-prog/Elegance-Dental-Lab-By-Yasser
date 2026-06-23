@@ -115,15 +115,20 @@ export class Secretary implements OnInit, OnDestroy {
   readonly cases = computed(() => {
     const allCases = this.sharedCases.cases();
     const selectedFilter = this.activeFilter();
-    const filteredByStatus =
-      selectedFilter === 'all'
-        ? allCases.filter(c => c.status !== 'exited')
-        : allCases.filter(c => c.status === selectedFilter);
     const q = this.normalizeSearchText(this.searchQuery());
 
-    if (!q) return filteredByStatus;
+    const baseCases =
+      !q
+        ? (selectedFilter === 'all'
+            ? allCases.filter(c => c.status !== 'exited')
+            : allCases.filter(c => c.status === selectedFilter))
+        : (selectedFilter === 'all'
+            ? allCases
+            : allCases.filter(c => c.status === selectedFilter));
 
-    const scored = filteredByStatus
+    if (!q) return baseCases;
+
+    const scored = baseCases
       .map(c => ({ caseItem: c, score: this.searchScore(c, q) }))
       .filter(item => item.score >= 0)
       .sort((a, b) => b.score - a.score);
