@@ -688,12 +688,6 @@ exports.exitCase = async (req, res) => {
       return res.status(403).json({ message: 'Only admin or secretary can exit cases' });
     }
 
-    const isCompletedCase =
-      dentalCase.currentStage === 'completed' || dentalCase.status === 'completed';
-    if (!isCompletedCase) {
-      return res.status(400).json({ message: 'Only completed cases can be exited' });
-    }
-
     if (dentalCase.status === 'exited') {
       return res.status(400).json({ message: 'Case is already exited' });
     }
