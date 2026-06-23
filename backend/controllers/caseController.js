@@ -604,12 +604,7 @@ exports.requestRevision = async (req, res) => {
       return res.status(403).json({ message: 'Only admin or secretary can request revision' });
     }
 
-    if (
-      req.user.role === 'secretary' &&
-      normalizeDocId(dentalCase.createdBy) !== normalizeDocId(req.user.id)
-    ) {
-      return res.status(403).json({ message: 'You can only edit cases you created' });
-    }
+
 
     const isCompletedCase =
       dentalCase.currentStage === 'completed' || dentalCase.status === 'completed';
@@ -820,12 +815,7 @@ exports.updateCase = async (req, res) => {
       return res.status(404).json({ message: 'Case not found' });
     }
 
-    if (
-      req.user.role === 'secretary' &&
-      normalizeDocId(dentalCase.createdBy) !== normalizeDocId(req.user.id)
-    ) {
-      return res.status(403).json({ message: 'You can only edit cases you created' });
-    }
+
 
     if (req.user.role === 'designer') {
       // Allow designer to edit any case; ownership is reassigned automatically on edit.
@@ -1001,12 +991,7 @@ exports.deleteCase = async (req, res) => {
       return res.status(404).json({ message: 'Case not found' });
     }
 
-    if (
-      req.user.role === 'secretary' &&
-      dentalCase.createdBy.toString() !== req.user.id.toString()
-    ) {
-      return res.status(403).json({ message: 'You can only delete cases you created' });
-    }
+
 
     const caseId = String(dentalCase._id);
     const caseNumber = dentalCase.caseNumber;
@@ -1090,12 +1075,7 @@ exports.uploadCasePly = async (req, res) => {
       return res.status(404).json({ message: 'Case not found' });
     }
 
-    if (
-      req.user.role === 'secretary' &&
-      normalizeDocId(dentalCase.createdBy) !== normalizeDocId(req.user.id)
-    ) {
-      return res.status(403).json({ message: 'You can only attach scans to cases you created' });
-    }
+
 
     const prefix = '__META__\n';
     const raw = dentalCase.notes || '';
