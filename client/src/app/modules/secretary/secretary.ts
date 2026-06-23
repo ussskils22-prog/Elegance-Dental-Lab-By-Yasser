@@ -118,13 +118,9 @@ export class Secretary implements OnInit, OnDestroy {
     const q = this.normalizeSearchText(this.searchQuery());
 
     const baseCases =
-      !q
-        ? (selectedFilter === 'all'
-            ? allCases.filter(c => c.status !== 'exited')
-            : allCases.filter(c => c.status === selectedFilter))
-        : (selectedFilter === 'all'
-            ? allCases
-            : allCases.filter(c => c.status === selectedFilter));
+      selectedFilter === 'all'
+        ? allCases.filter(c => c.status !== 'exited')
+        : allCases.filter(c => c.status === selectedFilter);
 
     if (!q) return baseCases;
 
