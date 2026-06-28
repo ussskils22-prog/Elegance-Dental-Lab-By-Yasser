@@ -39,6 +39,7 @@ function emptyDraft(): CaseDraft {
     deliveryDate: '',
     deliveryTime: '',
     caseType: 'New',
+    exitedAt: '',
   };
 }
 
@@ -620,6 +621,7 @@ export class Secretary implements OnInit, OnDestroy {
       deliveryDate: dateMatch ? dateMatch[1] : '',
       deliveryTime: dateMatch && dateMatch[2] ? dateMatch[2].trim().slice(0, 5) : '',
       caseType: currentCaseType,
+      exitedAt: c.status === 'exited' ? this.parseArabicDateToYmd(c.exitedAtRaw || '') : '',
     };
     // Restore selectedWorkTypes from saved string
     this.selectedWorkTypes = new Set<string>();
@@ -793,6 +795,7 @@ export class Secretary implements OnInit, OnDestroy {
       date: this.formatDateWithCurrentOrOriginalTime(d.date, existing?.receivedDate),
       deliveryDate: d.deliveryDate || '',
       deliveryTime: d.deliveryTime || '',
+      exitedAt: d.exitedAt || undefined,
     };
 
     const plyPreserveMeta =
