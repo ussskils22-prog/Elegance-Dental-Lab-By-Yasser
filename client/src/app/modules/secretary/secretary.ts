@@ -21,21 +21,9 @@ import { ThemeService } from '../../core/services/theme.service';
 
 function emptyDraft(): CaseDraft {
   const today = new Date();
-  const months = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-  const day = today.getDate();
-  const month = months[today.getMonth()];
-  const year = today.getFullYear();
-
-  // الوقت الحالي بصيغة HH:MM م/ص
-  const rawHours = today.getHours();
-  const ampm = rawHours >= 12 ? 'م' : 'ص';
-  const hours12 = rawHours % 12 || 12;
-  const hours = String(hours12).padStart(2, '0');
-  const minutes = String(today.getMinutes()).padStart(2, '0');
-  const currentTime = `${hours}:${minutes} ${ampm}`;
-
-  // دمج التاريخ والوقت
-  const dateWithTime = `${day} ${month} ${year} ${currentTime}`;
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
 
   return {
     doctor: '',
@@ -47,7 +35,7 @@ function emptyDraft(): CaseDraft {
     color: '',
     size: '',
     quantity: '1' as any,
-    date: dateWithTime,
+    date: `${yyyy}-${mm}-${dd}`,
     deliveryDate: '',
     deliveryTime: '',
     caseType: 'New',
@@ -75,7 +63,15 @@ export class Secretary implements OnInit, OnDestroy {
     }
     const dateMatch = val.match(/^(\d{4}-\d{2}-\d{2})(?:\s+(.+))?$/);
     if (dateMatch) {
-      const datePart = dateMatch[1];
+      let datePart = dateMatch[1];
+      try {
+        const parts = datePart.split('-');
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10) - 1;
+        const d = parseInt(parts[2], 10);
+        const dateObj = new Date(y, m, d);
+        datePart = dateObj.toLocaleDateString('ar-EG-u-nu-latn', { day: 'numeric', month: 'long', year: 'numeric' });
+      } catch {}
       let timePart = dateMatch[2] ? dateMatch[2].trim() : '';
       if (timePart && !timePart.includes('م') && !timePart.includes('ص')) {
         timePart = this.localTimeTo12Hour(timePart);
@@ -620,7 +616,7 @@ export class Secretary implements OnInit, OnDestroy {
       color: c.color,
       size: c.size,
       quantity: c.quantity,
-      date: c.receivedDate || c.date,
+      date: this.parseArabicDateToYmd(c.receivedDate || c.date),
       deliveryDate: dateMatch ? dateMatch[1] : '',
       deliveryTime: dateMatch && dateMatch[2] ? dateMatch[2].trim().slice(0, 5) : '',
       caseType: currentCaseType,
@@ -794,7 +790,7 @@ export class Secretary implements OnInit, OnDestroy {
       color: (d.color || '').trim(),
       size: '',
       quantity: d.quantity !== '' && d.quantity !== null && !isNaN(Number(d.quantity)) ? Number(d.quantity) : 1,
-      date: d.date,
+      date: this.formatDateWithCurrentOrOriginalTime(d.date, existing?.receivedDate),
       deliveryDate: d.deliveryDate || '',
       deliveryTime: d.deliveryTime || '',
     };
@@ -1047,5 +1043,80 @@ export class Secretary implements OnInit, OnDestroy {
   private flash(msg: string): void {
     this.toast.set(msg);
     window.setTimeout(() => this.toast.set(null), 2800);
+  }
+
+  parseArabicDateToYmd(val: string): string {
+    if (!val) return new Date().toISOString().split('T')[0];
+    
+    // Check if it's already YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}/.test(val)) {
+      return val.split(' ')[0];
+    }
+    
+    // If it's something like "28 يونيو 2026"
+    const months = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+    const parts = val.trim().split(' ');
+    if (parts.length >= 3) {
+      const day = parseInt(parts[0], 10);
+      const monthName = parts[1].replace(/[أإآ]/g, 'ا');
+      const year = parseInt(parts[2], 10);
+      
+      const monthIndex = months.findIndex(m => m.replace(/[أإآ]/g, 'ا') === monthName);
+      if (!isNaN(day) && !isNaN(year) && monthIndex !== -1) {
+        const d = String(day).padStart(2, '0');
+        const m = String(monthIndex + 1).padStart(2, '0');
+        return `${year}-${m}-${d}`;
+      }
+    }
+    
+    try {
+      const d = new Date(val);
+      if (!isNaN(d.getTime())) {
+        return d.toISOString().split('T')[0];
+      }
+    } catch {}
+    
+    return new Date().toISOString().split('T')[0];
+  }
+
+  formatDateWithCurrentOrOriginalTime(newDateYmd: string, originalDateStr?: string): string {
+    if (!newDateYmd) return '';
+    
+    let timePart = '';
+    if (originalDateStr) {
+      const parsed = this.formatDateValue(originalDateStr);
+      if (parsed.time) {
+        timePart = this.convert12HourTo24Hour(parsed.time);
+      }
+    }
+    
+    if (!timePart) {
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      const ss = String(now.getSeconds()).padStart(2, '0');
+      timePart = `${hh}:${mm}:${ss}`;
+    }
+    
+    return `${newDateYmd} ${timePart}`;
+  }
+
+  private convert12HourTo24Hour(time12: string): string {
+    const clean = time12.trim();
+    const match = clean.match(/^(\d{1,2}):(\d{2})\s*(ص|م|AM|PM)?$/i);
+    if (!match) return '12:00:00';
+    
+    let hour = parseInt(match[1], 10);
+    const minute = match[2];
+    const ampm = match[3];
+    
+    if (ampm) {
+      const isPm = ampm === 'م' || ampm.toUpperCase() === 'PM';
+      const isAm = ampm === 'ص' || ampm.toUpperCase() === 'AM';
+      if (isPm && hour < 12) hour += 12;
+      if (isAm && hour === 12) hour = 0;
+    }
+    
+    return `${String(hour).padStart(2, '0')}:${minute}:00`;
   }
 }
