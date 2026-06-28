@@ -18,6 +18,7 @@ export interface LabCase {
 export type CaseDraft = Omit<LabCase, 'id'> & {
   patientPhone?: string;
   studentPrice?: number;
+  caseType?: string;
 };
 
 @Injectable({

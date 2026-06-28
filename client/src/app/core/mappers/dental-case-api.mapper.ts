@@ -283,6 +283,7 @@ export function mapApiCaseToDentalCase(doc: Record<string, unknown>): DentalCase
     plyScanUrl: plyScanUrl || undefined,
     plyFileName: plyFileName || undefined,
     exitedAt: exitedDisplay || undefined,
+    exitedAtRaw: exitedAtRaw ? String(exitedAtRaw) : undefined,
   };
 }
 
