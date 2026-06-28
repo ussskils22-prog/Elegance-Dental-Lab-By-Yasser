@@ -293,18 +293,18 @@ export class Secretary implements OnInit, OnDestroy {
   getCaseTypeFromWorkType(wt: string): 'New' | 'Modification' | 'Redo' | 'Empty' {
     if (!wt) return 'New';
     const normalized = wt.trim();
-    if (normalized === 'Modification') return 'Modification';
-    if (normalized === 'Redo' || normalized === 'Remake') return 'Redo';
+    if (normalized === 'Modification' || normalized.startsWith('Modification - ')) return 'Modification';
+    if (normalized === 'Redo' || normalized === 'Remake' || normalized.startsWith('Redo - ') || normalized.startsWith('Remake - ')) return 'Redo';
     if (normalized === 'Empty') return 'Empty';
     return 'New';
   }
 
   onCaseTypeChange(): void {
-    if (this.formDraft.caseType !== 'New') {
+    if (this.formDraft.caseType === 'Empty') {
       this.selectedWorkTypes.clear();
       this.workTypeQuantities = {};
       this.nightGuardType = '';
-      this.formDraft.workType = this.formDraft.caseType;
+      this.formDraft.workType = 'Empty';
     } else {
       this.updateWorkTypeString();
     }
@@ -433,8 +433,8 @@ export class Secretary implements OnInit, OnDestroy {
   }
 
   updateWorkTypeString(): void {
-    if (this.formDraft.caseType !== 'New') {
-      this.formDraft.workType = this.formDraft.caseType;
+    if (this.formDraft.caseType === 'Empty') {
+      this.formDraft.workType = 'Empty';
       return;
     }
     let total = 0;
@@ -458,8 +458,18 @@ export class Secretary implements OnInit, OnDestroy {
         parts.push(displayName);
       }
     }
+    
+    let finalString = parts.join(' + ');
+    if (this.formDraft.caseType === 'Modification' && finalString) {
+       finalString = 'Modification - ' + finalString;
+    } else if (this.formDraft.caseType === 'Redo' && finalString) {
+       finalString = 'Redo - ' + finalString;
+    } else if ((this.formDraft.caseType === 'Modification' || this.formDraft.caseType === 'Redo') && !finalString) {
+       finalString = this.formDraft.caseType;
+    }
+
+    this.formDraft.workType = finalString;
     this.formDraft.quantity = total || 1;
-    this.formDraft.workType = parts.join(' + ');
   }
 
   get hasWorkTypesWithQuantity(): boolean {
@@ -604,8 +614,15 @@ export class Secretary implements OnInit, OnDestroy {
     this.workTypeError = '';
     this.nightGuardType = '';
     this.patientWarning = '';
-    if (currentCaseType === 'New' && c.workType) {
-      const parts = c.workType.split('+').map((s: string) => s.trim()).filter((s: string) => s);
+    if (currentCaseType !== 'Empty' && c.workType) {
+      let wtToParse = c.workType;
+      if (wtToParse.startsWith('Modification - ')) wtToParse = wtToParse.replace('Modification - ', '');
+      else if (wtToParse === 'Modification') wtToParse = '';
+      else if (wtToParse.startsWith('Redo - ')) wtToParse = wtToParse.replace('Redo - ', '');
+      else if (wtToParse === 'Redo' || wtToParse === 'Remake') wtToParse = '';
+
+      if (wtToParse) {
+        const parts = wtToParse.split('+').map((s: string) => s.trim()).filter((s: string) => s);
       for (const p of parts) {
         const match = p.match(/^(.*?)(?:\s*\((\d+)\))?$/);
         if (match) {
@@ -636,6 +653,7 @@ export class Secretary implements OnInit, OnDestroy {
           this.workTypeQuantities[onlyWt] = Number(c.quantity) || 1;
         }
       }
+        }
       if (this.selectedWorkTypes.size > 0) {
         this.updateWorkTypeString();
       } else {
@@ -695,7 +713,7 @@ export class Secretary implements OnInit, OnDestroy {
       this.flash('يرجى إدخال اسم المريض');
       return;
     }
-    if (d.caseType === 'New' && this.selectedWorkTypes.size === 0) {
+    if (d.caseType !== 'Empty' && this.selectedWorkTypes.size === 0) {
       this.workTypeError = 'يرجى اختيار نوع عمل واحد على الأقل';
       this.flash('يرجى اختيار نوع العمل');
       return;
