@@ -299,6 +299,23 @@ export class Secretary implements OnInit, OnDestroy {
     return 'New';
   }
 
+  formatWorkTypeForDisplay(wt: string): string {
+    if (!wt) return '';
+    if (wt === 'Empty') return 'غير معروف';
+    if (wt === 'Modification') return 'تعديل';
+    if (wt === 'Redo' || wt === 'Remake') return 'اعادة';
+    
+    let display = wt;
+    if (display.startsWith('Modification - ')) {
+      display = display.replace('Modification - ', 'تعديل - ');
+    } else if (display.startsWith('Redo - ')) {
+      display = display.replace('Redo - ', 'اعادة - ');
+    } else if (display.startsWith('Remake - ')) {
+      display = display.replace('Remake - ', 'اعادة - ');
+    }
+    return display;
+  }
+
   onCaseTypeChange(): void {
     if (this.formDraft.caseType === 'Empty') {
       this.selectedWorkTypes.clear();
