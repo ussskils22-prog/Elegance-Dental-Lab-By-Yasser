@@ -279,11 +279,16 @@ export class Secretary implements OnInit, OnDestroy {
 
   /** Work Type chip options */
   readonly workTypeOptions = [
-    'Try in', 'Zr', 'Zr Ger', 'Pmma Cad',
-    'Emax', 'Peek', 'Titanium', 'Night Guard',
-    'Mokup'
+    'Zircon', 'German Zircon', 'Emax', 'Pmma Cad',
+    'Peek', 'Titanium', 'Try in', 'Mokup',
+    'Night Guard'
   ];
-  readonly caseTypeOptions = ['New', 'Modification', 'Redo', 'Empty'];
+  readonly caseTypeOptions = [
+    { value: 'New', label: 'جديد' },
+    { value: 'Modification', label: 'تعديل' },
+    { value: 'Redo', label: 'اعادة' },
+    { value: 'Empty', label: 'غير معروف' }
+  ];
 
   getCaseTypeFromWorkType(wt: string): 'New' | 'Modification' | 'Redo' | 'Empty' {
     if (!wt) return 'New';
@@ -604,7 +609,9 @@ export class Secretary implements OnInit, OnDestroy {
       for (const p of parts) {
         const match = p.match(/^(.*?)(?:\s*\((\d+)\))?$/);
         if (match) {
-          const wtName = match[1].trim();
+          let wtName = match[1].trim();
+          if (wtName === 'Zr') wtName = 'Zircon';
+          if (wtName === 'Zr Ger' || wtName === 'Zr Gre') wtName = 'German Zircon';
           const qty = match[2] ? parseInt(match[2], 10) : 1;
           
           if (wtName.startsWith('Night Guard') || wtName.startsWith('Night Gard')) {
