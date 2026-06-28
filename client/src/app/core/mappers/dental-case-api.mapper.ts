@@ -78,6 +78,7 @@ export type SecretaryCaseFormPayload = {
   date: string;
   deliveryDate?: string;
   deliveryTime?: string;
+  exitedAt?: string;
 };
 
 function parseMeta(notes: string | undefined): Record<string, unknown> {
@@ -140,7 +141,7 @@ export function buildCreateCasePayload(
 ): Record<string, unknown> {
   const email = (form.patientEmail || '').trim() || `case+${Date.now()}@mylab.com`;
   const phone = (form.patientPhone || '').trim() || '0000000000';
-  return {
+  const payload: Record<string, unknown> = {
     patientName: (form.patient || '').trim() || 'غير محدد',
     patientEmail: email,
     patientPhone: phone,
@@ -151,6 +152,14 @@ export function buildCreateCasePayload(
     dueDate: buildDueIso(form),
     notes: buildSecretaryNotes(form, plyPreserve),
   };
+
+  if (form.exitedAt) {
+    payload['stageTimestamps'] = {
+      exited: new Date(form.exitedAt).toISOString()
+    };
+  }
+
+  return payload;
 }
 
 export function formatTimeTo12Hour(timeStr: string): string {
