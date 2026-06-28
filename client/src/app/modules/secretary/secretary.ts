@@ -50,6 +50,7 @@ function emptyDraft(): CaseDraft {
     date: dateWithTime,
     deliveryDate: '',
     deliveryTime: '',
+    caseType: 'New',
   };
 }
 
@@ -117,10 +118,18 @@ export class Secretary implements OnInit, OnDestroy {
     const selectedFilter = this.activeFilter();
     const q = this.normalizeSearchText(this.searchQuery());
 
-    const baseCases =
+    let baseCases =
       selectedFilter === 'all'
         ? allCases.filter(c => c.status !== 'exited')
         : allCases.filter(c => c.status === selectedFilter);
+
+    if (selectedFilter === 'exited') {
+      baseCases = [...baseCases].sort((a, b) => {
+        const timeA = a.exitedAtRaw ? new Date(a.exitedAtRaw).getTime() : 0;
+        const timeB = b.exitedAtRaw ? new Date(b.exitedAtRaw).getTime() : 0;
+        return timeB - timeA;
+      });
+    }
 
     if (!q) return baseCases;
 
@@ -272,8 +281,30 @@ export class Secretary implements OnInit, OnDestroy {
   readonly workTypeOptions = [
     'Try in', 'Zr', 'Zr Ger', 'Pmma Cad',
     'Emax', 'Peek', 'Titanium', 'Night Guard',
-    'Mokup', 'cast', 'Empty', 'Remake'
+    'Mokup'
   ];
+  readonly caseTypeOptions = ['New', 'Modification', 'Redo', 'Empty'];
+
+  getCaseTypeFromWorkType(wt: string): 'New' | 'Modification' | 'Redo' | 'Empty' {
+    if (!wt) return 'New';
+    const normalized = wt.trim();
+    if (normalized === 'Modification') return 'Modification';
+    if (normalized === 'Redo' || normalized === 'Remake') return 'Redo';
+    if (normalized === 'Empty') return 'Empty';
+    return 'New';
+  }
+
+  onCaseTypeChange(): void {
+    if (this.formDraft.caseType !== 'New') {
+      this.selectedWorkTypes.clear();
+      this.workTypeQuantities = {};
+      this.nightGuardType = '';
+      this.formDraft.workType = this.formDraft.caseType;
+    } else {
+      this.updateWorkTypeString();
+    }
+  }
+
   selectedWorkTypes = new Set<string>();
   workTypeQuantities: Record<string, number> = {};
   workTypeError = '';
@@ -397,13 +428,13 @@ export class Secretary implements OnInit, OnDestroy {
   }
 
   updateWorkTypeString(): void {
+    if (this.formDraft.caseType !== 'New') {
+      this.formDraft.workType = this.formDraft.caseType;
+      return;
+    }
     let total = 0;
     const parts: string[] = [];
     for (const wt of this.selectedWorkTypes) {
-      if (wt === 'Remake' || wt === 'Empty') {
-        parts.push(wt);
-        continue;
-      }
       const q = Number(this.workTypeQuantities[wt]) || 1;
       total += q;
       
@@ -546,6 +577,7 @@ export class Secretary implements OnInit, OnDestroy {
     this.clearPlySelection();
     const delivery = String(c.deliveryDate || '');
     const dateMatch = delivery.match(/^(\d{4}-\d{2}-\d{2})(?:\s+(.+))?$/);
+    const currentCaseType = this.getCaseTypeFromWorkType(c.workType);
     this.formDraft = {
       doctor: c.doctor,
       patient: c.patient,
@@ -559,6 +591,7 @@ export class Secretary implements OnInit, OnDestroy {
       date: c.receivedDate || c.date,
       deliveryDate: dateMatch ? dateMatch[1] : '',
       deliveryTime: dateMatch && dateMatch[2] ? dateMatch[2].trim().slice(0, 5) : '',
+      caseType: currentCaseType,
     };
     // Restore selectedWorkTypes from saved string
     this.selectedWorkTypes = new Set<string>();
@@ -566,7 +599,7 @@ export class Secretary implements OnInit, OnDestroy {
     this.workTypeError = '';
     this.nightGuardType = '';
     this.patientWarning = '';
-    if (c.workType) {
+    if (currentCaseType === 'New' && c.workType) {
       const parts = c.workType.split('+').map((s: string) => s.trim()).filter((s: string) => s);
       for (const p of parts) {
         const match = p.match(/^(.*?)(?:\s*\((\d+)\))?$/);
@@ -651,13 +684,13 @@ export class Secretary implements OnInit, OnDestroy {
       this.flash('يرجى تعبئة اسم الطبيب');
       return;
     }
-    if (this.selectedWorkTypes.size === 0) {
-      this.workTypeError = 'يرجى اختيار نوع عمل واحد على الأقل';
-      this.flash('يرجى اختيار نوع العمل');
-      return;
-    }
     if (!d.patient?.trim()) {
       this.flash('يرجى إدخال اسم المريض');
+      return;
+    }
+    if (d.caseType === 'New' && this.selectedWorkTypes.size === 0) {
+      this.workTypeError = 'يرجى اختيار نوع عمل واحد على الأقل';
+      this.flash('يرجى اختيار نوع العمل');
       return;
     }
     if (isStudentCase && !d.patientPhone?.trim()) {

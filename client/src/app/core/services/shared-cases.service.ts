@@ -39,6 +39,7 @@ export interface DentalCase {
   /** اسم الملف الأصلي للمسح */
   plyFileName?: string;
   exitedAt?: string;
+  exitedAtRaw?: string;
 }
 
 @Injectable({
