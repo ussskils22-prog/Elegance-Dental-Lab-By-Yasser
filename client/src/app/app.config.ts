@@ -2,7 +2,7 @@ import {
   APP_INITIALIZER,
   ApplicationConfig,
   provideBrowserGlobalErrorListeners,
-  provideZoneChangeDetection,
+  provideZoneChangeDetection, isDevMode,
 } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptorsFromDi, HTTP_INTERCEPTORS } from '@angular/common/http';
@@ -12,6 +12,7 @@ import { routes } from './app.routes';
 import { JwtInterceptor } from './core/interceptors/jwt.interceptor';
 import { UnauthorizedInterceptor } from './core/interceptors/unauthorized.interceptor';
 import { AuthService } from './core/services/auth.service';
+import { provideServiceWorker } from '@angular/service-worker';
 
 export function authBootstrapFactory(auth: AuthService) {
   return () => firstValueFrom(auth.bootstrapSession());
@@ -30,6 +31,9 @@ export const appConfig: ApplicationConfig = {
       useFactory: authBootstrapFactory,
       deps: [AuthService],
       multi: true,
-    },
+    }, provideServiceWorker('ngsw-worker.js', {
+            enabled: !isDevMode(),
+            registrationStrategy: 'registerWhenStable:30000'
+          }),
   ],
 };
