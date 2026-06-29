@@ -13,6 +13,8 @@ export const authGuard: CanActivateFn = (_route, state) => {
     take(1),
     map(() => {
       if (auth.isAuthenticatedValue()) {
+        // Save current URL in sessionStorage so refresh restores it
+        auth.saveLastUrl(state.url);
         return true;
       }
       return router.createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });

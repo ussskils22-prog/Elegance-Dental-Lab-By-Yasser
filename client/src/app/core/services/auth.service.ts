@@ -7,6 +7,7 @@ import { apiBaseUrl } from '../api/api.config';
 
 const AUTH_SESSION_KEY = 'dental_system_auth_session';
 const AUTH_TOKEN_KEY = 'dental_system_auth_token';
+const AUTH_LAST_URL_KEY = 'dental_system_last_url';
 
 interface AuthUserDto {
   id: string;
@@ -194,16 +195,35 @@ export class AuthService {
   setSession(session: AuthSession): void {
     this.storedSession = session;
     try {
-      localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
+      // Use sessionStorage so each browser tab has its own independent session
+      sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
     } catch (error) {
       console.warn('Failed to persist auth session:', error);
     }
   }
 
+  /** Save the current URL so we can restore it after a page refresh. */
+  saveLastUrl(url: string): void {
+    try {
+      if (url && url !== '/login' && url !== '/') {
+        sessionStorage.setItem(AUTH_LAST_URL_KEY, url);
+      }
+    } catch { /* ignore */ }
+  }
+
+  /** Pop the last saved URL (returns null if none). */
+  popLastUrl(): string | null {
+    try {
+      const url = sessionStorage.getItem(AUTH_LAST_URL_KEY);
+      return url || null;
+    } catch { return null; }
+  }
+
   clearSession(): void {
     this.storedSession = null;
     try {
-      localStorage.removeItem(AUTH_SESSION_KEY);
+      sessionStorage.removeItem(AUTH_SESSION_KEY);
+      sessionStorage.removeItem(AUTH_LAST_URL_KEY);
     } catch (error) {
       console.warn('Failed to clear auth session:', error);
     }
@@ -271,7 +291,8 @@ export class AuthService {
     }
 
     try {
-      const rawSession = localStorage.getItem(AUTH_SESSION_KEY);
+      // Read session from sessionStorage (per-tab) so each tab is independent
+      const rawSession = sessionStorage.getItem(AUTH_SESSION_KEY);
       if (!rawSession) {
         this.storedSession = null;
         return;
@@ -281,7 +302,7 @@ export class AuthService {
       this.storedSession = null;
       console.warn('Failed to read auth session from storage:', error);
       try {
-        localStorage.removeItem(AUTH_SESSION_KEY);
+        sessionStorage.removeItem(AUTH_SESSION_KEY);
       } catch {
         // Ignore storage cleanup failures
       }
