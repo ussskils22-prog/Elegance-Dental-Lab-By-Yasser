@@ -71,7 +71,7 @@ export class Secretary implements OnInit, OnDestroy {
         const m = parseInt(parts[1], 10) - 1;
         const d = parseInt(parts[2], 10);
         const dateObj = new Date(y, m, d);
-        datePart = dateObj.toLocaleDateString('ar-EG-u-nu-latn', { day: 'numeric', month: 'long', year: 'numeric' });
+        datePart = dateObj.toLocaleDateString('ar-EG-u-nu-latn', { day: 'numeric', month: 'numeric', year: 'numeric' });
       } catch {}
       let timePart = dateMatch[2] ? dateMatch[2].trim() : '';
       if (timePart && !timePart.includes('م') && !timePart.includes('ص')) {
@@ -945,8 +945,8 @@ export class Secretary implements OnInit, OnDestroy {
   }
 
   confirmExit(c: any): void {
-    if (c.status !== 'finished') {
-      this.flash('الخروج متاح فقط للحالات المكتملة');
+    if (c.status === 'exited') {
+      this.flash('هذه الحالة خارجة بالفعل');
       return;
     }
     const ok = confirm(`هل تريد إخراج الحالة ${c.caseNumber} نهائيًا؟`);
