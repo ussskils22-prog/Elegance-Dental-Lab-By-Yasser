@@ -198,7 +198,7 @@ export function mapApiCaseToDentalCase(doc: Record<string, unknown>): DentalCase
     try {
       receivedDisplay = new Date(String(createdAt)).toLocaleDateString('ar-EG', {
         day: 'numeric',
-        month: 'short',
+        month: 'numeric',
         year: 'numeric',
       });
     } catch {
@@ -256,7 +256,7 @@ export function mapApiCaseToDentalCase(doc: Record<string, unknown>): DentalCase
   if (exitedAtRaw && mapUiStatus(doc, uiStatusOverride) === 'exited') {
     try {
       const d = new Date(String(exitedAtRaw));
-      const datePart = d.toLocaleDateString('ar-EG-u-nu-latn', { day: 'numeric', month: 'long', year: 'numeric' });
+      const datePart = d.toLocaleDateString('ar-EG-u-nu-latn', { day: 'numeric', month: 'numeric', year: 'numeric' });
       const timePart = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
       exitedDisplay = `${datePart} ${timePart.replace('AM', 'ص').replace('PM', 'م')}`;
     } catch {
