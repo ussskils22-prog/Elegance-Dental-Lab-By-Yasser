@@ -487,6 +487,17 @@ exports.moveStage = async (req, res) => {
     const oldStage = dentalCase.currentStage;
     dentalCase.currentStage = stage;
 
+    // Sync status with stage for key transitions
+    if (stage === 'completed') {
+      dentalCase.status = 'completed';
+    } else if (stage === 'exited') {
+      dentalCase.status = 'exited';
+    } else if (['design', 'khart', 'finishing'].includes(stage)) {
+      if (dentalCase.status === 'waiting') {
+        dentalCase.status = 'in_progress';
+      }
+    }
+
     // Update stage timestamp
     if (stage !== 'waiting') {
       dentalCase.stageTimestamps[stage] = new Date();
