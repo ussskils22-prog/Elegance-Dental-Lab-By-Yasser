@@ -40,6 +40,8 @@ export interface DentalCase {
   plyFileName?: string;
   exitedAt?: string;
   exitedAtRaw?: string;
+  /** القيمة الخام لتاريخ الاستلام من قاعدة البيانات (لضمان عدم تغييره عند التعديل) */
+  receivedDateRaw?: string;
 }
 
 @Injectable({
