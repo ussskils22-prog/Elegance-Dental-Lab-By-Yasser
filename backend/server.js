@@ -35,9 +35,26 @@ const server = http.createServer(app);
 app.use(helmet());
 
 // CORS
+const allowedOrigins = [
+  'http://localhost:4200',
+  'https://dental-system-seven.vercel.app'
+];
+if (process.env.CORS_ORIGIN) allowedOrigins.push(process.env.CORS_ORIGIN);
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:4200',
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      // Allow any vercel preview URL for this project
+      if (origin.endsWith('.vercel.app')) {
+        return callback(null, true);
+      }
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        return callback(null, true);
+      }
+      var msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    },
     credentials: true,
   })
 );

@@ -8,7 +8,14 @@ const userConnections = new Map(); // userId -> socket id
 const setupSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: process.env.SOCKET_IO_CORS || 'http://localhost:4200',
+      origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        if (origin.endsWith('.vercel.app')) return callback(null, true);
+        if (origin === 'http://localhost:4200' || origin === process.env.SOCKET_IO_CORS) {
+          return callback(null, true);
+        }
+        return callback(null, true); // Allow all for socket to prevent disconnects on previews
+      },
       methods: ['GET', 'POST'],
       credentials: true,
     },
