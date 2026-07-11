@@ -871,6 +871,7 @@ exports.updateCase = async (req, res) => {
       caseType,
       priority,
       dueDate,
+      stageTimestamps,
     } =
       req.body;
 
@@ -896,6 +897,16 @@ exports.updateCase = async (req, res) => {
     if (caseType !== undefined) dentalCase.caseType = caseType;
     if (priority !== undefined) dentalCase.priority = priority;
     if (dueDate !== undefined) dentalCase.dueDate = new Date(dueDate);
+
+    if (stageTimestamps !== undefined && typeof stageTimestamps === 'object' && stageTimestamps !== null) {
+      if (!dentalCase.stageTimestamps) {
+        dentalCase.stageTimestamps = {};
+      }
+      for (const [key, val] of Object.entries(stageTimestamps)) {
+        dentalCase.stageTimestamps[key] = val ? new Date(String(val)) : null;
+      }
+      dentalCase.markModified('stageTimestamps');
+    }
 
     await dentalCase.save();
     await dentalCase.populate('createdBy', 'fullName email');

@@ -30,6 +30,7 @@ const updateCaseValidation = [
   body('caseType').optional().trim().notEmpty(),
   body('priority').optional().isIn(['low', 'normal', 'high', 'urgent']),
   body('dueDate').optional().isISO8601(),
+  body('stageTimestamps').optional().isObject(),
 ];
 
 const moveStageValidation = [
