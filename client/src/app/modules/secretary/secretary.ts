@@ -793,10 +793,16 @@ export class Secretary implements OnInit, OnDestroy {
       size: '',
       quantity: d.quantity !== '' && d.quantity !== null && !isNaN(Number(d.quantity)) ? Number(d.quantity) : 1,
       date: (() => {
-        // For exited cases: always preserve the original receivedDate exactly as stored in DB.
-        // Never let editing exitedAt corrupt the entry date.
         const raw = existing?.receivedDateRaw;
-        if (raw) return raw;  // e.g. "2026-07-08 22:26:00" exactly as saved
+        if (raw) {
+          // Extract YYYY-MM-DD part from stored raw value (e.g. "2026-07-08 22:26:00" → "2026-07-08")
+          const rawYmd = raw.split(' ')[0].split('T')[0];
+          if (rawYmd === d.date) {
+            // User did NOT change the entry date — preserve exact DB value (keeps original time intact)
+            return raw;
+          }
+          // User DID change the entry date — use the new date with current time
+        }
         return this.formatDateWithCurrentOrOriginalTime(d.date, existing?.receivedDate);
       })(),
       deliveryDate: d.deliveryDate || '',
