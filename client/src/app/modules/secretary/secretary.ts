@@ -62,11 +62,11 @@ export class Secretary implements OnInit, OnDestroy {
       }
       return { date: datePart, time: timePart };
     }
-    const dateMatch = val.match(/^(\d{4}-\d{2}-\d{2})(?:\s+(.+))?$/);
+    const dateMatch = val.match(/^(\d{4}[/-]\d{1,2}[/-]\d{1,2})(?:\s+(.+))?$/);
     if (dateMatch) {
       let datePart = dateMatch[1];
       try {
-        const parts = datePart.split('-');
+        const parts = datePart.split(/[/-]/);
         const y = parseInt(parts[0], 10);
         const m = parseInt(parts[1], 10) - 1;
         const d = parseInt(parts[2], 10);
@@ -1051,14 +1051,29 @@ export class Secretary implements OnInit, OnDestroy {
   parseArabicDateToYmd(val: string): string {
     if (!val) return new Date().toISOString().split('T')[0];
     
-    // Check if it's already YYYY-MM-DD
-    if (/^\d{4}-\d{2}-\d{2}/.test(val)) {
-      return val.split(' ')[0];
+    const clean = val.trim();
+
+    // 1. Check if it matches YYYY/MM/DD or YYYY-MM-DD
+    const ymdMatch = clean.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
+    if (ymdMatch) {
+      const y = ymdMatch[1];
+      const m = ymdMatch[2].padStart(2, '0');
+      const d = ymdMatch[3].padStart(2, '0');
+      return `${y}-${m}-${d}`;
     }
-    
-    // If it's something like "28 يونيو 2026"
+
+    // 2. Check if it matches DD/MM/YYYY or DD-MM-YYYY (ar-EG format)
+    const dmyMatch = clean.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
+    if (dmyMatch) {
+      const d = dmyMatch[1].padStart(2, '0');
+      const m = dmyMatch[2].padStart(2, '0');
+      const y = dmyMatch[3];
+      return `${y}-${m}-${d}`;
+    }
+
+    // 3. If it's something like "28 يونيو 2026"
     const months = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-    const parts = val.trim().split(' ');
+    const parts = clean.split(' ');
     if (parts.length >= 3) {
       const day = parseInt(parts[0], 10);
       const monthName = parts[1].replace(/[أإآ]/g, 'ا');
@@ -1066,16 +1081,16 @@ export class Secretary implements OnInit, OnDestroy {
       
       const monthIndex = months.findIndex(m => m.replace(/[أإآ]/g, 'ا') === monthName);
       if (!isNaN(day) && !isNaN(year) && monthIndex !== -1) {
-        const d = String(day).padStart(2, '0');
-        const m = String(monthIndex + 1).padStart(2, '0');
-        return `${year}-${m}-${d}`;
+        const dStr = String(day).padStart(2, '0');
+        const mStr = String(monthIndex + 1).padStart(2, '0');
+        return `${year}-${mStr}-${dStr}`;
       }
     }
     
     try {
-      const d = new Date(val);
-      if (!isNaN(d.getTime())) {
-        return d.toISOString().split('T')[0];
+      const dObj = new Date(val);
+      if (!isNaN(dObj.getTime())) {
+        return dObj.toISOString().split('T')[0];
       }
     } catch {}
     
