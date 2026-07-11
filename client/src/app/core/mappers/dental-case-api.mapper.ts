@@ -272,6 +272,7 @@ export function mapApiCaseToDentalCase(doc: Record<string, unknown>): DentalCase
     doctor,
     clinic: '',
     receivedDate: receivedDisplay || caseNumber,
+    receivedDateRaw: receivedDateMeta || undefined,
     deliveryDate: deliveryDisplay,
     enteredBy,
     requesterType,

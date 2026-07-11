@@ -617,7 +617,7 @@ export class Secretary implements OnInit, OnDestroy {
       color: c.color,
       size: c.size,
       quantity: c.quantity,
-      date: this.parseArabicDateToYmd(c.receivedDate || c.date),
+      date: this.parseArabicDateToYmd(c.receivedDateRaw || c.receivedDate || c.date),
       deliveryDate: dateMatch ? dateMatch[1] : '',
       deliveryTime: dateMatch && dateMatch[2] ? dateMatch[2].trim().slice(0, 5) : '',
       caseType: currentCaseType,
@@ -792,7 +792,13 @@ export class Secretary implements OnInit, OnDestroy {
       color: (d.color || '').trim(),
       size: '',
       quantity: d.quantity !== '' && d.quantity !== null && !isNaN(Number(d.quantity)) ? Number(d.quantity) : 1,
-      date: this.formatDateWithCurrentOrOriginalTime(d.date, existing?.receivedDate),
+      date: (() => {
+        // For exited cases: always preserve the original receivedDate exactly as stored in DB.
+        // Never let editing exitedAt corrupt the entry date.
+        const raw = existing?.receivedDateRaw;
+        if (raw) return raw;  // e.g. "2026-07-08 22:26:00" exactly as saved
+        return this.formatDateWithCurrentOrOriginalTime(d.date, existing?.receivedDate);
+      })(),
       deliveryDate: d.deliveryDate || '',
       deliveryTime: d.deliveryTime || '',
       exitedAt: d.exitedAt || undefined,
