@@ -873,22 +873,44 @@ export class Admin implements OnInit, OnDestroy {
     });
   }
 
-  /** عدد حالات الزيركونيا الخارجة غير الإعادة */
+  /** عدد وحدات الزيركونيا الخارجة غير الإعادة */
   get zirconCount(): number {
-    return this.exitedNonRedoCases.filter(c => {
-      const ct = (c.caseType || '').toLowerCase();
-      // يطابق فقط "Zircon" و "German Zircon" (كلاهما يحتوي على كلمة zircon)
-      return ct.includes('zircon');
-    }).length;
+    let total = 0;
+    for (const c of this.exitedNonRedoCases) {
+      const ct = c.caseType || '';
+      const parts = ct.split('+').map(p => p.trim());
+      for (const part of parts) {
+        if (part.toLowerCase().includes('zircon')) {
+          const match = part.match(/\((\d+)\)/);
+          if (match) {
+            total += parseInt(match[1], 10);
+          } else {
+            total += 1;
+          }
+        }
+      }
+    }
+    return total;
   }
 
-  /** عدد حالات الإيماكس الخارجة غير الإعادة */
+  /** عدد وحدات الإيماكس الخارجة غير الإعادة */
   get emaxCount(): number {
-    return this.exitedNonRedoCases.filter(c => {
-      const ct = (c.caseType || '').toLowerCase();
-      // يطابق فقط كلمة "emax"
-      return ct.includes('emax');
-    }).length;
+    let total = 0;
+    for (const c of this.exitedNonRedoCases) {
+      const ct = c.caseType || '';
+      const parts = ct.split('+').map(p => p.trim());
+      for (const part of parts) {
+        if (part.toLowerCase().includes('emax')) {
+          const match = part.match(/\((\d+)\)/);
+          if (match) {
+            total += parseInt(match[1], 10);
+          } else {
+            total += 1;
+          }
+        }
+      }
+    }
+    return total;
   }
 
   private loadCasesFromApi(): void {
