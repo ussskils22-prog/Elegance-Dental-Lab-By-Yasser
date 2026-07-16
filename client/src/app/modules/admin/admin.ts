@@ -602,10 +602,17 @@ export class Admin implements OnInit, OnDestroy {
       // تفاصيل السكرتير أو ملاحظات الحالة
       const details = String(meta['workDetail'] || '').trim();
 
+      // ترجمة المصطلحات الإنجليزية للعربية
+      let translatedCaseType = c.caseType || '';
+      translatedCaseType = translatedCaseType
+        .replace(/redo/gi, 'إعادة')
+        .replace(/remake/gi, 'إعادة')
+        .replace(/modification/gi, 'تعديل');
+
       return {
         date,
         patientName: c.patientName || '',
-        caseType: c.caseType || '',
+        caseType: translatedCaseType,
         quantity,
         color,
         salary,
