@@ -4,9 +4,9 @@
       <div class="logo-name">DentalCore</div>
       <div class="logo-sub">Precision Labs v2.1</div>
     </div>
-    <div class="nav-item" [class.active]="activeNav === 'patients'" (click)="setNav('patients')">
-      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-      المرضى
+    <div class="nav-item" [class.active]="activeNav === 'dashboard'" (click)="setNav('dashboard')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+      لوحة التحكم
     </div>
     <div class="nav-item" [class.active]="activeNav === 'staff'" (click)="setNav('staff')">
       <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -20,10 +20,8 @@
       <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
       التقارير
     </div>
-    <div class="nav-item" [class.active]="activeNav === 'students'" (click)="setNav('students')">
-      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 10l-10-5-10 5 10 5 10-5z"/><path d="M6 12v5c0 1.5 2.7 3 6 3s6-1.5 6-3v-5"/></svg>
-      الطلبة
-    </div>
+
+
     <div class="sidebar-bottom">
       <div class="nav-item" (click)="logout()" role="button" tabindex="0" (keydown.enter)="logout()" (keydown.space)="$event.preventDefault(); logout()">
         <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
@@ -69,7 +67,7 @@
 
     <div class="content">
       <!-- DASHBOARD VIEW -->
-      <ng-container *ngIf="activeNav === 'patients'">
+      <ng-container *ngIf="activeNav === 'dashboard'">
       <div class="page-header">
         <div>
           <div class="page-label">نظرة عامة</div>
@@ -81,7 +79,37 @@
         </div>
       </div>
 
-      <div class="stats-grid">
+      <!-- إحصاءات الزيركونيا والإيماكس -->
+      <div class="stats-grid" style="margin-bottom:24px">
+        <div class="stat-card" style="border-top:4px solid #6366f1;">
+          <div class="stat-top">
+            <div class="stat-icon" style="background:#eef2ff;">
+              <svg width="18" height="18" fill="none" stroke="#6366f1" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5"/>
+                <path d="M2 12l10 5 10-5"/>
+              </svg>
+            </div>
+            <span class="stat-label" style="font-size:13px;font-weight:600;color:#6366f1;">زيركونيا</span>
+          </div>
+          <div class="stat-val" style="font-size:3rem;font-weight:800;color:#6366f1;">{{ zirconCount }}</div>
+          <div class="stat-sub">حالة زيركونيا خارجة (غير إعادة)</div>
+        </div>
+
+        <div class="stat-card" style="border-top:4px solid #0ea5e9;">
+          <div class="stat-top">
+            <div class="stat-icon" style="background:#e0f2fe;">
+              <svg width="18" height="18" fill="none" stroke="#0ea5e9" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M8 12h8M12 8v8"/>
+              </svg>
+            </div>
+            <span class="stat-label" style="font-size:13px;font-weight:600;color:#0ea5e9;">Emax</span>
+          </div>
+          <div class="stat-val" style="font-size:3rem;font-weight:800;color:#0ea5e9;">{{ emaxCount }}</div>
+          <div class="stat-sub">حالة Emax خارجة (غير إعادة)</div>
+        </div>
+
         <div class="stat-card">
           <div class="stat-top">
             <div class="stat-icon green"><svg width="14" height="14" fill="none" stroke="#3B6D11" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div>
@@ -90,6 +118,7 @@
           <div class="stat-val">{{ totalRevenueAmount | number:'1.0-0' }} EGP</div>
           <div class="stat-sub">إجمالي الإيرادات</div>
         </div>
+
         <div class="stat-card">
           <div class="stat-top">
             <div class="stat-icon red"><svg width="14" height="14" fill="none" stroke="#A32D2D" stroke-width="2" viewBox="0 0 24 24"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg></div>
@@ -103,7 +132,7 @@
       <div class="table-card">
         <div class="table-header">
           <div>
-            <div class="table-title">دليل المرضى والحالات</div>
+            <div class="table-title">دليل الحالات</div>
           </div>
         </div>
         <table>
@@ -150,33 +179,6 @@
         </div>
       </div>
 
-      <div class="bottom-row">
-        <div class="chart-card">
-          <div class="chart-card-title">تحليلات أداء المعمل</div>
-          <div class="chart-card-sub">اختناقات سير العمل ومعدل الإنجاز</div>
-          <div class="bars">
-            <div class="bar-wrap"><div class="bar" style="height:45px;"></div><span class="bar-lbl">Jan</span></div>
-            <div class="bar-wrap"><div class="bar" style="height:60px;"></div><span class="bar-lbl">Feb</span></div>
-            <div class="bar-wrap"><div class="bar" style="height:50px;"></div><span class="bar-lbl">Mar</span></div>
-            <div class="bar-wrap"><div class="bar" style="height:75px;"></div><span class="bar-lbl">Apr</span></div>
-            <div class="bar-wrap"><div class="bar" style="height:85px;"></div><span class="bar-lbl">May</span></div>
-            <div class="bar-wrap"><div class="bar" style="height:65px;"></div><span class="bar-lbl">Jun</span></div>
-            <div class="bar-wrap"><div class="bar" style="height:40px;"></div><span class="bar-lbl">Jul</span></div>
-            <div class="bar-wrap"><div class="bar" style="height:55px;"></div><span class="bar-lbl">Aug</span></div>
-          </div>
-        </div>
-        <div class="qc-card">
-          <div>
-            <div class="qc-icon">
-              <svg width="16" height="16" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            </div>
-            <div class="qc-title">ضبط الجودة</div>
-            <div class="qc-desc">مطلوب مراجعة المدير لعدد 3 حالات في مرحلة التشطيب قبل التسليم.</div>
-          </div>
-          <button class="qc-btn">ابدأ المراجعة الآن</button>
-        </div>
-      </div>
-
       <div class="modal-overlay" *ngIf="selectedPatient" (click)="closePatientDetails()">
         <div class="modal-content" (click)="$event.stopPropagation()">
           <div class="modal-header">
@@ -199,20 +201,6 @@
               <div class="patient-detail-row"><span>السكرتير</span><strong>{{ selectedCase?.secretaryName || 'غير موجود' }}</strong></div>
               <div class="patient-detail-row" *ngIf="selectedCase?.designerName"><span>المصمم</span><strong>{{ selectedCase?.designerName }}</strong></div>
               <div class="patient-detail-row" *ngIf="selectedCase?.finisherName"><span>فني التشطيب</span><strong>{{ selectedCase?.finisherName }}</strong></div>
-            </div>
-            <div class="detail-section">
-              <div class="detail-section-title">ملاحظات السكرتارية</div>
-              <div class="patient-detail-row"><span>الملاحظات</span><strong>
-                {{ selectedCase?.secretaryInstructions || 'السكرتيرة لم تضف معلومات بعد' }}
-              </strong></div>
-            </div>
-            <div class="detail-section">
-              <div class="detail-section-title">ملاحظات التصميم</div>
-              <div class="patient-detail-row"><span>الحالة</span><strong>
-                {{ selectedCase?.designNotes ? 'تم كتابتها' : 'لم يكتب الديزاين أي ملاحظات بعد' }}
-              </strong></div>
-              <div class="patient-detail-row" *ngIf="selectedCase?.designNotes">
-                <span>التفاصيل</span><strong>{{ selectedCase?.designNotes }}</strong></div>
             </div>
           </div>
         </div>
@@ -638,76 +626,6 @@
         </div>
       </ng-container>
 
-      <!-- STUDENT REPORTS VIEW -->
-      <ng-container *ngIf="activeNav === 'students'">
-        <div class="page-header">
-          <div>
-            <div class="page-label">تقارير مالية الطلبة</div>
-            <div class="page-title">حالات الطلبة والمدفوعات</div>
-          </div>
-        </div>
 
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-label">حالات الطلبة</div>
-            <div class="stat-val">{{ studentFinancialSummary.totalCases }}</div>
-            <div class="stat-sub">إجمالي حالات الطلبة</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">إجمالي المبلغ</div>
-            <div class="stat-val">{{ studentFinancialSummary.totalAmount | number:'1.0-0' }} EGP</div>
-            <div class="stat-sub">إجمالي مستحقات الطلبة</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">المدفوع</div>
-            <div class="stat-val">{{ studentFinancialSummary.paidAmount | number:'1.0-0' }} EGP</div>
-            <div class="stat-sub">مدفوع — {{ studentFinancialSummary.paidCases }} حالة</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">غير المدفوع</div>
-            <div class="stat-val">{{ studentFinancialSummary.unpaidAmount | number:'1.0-0' }} EGP</div>
-            <div class="stat-sub">غير مدفوع — {{ studentFinancialSummary.unpaidCases }} حالة</div>
-          </div>
-        </div>
-
-        <div class="report-controls">
-          <div class="control-card">
-            <label>بحث</label>
-            <input type="text" [(ngModel)]="studentReportSearch" placeholder="ابحث بالحالة أو المريض أو الطبيب..." />
-          </div>
-        </div>
-
-        <div class="report-table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>رقم الحالة</th>
-                <th>المريض</th>
-                <th>الطبيب</th>
-                <th>المرحلة</th>
-                <th>المبلغ</th>
-                <th>الدفع</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let c of studentReportCases; trackBy: trackByCaseId">
-                <td>{{ c.caseNumber }}</td>
-                <td>{{ c.patientName }}</td>
-                <td>{{ c.doctorName || c.assignedTo || 'غير محدد' }}</td>
-                <td>{{ c.currentStage }}</td>
-                <td>{{ c.salary | number:'1.0-0' }} EGP</td>
-                <td>
-                  <span class="pay-badge" [ngClass]="c.paid ? 'paid' : 'unpaid'">
-                    {{ c.paid ? 'مدفوع' : 'غير مدفوع' }}
-                  </span>
-                </td>
-              </tr>
-              <tr *ngIf="studentReportCases.length === 0">
-                <td colspan="6" style="text-align:center;color:#64748b;">لا توجد حالات طلبة مطابقة للفلاتر</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </ng-container>
     </div>
   </div>

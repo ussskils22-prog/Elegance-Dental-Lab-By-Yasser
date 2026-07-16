@@ -129,7 +129,7 @@ export interface AdminPatient {
 export class Admin implements OnInit, OnDestroy {
   private salaryDrafts: Record<string, string> = {};
   private salarySavingByCaseId: Record<string, boolean> = {};
-  activeNav = 'patients';
+  activeNav = 'dashboard';
   showStaffPassword = false;
   showStaffModal = false;
   staffModalError = '';
@@ -857,6 +857,36 @@ export class Admin implements OnInit, OnDestroy {
 
   get staffEfficiencyPercent(): number {
     return this.dashboardMetrics.staffEfficiency;
+  }
+
+  /** الحالات الخارجة (exitedAt موجود) وليست إعادة ولا تعديل */
+  get exitedNonRedoCases(): AdminCaseRow[] {
+    return this.adminCases.filter(c => {
+      // يجب أن تكون الحالة خارجة (stageTimestamps.exited موجود)
+      if (!c.exitedAt) return false;
+      const ct = (c.caseType || '').toLowerCase();
+      // استبعاد الإعادة والتعديل
+      const isRedo = ct.includes('redo') || ct.includes('remake') ||
+                     ct.includes('modification') ||
+                     ct.includes('اعاده') || ct.includes('إعادة');
+      return !isRedo;
+    });
+  }
+
+  /** عدد حالات الزيركونيا الخارجة غير الإعادة */
+  get zirconCount(): number {
+    return this.exitedNonRedoCases.filter(c => {
+      const ct = (c.caseType || '').toLowerCase();
+      return ct.includes('zircon') || ct.includes('zr') || ct.includes('زيركون') || ct.includes('زركون');
+    }).length;
+  }
+
+  /** عدد حالات الإيماكس الخارجة غير الإعادة */
+  get emaxCount(): number {
+    return this.exitedNonRedoCases.filter(c => {
+      const ct = (c.caseType || '').toLowerCase();
+      return ct.includes('emax') || ct.includes('e-max') || ct.includes('ايماكس') || ct.includes('إيماكس');
+    }).length;
   }
 
   private loadCasesFromApi(): void {
