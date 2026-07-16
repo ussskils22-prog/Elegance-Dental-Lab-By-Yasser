@@ -880,7 +880,8 @@ export class Admin implements OnInit, OnDestroy {
       const ct = c.caseType || '';
       const parts = ct.split('+').map(p => p.trim());
       for (const part of parts) {
-        if (part.toLowerCase().includes('zircon')) {
+        const lowerPart = part.toLowerCase();
+        if (lowerPart.includes('zircon') || lowerPart.includes('titanium') || lowerPart.includes('peek')) {
           const match = part.match(/\((\d+)\)/);
           if (match) {
             total += parseInt(match[1], 10);
