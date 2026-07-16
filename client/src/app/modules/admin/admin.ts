@@ -873,15 +873,39 @@ export class Admin implements OnInit, OnDestroy {
     });
   }
 
-  /** عدد وحدات الزيركونيا الخارجة غير الإعادة */
+  /** عدد وحدات الزيركونيا الإجمالي الخارجة غير الإعادة */
   get zirconCount(): number {
+    return this.regularZirconCount + this.germanZirconCount + this.titaniumCount + this.peekCount;
+  }
+
+  get regularZirconCount(): number {
+    return this.countUnitsByKeywords(['zircon'], ['german']);
+  }
+
+  get germanZirconCount(): number {
+    return this.countUnitsByKeywords(['german zircon', 'german']);
+  }
+
+  get titaniumCount(): number {
+    return this.countUnitsByKeywords(['titanium']);
+  }
+
+  get peekCount(): number {
+    return this.countUnitsByKeywords(['peek']);
+  }
+
+  private countUnitsByKeywords(includeKeywords: string[], excludeKeywords: string[] = []): number {
     let total = 0;
     for (const c of this.exitedNonRedoCases) {
       const ct = c.caseType || '';
       const parts = ct.split('+').map(p => p.trim());
       for (const part of parts) {
         const lowerPart = part.toLowerCase();
-        if (lowerPart.includes('zircon') || lowerPart.includes('titanium') || lowerPart.includes('peek')) {
+        
+        const hasInclude = includeKeywords.some(kw => lowerPart.includes(kw));
+        const hasExclude = excludeKeywords.some(kw => lowerPart.includes(kw));
+        
+        if (hasInclude && !hasExclude) {
           const match = part.match(/\((\d+)\)/);
           if (match) {
             total += parseInt(match[1], 10);
