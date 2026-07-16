@@ -877,7 +877,8 @@ export class Admin implements OnInit, OnDestroy {
   get zirconCount(): number {
     return this.exitedNonRedoCases.filter(c => {
       const ct = (c.caseType || '').toLowerCase();
-      return ct.includes('zircon') || ct.includes('zr') || ct.includes('زيركون') || ct.includes('زركون');
+      // يطابق فقط "Zircon" و "German Zircon" (كلاهما يحتوي على كلمة zircon)
+      return ct.includes('zircon');
     }).length;
   }
 
@@ -885,7 +886,8 @@ export class Admin implements OnInit, OnDestroy {
   get emaxCount(): number {
     return this.exitedNonRedoCases.filter(c => {
       const ct = (c.caseType || '').toLowerCase();
-      return ct.includes('emax') || ct.includes('e-max') || ct.includes('ايماكس') || ct.includes('إيماكس');
+      // يطابق فقط كلمة "emax"
+      return ct.includes('emax');
     }).length;
   }
 
