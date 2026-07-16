@@ -859,11 +859,9 @@ export class Admin implements OnInit, OnDestroy {
     return this.dashboardMetrics.staffEfficiency;
   }
 
-  /** الحالات الخارجة (exitedAt موجود) وليست إعادة ولا تعديل */
+  /** الحالات الخارجة وليست إعادة ولا تعديل */
   get exitedNonRedoCases(): AdminCaseRow[] {
-    return this.adminCases.filter(c => {
-      // يجب أن تكون الحالة خارجة (stageTimestamps.exited موجود)
-      if (!c.exitedAt) return false;
+    return this.completedCases.filter(c => {
       const ct = (c.caseType || '').toLowerCase();
       // استبعاد الإعادة والتعديل
       const isRedo = ct.includes('redo') || ct.includes('remake') ||
