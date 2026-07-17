@@ -278,7 +278,7 @@ export class Secretary implements OnInit, OnDestroy {
   readonly workTypeOptions = [
     'Zircon', 'German Zircon', 'Emax', 'Pmma Cad',
     'Peek', 'Titanium', 'Try in', 'Mokup',
-    'Night Guard'
+    'Night Guard', 'Wax'
   ];
   readonly caseTypeOptions = [
     { value: 'New', label: 'جديد' },
