@@ -955,11 +955,23 @@ export class Admin implements OnInit, OnDestroy {
 
   /** عداد زيركون الجندي */
   get jundiZirconCount(): number {
-    return this.countUnitsByKeywordsFromCases(
-      this.jundiExitedNonRedoCases,
-      ['zircon', 'titanium', 'peek'],
-      []
-    );
+    return this.jundiRegularZirconCount + this.jundiGermanZirconCount + this.jundiTitaniumCount + this.jundiPeekCount;
+  }
+
+  get jundiRegularZirconCount(): number {
+    return this.countUnitsByKeywordsFromCases(this.jundiExitedNonRedoCases, ['zircon'], ['german']);
+  }
+
+  get jundiGermanZirconCount(): number {
+    return this.countUnitsByKeywordsFromCases(this.jundiExitedNonRedoCases, ['german zircon', 'german'], []);
+  }
+
+  get jundiTitaniumCount(): number {
+    return this.countUnitsByKeywordsFromCases(this.jundiExitedNonRedoCases, ['titanium'], []);
+  }
+
+  get jundiPeekCount(): number {
+    return this.countUnitsByKeywordsFromCases(this.jundiExitedNonRedoCases, ['peek'], []);
   }
 
   /** عداد إيماكس الجندي */
