@@ -945,6 +945,50 @@ export class Admin implements OnInit, OnDestroy {
     return total;
   }
 
+  /** الحالات الخارجة للدكتور الجندي فقط (بدون إعادة أو تعديل) */
+  get jundiExitedNonRedoCases(): AdminCaseRow[] {
+    return this.exitedNonRedoCases.filter(c => {
+      const doctor = (c.doctorName || c.assignedTo || '').toLowerCase();
+      return doctor.includes('الجندي') || doctor.includes('jundi') || doctor.includes('gundi');
+    });
+  }
+
+  /** عداد زيركون الجندي */
+  get jundiZirconCount(): number {
+    return this.countUnitsByKeywordsFromCases(
+      this.jundiExitedNonRedoCases,
+      ['zircon', 'titanium', 'peek'],
+      []
+    );
+  }
+
+  /** عداد إيماكس الجندي */
+  get jundiEmaxCount(): number {
+    return this.countUnitsByKeywordsFromCases(
+      this.jundiExitedNonRedoCases,
+      ['emax'],
+      []
+    );
+  }
+
+  private countUnitsByKeywordsFromCases(cases: AdminCaseRow[], includeKeywords: string[], excludeKeywords: string[]): number {
+    let total = 0;
+    for (const c of cases) {
+      const ct = c.caseType || '';
+      const parts = ct.split('+').map(p => p.trim());
+      for (const part of parts) {
+        const lowerPart = part.toLowerCase();
+        const hasInclude = includeKeywords.some(kw => lowerPart.includes(kw));
+        const hasExclude = excludeKeywords.some(kw => lowerPart.includes(kw));
+        if (hasInclude && !hasExclude) {
+          const match = part.match(/\((\d+)\)/);
+          total += match ? parseInt(match[1], 10) : 1;
+        }
+      }
+    }
+    return total;
+  }
+
   private loadCasesFromApi(): void {
     this.caseApi.getAllCases(1, 3000).subscribe({
       next: (res) => {
