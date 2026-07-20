@@ -685,14 +685,7 @@
               [placeholder]="reportDoctorFilter ? 'ابحث بالمريض أو رقم الحالة...' : 'ابحث باسم الطبيب...'" 
             />
           </div>
-          <div class="control-card" *ngIf="!reportDoctorFilter">
-            <label>الطبيب</label>
-            <select [(ngModel)]="reportDoctorFilter">
-              <option value="">كل الأطباء</option>
-              <option *ngFor="let doctor of reportDoctors" [value]="doctor">{{ doctor }}</option>
-            </select>
-          </div>
-          <div class="control-card">
+          <div class="control-card" *ngIf="reportDoctorFilter">
             <label>حالة الدفع</label>
             <select [(ngModel)]="paymentFilter">
               <option value="all">كل الحالات</option>
@@ -708,20 +701,29 @@
 
         <!-- 1. عرض جدول ملخص الأطباء إذا لم يتم اختيار طبيب محدد -->
         <ng-container *ngIf="!reportDoctorFilter">
+          <!-- عداد عدد الأطباء -->
+          <div style="margin-bottom:16px; display:flex; align-items:center; gap:10px;">
+            <span style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-size:13px;font-weight:700;padding:6px 16px;border-radius:999px;letter-spacing:0.5px;box-shadow:0 2px 8px rgba(99,102,241,0.25);">
+              {{ filteredDoctorReportSummaries.length }} طبيب لديه فاتورة
+            </span>
+          </div>
+
           <div class="report-table-card">
             <table>
               <thead>
                 <tr>
+                  <th>#</th>
                   <th>اسم الطبيب</th>
-                  <th>عدد الحالات الكلية</th>
-                  <th>المبلغ المستحق (المطلوب)</th>
+                  <th>عدد الحالات</th>
+                  <th>المبلغ المستحق</th>
                   <th>المبلغ المدفوع</th>
                   <th>باقي المبلغ</th>
-                  <th>الإجراء</th>
+                  <th>التفاصيل</th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let doc of filteredDoctorReportSummaries" class="clickable-row" (click)="reportDoctorFilter = doc.doctorName">
+                <tr *ngFor="let doc of filteredDoctorReportSummaries; let i = index" class="clickable-row" (click)="reportDoctorFilter = doc.doctorName">
+                  <td style="color:#9ca3af;font-size:13px;">{{ i + 1 }}</td>
                   <td><strong>{{ doc.doctorName }}</strong></td>
                   <td>{{ doc.totalCases }}</td>
                   <td><span style="color:#10b981;font-weight:600">{{ doc.totalDue | number:'1.0-0' }} EGP</span></td>
@@ -738,7 +740,7 @@
                   </td>
                 </tr>
                 <tr *ngIf="filteredDoctorReportSummaries.length === 0">
-                  <td colspan="6" style="text-align:center;padding:24px;color:#9ca3af;">لا توجد نتائج مطابقة للبحث</td>
+                  <td colspan="7" style="text-align:center;padding:24px;color:#9ca3af;">لا توجد نتائج مطابقة للبحث</td>
                 </tr>
               </tbody>
             </table>

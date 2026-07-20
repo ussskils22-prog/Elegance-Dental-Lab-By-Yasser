@@ -388,10 +388,12 @@ export class Admin implements OnInit, OnDestroy {
 
   get filteredDoctorReportSummaries() {
     const search = this.reportSearch.toLowerCase().trim();
-    return this.doctorReportSummaries.filter(d => {
-      if (!search) return true;
-      return d.doctorName.toLowerCase().includes(search);
-    });
+    return this.doctorReportSummaries
+      .filter(d => {
+        if (!search) return true;
+        return d.doctorName.toLowerCase().includes(search);
+      })
+      .sort((a, b) => a.totalDue - b.totalDue);
   }
 
   getDoctorTotalDue(doctorName: string): number {
