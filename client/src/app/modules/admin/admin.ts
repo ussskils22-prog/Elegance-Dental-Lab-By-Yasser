@@ -360,6 +360,8 @@ export class Admin implements OnInit, OnDestroy {
     }>();
 
     this.reportCases.forEach(c => {
+      if (String(c.currentStage) !== 'exited') return;
+
       const name = this.normalizeDoctorName(c.doctorName || c.assignedTo || 'غير محدد');
       const key = this.doctorGroupKey(name);
 
@@ -393,7 +395,7 @@ export class Admin implements OnInit, OnDestroy {
         if (!search) return true;
         return d.doctorName.toLowerCase().includes(search);
       })
-      .sort((a, b) => a.totalDue - b.totalDue);
+      .sort((a, b) => b.totalDue - a.totalDue);
   }
 
   getDoctorTotalDue(doctorName: string): number {
