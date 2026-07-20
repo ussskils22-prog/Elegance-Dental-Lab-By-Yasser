@@ -79,6 +79,84 @@
         </div>
       </div>
 
+      <!-- إجمالي تكلفة الحالات لجميع الأطباء (باستثناء الجندي) -->
+      <div class="stats-grid" style="margin-bottom:24px">
+        <div class="stat-card" style="border-top:4px solid #10b981; grid-column: 1 / -1; display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <div class="stat-top">
+              <div class="stat-icon" style="background:#ecfdf5;">
+                <svg width="18" height="18" fill="none" stroke="#10b981" stroke-width="2" viewBox="0 0 24 24">
+                  <path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+                </svg>
+              </div>
+              <span class="stat-label" style="font-size:14px;font-weight:600;color:#10b981;">إجمالي مستحقات المعمل من الدكاترة (باستثناء الجندي)</span>
+            </div>
+            <div class="stat-val" style="font-size:3rem;font-weight:800;color:#10b981;margin-top:12px;">
+              {{ totalDoctorsCostBreakdown.grandTotal | number:'1.0-0' }} EGP
+            </div>
+            <div class="stat-sub" style="font-size:12px;color:#64748b;margin-top:4px;">حساب إجمالي الحالات الخارجة فقط مع استبعاد الإعادة والتعديل والحالات غير المعروفة</div>
+          </div>
+          
+          <div style="display:flex; gap:12px; flex-wrap:wrap; border-top:1px solid #e2e8f0; padding-top:16px; margin-top:auto;">
+            <div *ngIf="totalDoctorsCostBreakdown.emaxQty > 0" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; display:flex; flex-direction:column; flex:1; min-width:140px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+              <span style="font-size:12px; color:#64748b; font-weight:600; margin-bottom:4px;">Emax (1000 EGP)</span>
+              <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                <span style="font-size:14px; color:#64748b;">{{ totalDoctorsCostBreakdown.emaxQty }} وحدة</span>
+                <span style="font-size:16px; color:#0f172a; font-weight:700;">{{ totalDoctorsCostBreakdown.emaxTotal | number:'1.0-0' }} EGP</span>
+              </div>
+            </div>
+
+            <div *ngIf="totalDoctorsCostBreakdown.germanZirconQty > 0" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; display:flex; flex-direction:column; flex:1; min-width:140px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+              <span style="font-size:12px; color:#64748b; font-weight:600; margin-bottom:4px;">German Zircon (850 EGP)</span>
+              <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                <span style="font-size:14px; color:#64748b;">{{ totalDoctorsCostBreakdown.germanZirconQty }} وحدة</span>
+                <span style="font-size:16px; color:#0f172a; font-weight:700;">{{ totalDoctorsCostBreakdown.germanZirconTotal | number:'1.0-0' }} EGP</span>
+              </div>
+            </div>
+
+            <div *ngIf="totalDoctorsCostBreakdown.zirconQty > 0" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; display:flex; flex-direction:column; flex:1; min-width:140px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+              <span style="font-size:12px; color:#64748b; font-weight:600; margin-bottom:4px;">Zircon (700 EGP)</span>
+              <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                <span style="font-size:14px; color:#64748b;">{{ totalDoctorsCostBreakdown.zirconQty }} وحدة</span>
+                <span style="font-size:16px; color:#0f172a; font-weight:700;">{{ totalDoctorsCostBreakdown.zirconTotal | number:'1.0-0' }} EGP</span>
+              </div>
+            </div>
+
+            <div *ngIf="totalDoctorsCostBreakdown.titaniumQty > 0" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; display:flex; flex-direction:column; flex:1; min-width:140px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+              <span style="font-size:12px; color:#64748b; font-weight:600; margin-bottom:4px;">Titanium (2200 EGP)</span>
+              <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                <span style="font-size:14px; color:#64748b;">{{ totalDoctorsCostBreakdown.titaniumQty }} وحدة</span>
+                <span style="font-size:16px; color:#0f172a; font-weight:700;">{{ totalDoctorsCostBreakdown.titaniumTotal | number:'1.0-0' }} EGP</span>
+              </div>
+            </div>
+
+            <div *ngIf="totalDoctorsCostBreakdown.peekQty > 0" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; display:flex; flex-direction:column; flex:1; min-width:140px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+              <span style="font-size:12px; color:#64748b; font-weight:600; margin-bottom:4px;">Peek (1700 EGP)</span>
+              <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                <span style="font-size:14px; color:#64748b;">{{ totalDoctorsCostBreakdown.peekQty }} وحدة</span>
+                <span style="font-size:16px; color:#0f172a; font-weight:700;">{{ totalDoctorsCostBreakdown.peekTotal | number:'1.0-0' }} EGP</span>
+              </div>
+            </div>
+
+            <div *ngIf="totalDoctorsCostBreakdown.pmmaQty > 0" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; display:flex; flex-direction:column; flex:1; min-width:140px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+              <span style="font-size:12px; color:#64748b; font-weight:600; margin-bottom:4px;">Pmma Cad (250 EGP)</span>
+              <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                <span style="font-size:14px; color:#64748b;">{{ totalDoctorsCostBreakdown.pmmaQty }} وحدة</span>
+                <span style="font-size:16px; color:#0f172a; font-weight:700;">{{ totalDoctorsCostBreakdown.pmmaTotal | number:'1.0-0' }} EGP</span>
+              </div>
+            </div>
+
+            <div *ngIf="totalDoctorsCostBreakdown.nightGuardQty > 0" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 12px; display:flex; flex-direction:column; flex:1; min-width:140px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+              <span style="font-size:12px; color:#64748b; font-weight:600; margin-bottom:4px;">Night Guard (300 EGP)</span>
+              <div style="display:flex; justify-content:space-between; align-items:baseline;">
+                <span style="font-size:14px; color:#64748b;">{{ totalDoctorsCostBreakdown.nightGuardQty }} وحدة</span>
+                <span style="font-size:16px; color:#0f172a; font-weight:700;">{{ totalDoctorsCostBreakdown.nightGuardTotal | number:'1.0-0' }} EGP</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- إحصاءات الزيركونيا والإيماكس -->
       <div class="stats-grid" style="margin-bottom:24px">
         <div class="stat-card" style="border-top:4px solid #6366f1; display:flex; flex-direction:column; gap:16px;">

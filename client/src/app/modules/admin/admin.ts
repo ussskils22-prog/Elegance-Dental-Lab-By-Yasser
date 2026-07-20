@@ -901,6 +901,86 @@ export class Admin implements OnInit, OnDestroy {
     return this.countUnitsByKeywords(['peek']);
   }
 
+  get financialCostEligibleCases(): AdminCaseRow[] {
+    return this.adminCases.filter(c => {
+      if (String(c.currentStage) !== 'exited') return false;
+      
+      // Skip Jundi (الجندي)
+      const doctor = (c.doctorName || c.assignedTo || '').toLowerCase();
+      const isJundi = doctor.includes('الجندي') || doctor.includes('jundi') || doctor.includes('gundi');
+      if (isJundi) return false;
+
+      const ct = (c.caseType || '').toLowerCase();
+      // Skip redo, remake, modification, unknown (غير معروف)
+      const isExcluded = ct.includes('redo') || ct.includes('remake') ||
+                          ct.includes('modification') || ct.includes('تعديل') ||
+                          ct.includes('اعاده') || ct.includes('إعادة') ||
+                          ct.includes('غير معروف') || ct.includes('unknown');
+      return !isExcluded;
+    });
+  }
+
+  get totalDoctorsCostBreakdown() {
+    const cases = this.financialCostEligibleCases;
+    
+    let emaxQty = 0;
+    let germanZirconQty = 0;
+    let zirconQty = 0;
+    let titaniumQty = 0;
+    let peekQty = 0;
+    let pmmaQty = 0;
+    let nightGuardQty = 0;
+
+    for (const c of cases) {
+      const ct = c.caseType || '';
+      const parts = ct.split('+').map(p => p.trim());
+      for (const part of parts) {
+        const lowerPart = part.toLowerCase();
+        
+        // Count quantity: e.g. "Zircon (3)" -> 3, or default to 1 if no parentheses
+        const match = part.match(/\((\d+)\)/);
+        const qty = match ? parseInt(match[1], 10) : 1;
+
+        if (lowerPart.includes('emax')) {
+          emaxQty += qty;
+        } else if (lowerPart.includes('german zircon') || lowerPart.includes('german')) {
+          germanZirconQty += qty;
+        } else if (lowerPart.includes('zircon')) {
+          zirconQty += qty;
+        } else if (lowerPart.includes('titanium')) {
+          titaniumQty += qty;
+        } else if (lowerPart.includes('peek')) {
+          peekQty += qty;
+        } else if (lowerPart.includes('pmma cad') || lowerPart.includes('pmma')) {
+          pmmaQty += qty;
+        } else if (lowerPart.includes('night guard') || lowerPart.includes('nightguard') || lowerPart.includes('guard')) {
+          nightGuardQty += qty;
+        }
+      }
+    }
+
+    const emaxTotal = emaxQty * 1000;
+    const germanZirconTotal = germanZirconQty * 850;
+    const zirconTotal = zirconQty * 700;
+    const titaniumTotal = titaniumQty * 2200;
+    const peekTotal = peekQty * 1700;
+    const pmmaTotal = pmmaQty * 250;
+    const nightGuardTotal = nightGuardQty * 300;
+
+    const grandTotal = emaxTotal + germanZirconTotal + zirconTotal + titaniumTotal + peekTotal + pmmaTotal + nightGuardTotal;
+
+    return {
+      emaxQty, emaxTotal,
+      germanZirconQty, germanZirconTotal,
+      zirconQty, zirconTotal,
+      titaniumQty, titaniumTotal,
+      peekQty, peekTotal,
+      pmmaQty, pmmaTotal,
+      nightGuardQty, nightGuardTotal,
+      grandTotal
+    };
+  }
+
   private countUnitsByKeywords(includeKeywords: string[], excludeKeywords: string[] = []): number {
     let total = 0;
     for (const c of this.exitedNonRedoCases) {
