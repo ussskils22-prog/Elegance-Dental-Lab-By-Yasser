@@ -323,7 +323,10 @@ export class Admin implements OnInit, OnDestroy {
           .some(value => value?.toLowerCase().includes(search));
       }
       if (this.reportDoctorFilter) {
-        match = match && (c.doctorName === this.reportDoctorFilter || c.assignedTo === this.reportDoctorFilter || false);
+        const name = this.normalizeDoctorName(c.doctorName || c.assignedTo || 'غير محدد');
+        const key = this.doctorGroupKey(name);
+        const filterKey = this.doctorGroupKey(this.reportDoctorFilter);
+        match = match && (key === filterKey);
       }
       if (this.paymentFilter === 'paid') {
         match = match && c.paid === true;
@@ -345,6 +348,62 @@ export class Admin implements OnInit, OnDestroy {
       }
     });
     return Array.from(doctors.values()).sort((a, b) => a.localeCompare(b));
+  }
+
+  get doctorReportSummaries() {
+    const doctorMap = new Map<string, {
+      doctorName: string;
+      totalCases: number;
+      totalDue: number;
+      totalPaid: number;
+      remaining: number;
+    }>();
+
+    this.reportCases.forEach(c => {
+      if (String(c.currentStage) !== 'exited') return;
+
+      const name = this.normalizeDoctorName(c.doctorName || c.assignedTo || 'غير محدد');
+      const key = this.doctorGroupKey(name);
+
+      const cost = this.calculateCaseCost(c);
+      const paidAmount = c.paid ? (c.salary || 0) : 0;
+
+      if (!doctorMap.has(key)) {
+        doctorMap.set(key, {
+          doctorName: name,
+          totalCases: 0,
+          totalDue: 0,
+          totalPaid: 0,
+          remaining: 0
+        });
+      }
+
+      const docObj = doctorMap.get(key)!;
+      docObj.totalCases += 1;
+      docObj.totalDue += cost;
+      docObj.totalPaid += paidAmount;
+      docObj.remaining = docObj.totalDue - docObj.totalPaid;
+    });
+
+    return Array.from(doctorMap.values()).sort((a, b) => a.doctorName.localeCompare(b.doctorName));
+  }
+
+  get filteredDoctorReportSummaries() {
+    const search = this.reportSearch.toLowerCase().trim();
+    return this.doctorReportSummaries.filter(d => {
+      if (!search) return true;
+      return d.doctorName.toLowerCase().includes(search);
+    });
+  }
+
+  getDoctorTotalDue(doctorName: string): number {
+    const summary = this.doctorReportSummaries.find(d => d.doctorName === doctorName);
+    return summary ? summary.totalDue : 0;
+  }
+
+  getDoctorTotalPaid(doctorName: string): number {
+    const summary = this.doctorReportSummaries.find(d => d.doctorName === doctorName);
+    return summary ? summary.totalPaid : 0;
   }
 
   private monthLabel(date: Date): string {
@@ -767,7 +826,8 @@ export class Admin implements OnInit, OnDestroy {
     if (Object.prototype.hasOwnProperty.call(this.salaryDrafts, caseItem.id)) {
       return this.salaryDrafts[caseItem.id];
     }
-    return String(caseItem.salary || 0);
+    const defaultVal = caseItem.salary || this.calculateCaseCost(caseItem);
+    return String(defaultVal || 0);
   }
 
   setSalaryDraft(caseItem: AdminCaseRow, value: string): void {
@@ -918,6 +978,44 @@ export class Admin implements OnInit, OnDestroy {
                           ct.includes('غير معروف') || ct.includes('unknown');
       return !isExcluded;
     });
+  }
+
+  calculateCaseCost(c: AdminCaseRow): number {
+    const doctor = (c.doctorName || c.assignedTo || '').toLowerCase();
+    const isJundi = doctor.includes('الجندي') || doctor.includes('jundi') || doctor.includes('gundi');
+    if (isJundi) return 0;
+
+    const ct = (c.caseType || '').toLowerCase();
+    const isExcluded = ct.includes('redo') || ct.includes('remake') ||
+                       ct.includes('modification') || ct.includes('تعديل') ||
+                       ct.includes('اعاده') || ct.includes('إعادة') ||
+                       ct.includes('غير معروف') || ct.includes('unknown');
+    if (isExcluded) return 0;
+
+    let total = 0;
+    const parts = (c.caseType || '').split('+').map(p => p.trim());
+    for (const part of parts) {
+      const lowerPart = part.toLowerCase();
+      const match = part.match(/\((\d+)\)/);
+      const qty = match ? parseInt(match[1], 10) : 1;
+
+      if (lowerPart.includes('emax')) {
+        total += qty * 1000;
+      } else if (lowerPart.includes('german zircon') || lowerPart.includes('german')) {
+        total += qty * 850;
+      } else if (lowerPart.includes('zircon')) {
+        total += qty * 700;
+      } else if (lowerPart.includes('titanium')) {
+        total += qty * 2200;
+      } else if (lowerPart.includes('peek')) {
+        total += qty * 1700;
+      } else if (lowerPart.includes('pmma cad') || lowerPart.includes('pmma')) {
+        total += qty * 250;
+      } else if (lowerPart.includes('night guard') || lowerPart.includes('nightguard') || lowerPart.includes('guard')) {
+        total += qty * 300;
+      }
+    }
+    return total;
   }
 
   get totalDoctorsCostBreakdown() {
