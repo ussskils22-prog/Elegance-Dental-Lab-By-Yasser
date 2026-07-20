@@ -1065,9 +1065,20 @@ export class Secretary implements OnInit, OnDestroy {
     
     const clean = val.trim();
 
+    // 0. Check if it is an ISO string (e.g. 2026-07-21T21:00:00.000Z)
+    if (clean.includes('T') && clean.endsWith('Z')) {
+      const d = new Date(clean);
+      if (!isNaN(d.getTime())) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }
+    }
+
     // 1. Check if it matches YYYY/MM/DD or YYYY-MM-DD
     const ymdMatch = clean.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
-    if (ymdMatch) {
+    if (ymdMatch && !clean.includes('T')) {
       const y = ymdMatch[1];
       const m = ymdMatch[2].padStart(2, '0');
       const d = ymdMatch[3].padStart(2, '0');
