@@ -360,8 +360,6 @@ export class Admin implements OnInit, OnDestroy {
     }>();
 
     this.reportCases.forEach(c => {
-      if (String(c.currentStage) !== 'exited') return;
-
       const name = this.normalizeDoctorName(c.doctorName || c.assignedTo || 'غير محدد');
       const key = this.doctorGroupKey(name);
 
