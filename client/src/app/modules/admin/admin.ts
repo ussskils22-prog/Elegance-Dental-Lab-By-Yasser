@@ -408,7 +408,7 @@ export class Admin implements OnInit, OnDestroy {
   get monthlyFinancialSummary(): MonthlyFinancialSummary[] {
     const groups: Record<string, MonthlyFinancialSummary> = {};
 
-    this.completedCases.forEach(c => {
+    this.adminCases.filter(c => c.currentStage === 'exited').forEach(c => {
       const date =
         this.normalizeDate(c.receivedAt) ||
         this.parseDate(c.receivedDateDisplay) ||
@@ -550,8 +550,8 @@ export class Admin implements OnInit, OnDestroy {
   }
 
   exportFinancialYearReport(): void {
-    // فلترة الحالات الخارجة أو المنتهية (المكتملة عموماً)
-    let cases = this.completedCases;
+    // فلترة الحالات الخارجة فقط
+    let cases = this.adminCases.filter(c => c.currentStage === 'exited');
 
     const selectedYear = Number(this.financialYearFilter);
     const selectedMonth = Number(this.financialMonthFilter);
@@ -710,7 +710,7 @@ export class Admin implements OnInit, OnDestroy {
     if (!this.selectedDoctorName) {
       return [];
     }
-    const records = this.completedCases
+    const records = this.adminCases.filter(c => c.currentStage === 'exited')
       .filter(c => this.doctorGroupKey(c.doctorName || c.assignedTo || 'غير محدد') === this.doctorGroupKey(this.selectedDoctorName))
       .map(c => ({
         id: c.id,
@@ -743,7 +743,7 @@ export class Admin implements OnInit, OnDestroy {
 
   get financialTotalsByDoctor() {
     const totals: Record<string, { cases: number; total: number }> = {};
-    this.completedCases.forEach(c => {
+    this.adminCases.filter(c => c.currentStage === 'exited').forEach(c => {
       const doctorName = this.doctorGroupKey(c.doctorName || c.assignedTo || 'غير محدد');
       const salary = c.salary || 0;
       if (!totals[doctorName]) {
