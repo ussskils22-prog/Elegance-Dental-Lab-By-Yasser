@@ -1043,7 +1043,7 @@ export class Admin implements OnInit, OnDestroy {
     for (const part of parts) {
       const lowerPart = part.toLowerCase();
       const match = part.match(/\((\d+)\)/);
-      const qty = match ? parseInt(match[1], 10) : (parts.length === 1 ? caseOverallQuantity : 1);
+      const qty = match ? parseInt(match[1], 10) : caseOverallQuantity;
 
       if (lowerPart.includes('emax')) {
         total += qty * prices.emax;
@@ -1088,7 +1088,7 @@ export class Admin implements OnInit, OnDestroy {
         
         // Count quantity: e.g. "Zircon (3)" -> 3, or default to overall case quantity
         const match = part.match(/\((\d+)\)/);
-        const qty = match ? parseInt(match[1], 10) : (parts.length === 1 ? caseOverallQuantity : 1);
+        const qty = match ? parseInt(match[1], 10) : caseOverallQuantity;
 
         if (lowerPart.includes('emax')) {
           emaxQty += qty;
@@ -1149,7 +1149,7 @@ export class Admin implements OnInit, OnDestroy {
           if (match) {
             total += parseInt(match[1], 10);
           } else {
-            total += (parts.length === 1 ? caseOverallQuantity : 1);
+            total += caseOverallQuantity;
           }
         }
       }
@@ -1172,7 +1172,7 @@ export class Admin implements OnInit, OnDestroy {
           if (match) {
             total += parseInt(match[1], 10);
           } else {
-            total += (parts.length === 1 ? caseOverallQuantity : 1);
+            total += caseOverallQuantity;
           }
         }
       }
@@ -1232,7 +1232,7 @@ export class Admin implements OnInit, OnDestroy {
         const hasExclude = excludeKeywords.some(kw => lowerPart.includes(kw));
         if (hasInclude && !hasExclude) {
           const match = part.match(/\((\d+)\)/);
-          total += match ? parseInt(match[1], 10) : (parts.length === 1 ? caseOverallQuantity : 1);
+          total += match ? parseInt(match[1], 10) : caseOverallQuantity;
         }
       }
     }
