@@ -106,6 +106,7 @@ export interface DoctorCaseRecord {
   receivedDate: string;
   stage: string;
   salary: number;
+  dbSalary: number;
   paid: boolean;
 }
 
@@ -807,7 +808,8 @@ export class Admin implements OnInit, OnDestroy {
         caseType: c.caseType,
         receivedDate: c.receivedDateDisplay || 'غير متوفر',
         stage: c.currentStage,
-        salary: c.salary || 0,
+        salary: this.calculateCaseCost(c),
+        dbSalary: c.salary || 0,
         paid: !!c.paid
       }));
 
@@ -821,7 +823,7 @@ export class Admin implements OnInit, OnDestroy {
         totals.totalAmount += record.salary;
         if (record.paid) {
           totals.paidCases += 1;
-          totals.paidAmount += record.salary;
+          totals.paidAmount += record.dbSalary;
         }
         return totals;
       },
