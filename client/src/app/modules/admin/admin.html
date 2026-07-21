@@ -775,6 +775,65 @@
             </div>
           </div>
 
+          <!-- تخصيص أسعار الطبيب -->
+          <div class="report-table-card" style="margin-bottom:24px; padding:20px;">
+            <div style="font-weight:700;font-size:16px;margin-bottom:16px;color:#fff;display:flex;align-items:center;gap:8px;">
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:#3b82f6;"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              تخصيص أسعار الخامات للطبيب: {{ reportDoctorFilter }}
+            </div>
+            
+            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:12px;margin-bottom:16px;">
+              <div class="control-card" style="background:#1e293b;padding:8px 12px;border-radius:8px;">
+                <label style="font-size:12px;color:#94a3b8;margin-bottom:4px;display:block;">Emax</label>
+                <input type="number" [(ngModel)]="customEmaxPrice" style="width:100%;background:#0f172a;border:1px solid #334155;color:#fff;padding:6px;border-radius:6px;font-size:14px;" />
+              </div>
+              <div class="control-card" style="background:#1e293b;padding:8px 12px;border-radius:8px;">
+                <label style="font-size:12px;color:#94a3b8;margin-bottom:4px;display:block;">German Zircon</label>
+                <input type="number" [(ngModel)]="customGermanZirconPrice" style="width:100%;background:#0f172a;border:1px solid #334155;color:#fff;padding:6px;border-radius:6px;font-size:14px;" />
+              </div>
+              <div class="control-card" style="background:#1e293b;padding:8px 12px;border-radius:8px;">
+                <label style="font-size:12px;color:#94a3b8;margin-bottom:4px;display:block;">Zircon</label>
+                <input type="number" [(ngModel)]="customZirconPrice" style="width:100%;background:#0f172a;border:1px solid #334155;color:#fff;padding:6px;border-radius:6px;font-size:14px;" />
+              </div>
+              <div class="control-card" style="background:#1e293b;padding:8px 12px;border-radius:8px;">
+                <label style="font-size:12px;color:#94a3b8;margin-bottom:4px;display:block;">Titanium</label>
+                <input type="number" [(ngModel)]="customTitaniumPrice" style="width:100%;background:#0f172a;border:1px solid #334155;color:#fff;padding:6px;border-radius:6px;font-size:14px;" />
+              </div>
+              <div class="control-card" style="background:#1e293b;padding:8px 12px;border-radius:8px;">
+                <label style="font-size:12px;color:#94a3b8;margin-bottom:4px;display:block;">Peek</label>
+                <input type="number" [(ngModel)]="customPeekPrice" style="width:100%;background:#0f172a;border:1px solid #334155;color:#fff;padding:6px;border-radius:6px;font-size:14px;" />
+              </div>
+              <div class="control-card" style="background:#1e293b;padding:8px 12px;border-radius:8px;">
+                <label style="font-size:12px;color:#94a3b8;margin-bottom:4px;display:block;">Pmma Cad</label>
+                <input type="number" [(ngModel)]="customPmmaPrice" style="width:100%;background:#0f172a;border:1px solid #334155;color:#fff;padding:6px;border-radius:6px;font-size:14px;" />
+              </div>
+              <div class="control-card" style="background:#1e293b;padding:8px 12px;border-radius:8px;">
+                <label style="font-size:12px;color:#94a3b8;margin-bottom:4px;display:block;">Night Guard</label>
+                <input type="number" [(ngModel)]="customNightGuardPrice" style="width:100%;background:#0f172a;border:1px solid #334155;color:#fff;padding:6px;border-radius:6px;font-size:14px;" />
+              </div>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+              <button 
+                type="button" 
+                class="finish-btn" 
+                style="padding:8px 24px;font-size:14px;background:linear-gradient(135deg,#3b82f6,#2563eb);border:none;box-shadow:0 4px 12px rgba(37,99,235,0.2);" 
+                [disabled]="isPricingSaving"
+                (click)="saveDoctorCustomPrices()"
+              >
+                {{ isPricingSaving ? 'جاري الحفظ...' : 'حفظ الأسعار لهذا الطبيب' }}
+              </button>
+              
+              <span *ngIf="pricingSaveSuccess" style="color:#10b981;font-size:14px;display:flex;align-items:center;gap:4px;">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+                تم حفظ الأسعار وإعادة احتساب الفواتير بنجاح!
+              </span>
+              <span *ngIf="pricingSaveError" style="color:#ef4444;font-size:14px;">
+                {{ pricingSaveError }}
+              </span>
+            </div>
+          </div>
+
           <!-- جدول الحالات التفصيلي -->
           <div class="report-table-card">
             <table>

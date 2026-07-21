@@ -139,8 +139,33 @@ export class Admin implements OnInit, OnDestroy {
   searchTerm = '';
   globalSearch = '';
   reportSearch = '';
-  reportDoctorFilter = '';
+  
+  private _reportDoctorFilter = '';
+  get reportDoctorFilter(): string {
+    return this._reportDoctorFilter;
+  }
+  set reportDoctorFilter(val: string) {
+    this._reportDoctorFilter = val;
+    if (val) {
+      this.loadCustomPricesForDoctor(val);
+    }
+  }
+
   paymentFilter: 'all' | 'paid' | 'unpaid' = 'unpaid';
+
+  doctorPricingsMap = new Map<string, any>();
+  
+  customEmaxPrice = 1000;
+  customGermanZirconPrice = 850;
+  customZirconPrice = 700;
+  customTitaniumPrice = 2200;
+  customPeekPrice = 1700;
+  customPmmaPrice = 250;
+  customNightGuardPrice = 300;
+
+  pricingSaveSuccess = false;
+  pricingSaveError = '';
+  isPricingSaving = false;
   financialYearFilter = '';
   financialMonthFilter = '';
   financialDoctorSearch = '';
@@ -186,6 +211,7 @@ export class Admin implements OnInit, OnDestroy {
     this.restoreActiveNav();
     this.loadCasesFromApi();
     this.loadFinancialReportFromApi();
+    this.loadDoctorPricings();
     this.loadStaffFromApi();
     if (this.activeNav === 'staff') {
       this.loadStaffFromApi();
@@ -983,8 +1009,9 @@ export class Admin implements OnInit, OnDestroy {
   }
 
   calculateCaseCost(c: AdminCaseRow): number {
-    const doctor = (c.doctorName || c.assignedTo || '').toLowerCase();
-    const isJundi = doctor.includes('الجندي') || doctor.includes('jundi') || doctor.includes('gundi');
+    const doctor = c.doctorName || c.assignedTo || 'غير محدد';
+    const normalizedDoc = doctor.toLowerCase();
+    const isJundi = normalizedDoc.includes('الجندي') || normalizedDoc.includes('jundi') || normalizedDoc.includes('gundi');
     if (isJundi) return 0;
 
     const ct = (c.caseType || '').toLowerCase();
@@ -994,6 +1021,18 @@ export class Admin implements OnInit, OnDestroy {
                        ct.includes('غير معروف') || ct.includes('unknown');
     if (isExcluded) return 0;
 
+    const key = this.doctorGroupKey(doctor);
+    const custom = this.doctorPricingsMap.get(key);
+    const prices = {
+      emax: custom?.emax ?? 1000,
+      germanZircon: custom?.germanZircon ?? 850,
+      zircon: custom?.zircon ?? 700,
+      titanium: custom?.titanium ?? 2200,
+      peek: custom?.peek ?? 1700,
+      pmma: custom?.pmma ?? 250,
+      nightGuard: custom?.nightGuard ?? 300
+    };
+
     let total = 0;
     const parts = (c.caseType || '').split('+').map(p => p.trim());
     for (const part of parts) {
@@ -1002,19 +1041,19 @@ export class Admin implements OnInit, OnDestroy {
       const qty = match ? parseInt(match[1], 10) : 1;
 
       if (lowerPart.includes('emax')) {
-        total += qty * 1000;
+        total += qty * prices.emax;
       } else if (lowerPart.includes('german zircon') || lowerPart.includes('german')) {
-        total += qty * 850;
+        total += qty * prices.germanZircon;
       } else if (lowerPart.includes('zircon')) {
-        total += qty * 700;
+        total += qty * prices.zircon;
       } else if (lowerPart.includes('titanium')) {
-        total += qty * 2200;
+        total += qty * prices.titanium;
       } else if (lowerPart.includes('peek')) {
-        total += qty * 1700;
+        total += qty * prices.peek;
       } else if (lowerPart.includes('pmma cad') || lowerPart.includes('pmma')) {
-        total += qty * 250;
+        total += qty * prices.pmma;
       } else if (lowerPart.includes('night guard') || lowerPart.includes('nightguard') || lowerPart.includes('guard')) {
-        total += qty * 300;
+        total += qty * prices.nightGuard;
       }
     }
     return total;
@@ -1618,6 +1657,86 @@ export class Admin implements OnInit, OnDestroy {
 
   private persistActiveNav(): void {
     // localStorage removed
+  }
+
+  loadDoctorPricings(): void {
+    this.caseApi.getDoctorPricings().subscribe({
+      next: (res) => {
+        const list = res?.data || [];
+        this.doctorPricingsMap.clear();
+        list.forEach((item: any) => {
+          if (item.doctorName) {
+            const key = this.doctorGroupKey(item.doctorName);
+            this.doctorPricingsMap.set(key, item.prices);
+          }
+        });
+        if (this.reportDoctorFilter) {
+          this.loadCustomPricesForDoctor(this.reportDoctorFilter);
+        }
+      },
+      error: (err) => {
+        console.error('Failed to load doctor pricings:', err);
+      }
+    });
+  }
+
+  loadCustomPricesForDoctor(doctorName: string): void {
+    const key = this.doctorGroupKey(doctorName);
+    const custom = this.doctorPricingsMap.get(key);
+    this.pricingSaveSuccess = false;
+    this.pricingSaveError = '';
+    
+    if (custom) {
+      this.customEmaxPrice = custom.emax ?? 1000;
+      this.customGermanZirconPrice = custom.germanZircon ?? 850;
+      this.customZirconPrice = custom.zircon ?? 700;
+      this.customTitaniumPrice = custom.titanium ?? 2200;
+      this.customPeekPrice = custom.peek ?? 1700;
+      this.customPmmaPrice = custom.pmma ?? 250;
+      this.customNightGuardPrice = custom.nightGuard ?? 300;
+    } else {
+      this.customEmaxPrice = 1000;
+      this.customGermanZirconPrice = 850;
+      this.customZirconPrice = 700;
+      this.customTitaniumPrice = 2200;
+      this.customPeekPrice = 1700;
+      this.customPmmaPrice = 250;
+      this.customNightGuardPrice = 300;
+    }
+  }
+
+  saveDoctorCustomPrices(): void {
+    if (!this.reportDoctorFilter) return;
+    this.isPricingSaving = true;
+    this.pricingSaveSuccess = false;
+    this.pricingSaveError = '';
+
+    const prices = {
+      emax: this.customEmaxPrice,
+      germanZircon: this.customGermanZirconPrice,
+      zircon: this.customZirconPrice,
+      titanium: this.customTitaniumPrice,
+      peek: this.customPeekPrice,
+      pmma: this.customPmmaPrice,
+      nightGuard: this.customNightGuardPrice
+    };
+
+    this.caseApi.updateDoctorPricing(this.reportDoctorFilter, prices).subscribe({
+      next: (res) => {
+        this.isPricingSaving = false;
+        this.pricingSaveSuccess = true;
+        
+        const key = this.doctorGroupKey(this.reportDoctorFilter);
+        this.doctorPricingsMap.set(key, prices);
+        
+        this.loadFinancialReportFromApi();
+      },
+      error: (err) => {
+        this.isPricingSaving = false;
+        this.pricingSaveError = 'تعذر حفظ الأسعار المخصصة';
+        console.error('Failed to update doctor pricing:', err);
+      }
+    });
   }
 
 }

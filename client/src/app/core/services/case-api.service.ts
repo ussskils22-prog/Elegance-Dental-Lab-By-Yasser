@@ -115,4 +115,12 @@ export class CaseApiService {
   reopenCase(id: string): Observable<any> {
     return this.http.put(`${this.apiUrl}/${id}/reopen`, {});
   }
+
+  getDoctorPricings(): Observable<any> {
+    return this.http.get(`${environment.apiUrl}/doctor-pricing`);
+  }
+
+  updateDoctorPricing(doctorName: string, prices: any): Observable<any> {
+    return this.http.put(`${environment.apiUrl}/doctor-pricing`, { doctorName, prices });
+  }
 }
