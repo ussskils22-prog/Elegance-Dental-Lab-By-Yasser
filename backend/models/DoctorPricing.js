@@ -14,7 +14,8 @@ const DoctorPricingSchema = new mongoose.Schema({
     titanium: { type: Number, default: 2200 },
     peek: { type: Number, default: 1700 },
     pmma: { type: Number, default: 250 },
-    nightGuard: { type: Number, default: 300 }
+    nightGuard: { type: Number, default: 300 },
+    mockup: { type: Number, default: 250 }
   }
 }, { timestamps: true });
 

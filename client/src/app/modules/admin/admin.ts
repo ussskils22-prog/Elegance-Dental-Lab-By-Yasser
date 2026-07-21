@@ -162,6 +162,7 @@ export class Admin implements OnInit, OnDestroy {
   customPeekPrice = 1700;
   customPmmaPrice = 250;
   customNightGuardPrice = 300;
+  customMockupPrice = 250;
 
   pricingSaveSuccess = false;
   pricingSaveError = '';
@@ -1030,7 +1031,8 @@ export class Admin implements OnInit, OnDestroy {
       titanium: custom?.titanium ?? 2200,
       peek: custom?.peek ?? 1700,
       pmma: custom?.pmma ?? 250,
-      nightGuard: custom?.nightGuard ?? 300
+      nightGuard: custom?.nightGuard ?? 300,
+      mockup: custom?.mockup ?? 250
     };
 
     let total = 0;
@@ -1054,6 +1056,8 @@ export class Admin implements OnInit, OnDestroy {
         total += qty * prices.pmma;
       } else if (lowerPart.includes('night guard') || lowerPart.includes('nightguard') || lowerPart.includes('guard')) {
         total += qty * prices.nightGuard;
+      } else if (lowerPart.includes('mockup') || lowerPart.includes('mock up') || lowerPart.includes('موكب')) {
+        total += qty * prices.mockup;
       }
     }
     return total;
@@ -1694,6 +1698,7 @@ export class Admin implements OnInit, OnDestroy {
       this.customPeekPrice = custom.peek ?? 1700;
       this.customPmmaPrice = custom.pmma ?? 250;
       this.customNightGuardPrice = custom.nightGuard ?? 300;
+      this.customMockupPrice = custom.mockup ?? 250;
     } else {
       this.customEmaxPrice = 1000;
       this.customGermanZirconPrice = 850;
@@ -1702,6 +1707,7 @@ export class Admin implements OnInit, OnDestroy {
       this.customPeekPrice = 1700;
       this.customPmmaPrice = 250;
       this.customNightGuardPrice = 300;
+      this.customMockupPrice = 250;
     }
   }
 
@@ -1718,7 +1724,8 @@ export class Admin implements OnInit, OnDestroy {
       titanium: this.customTitaniumPrice,
       peek: this.customPeekPrice,
       pmma: this.customPmmaPrice,
-      nightGuard: this.customNightGuardPrice
+      nightGuard: this.customNightGuardPrice,
+      mockup: this.customMockupPrice
     };
 
     this.caseApi.updateDoctorPricing(this.reportDoctorFilter, prices).subscribe({
