@@ -224,7 +224,7 @@ exports.getFinancialReport = async (req, res) => {
   try {
     const { year, month, doctor, paymentStatus } = req.query;
 
-    const filter = { currentStage: { $in: ['completed', 'exited'] } };
+    const filter = { currentStage: 'exited' };
     if (paymentStatus && ['paid', 'unpaid'].includes(String(paymentStatus))) {
       filter.paymentStatus = String(paymentStatus);
     }
