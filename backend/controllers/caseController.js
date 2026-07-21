@@ -261,7 +261,7 @@ exports.getFinancialReport = async (req, res) => {
           paidAt: doc.paidAt || null,
           receivedAt: createdAt,
           receivedDateDisplay: createdAt.toISOString(),
-          dueDate: doc.dueDate || null,
+          dueDate: doc.dueDate || null, notes: doc.notes || '',
         };
       })
       .filter((row) => {
