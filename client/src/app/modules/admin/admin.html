@@ -637,6 +637,7 @@
                       <th>المريض</th>
                       <th>النوع</th>
                       <th>تاريخ الاستلام</th>
+                      <th>تاريخ الخروج</th>
                       <th>المرحلة</th>
                       <th>الأجر</th>
                       <th>الدفع</th>
@@ -648,6 +649,7 @@
                       <td>{{ record.patientName }}</td>
                       <td>{{ record.caseType }}</td>
                       <td>{{ record.receivedDate }}</td>
+                      <td>{{ record.exitedDate }}</td>
                       <td>{{ record.stage }}</td>
                       <td>{{ record.salary | number:'1.0-0' }} EGP</td>
                       <td>{{ record.paid ? 'مدفوع' : 'غير مدفوع' }}</td>
@@ -845,6 +847,7 @@
                 <tr>
                   <th>المريض</th>
                   <th>رقم الحالة</th>
+                  <th>تاريخ الخروج</th>
                   <th>نوع العمل (الخامة)</th>
                   <th>المبلغ المستحق (التلقائي)</th>
                   <th>المبلغ المدفوع</th>
@@ -855,6 +858,7 @@
                 <tr *ngFor="let c of reportFilteredCases; trackBy: trackByCaseId" class="clickable-row" (click)="openReportCaseDetails(c)">
                   <td>{{ c.patientName }}</td>
                   <td>{{ c.caseNumber }}</td>
+                  <td>{{ c.exitedAtDisplay || c.deliveryDateDisplay || 'غير متوفر' }}</td>
                   <td>{{ c.caseType }}</td>
                   <td>
                     <span style="font-weight:600;color:#10b981">{{ calculateCaseCost(c) | number:'1.0-0' }} EGP</span>

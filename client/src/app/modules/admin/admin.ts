@@ -49,6 +49,7 @@ export interface AdminCaseRow {
   receivedAt?: Date;
   deliveryDateDisplay?: string;
   dueDateDisplay: string;
+  exitedAtDisplay?: string;
   caseType: string;
   salary: number;
   paid?: boolean;
@@ -104,6 +105,7 @@ export interface DoctorCaseRecord {
   patientName: string;
   caseType: string;
   receivedDate: string;
+  exitedDate: string;
   stage: string;
   salary: number;
   dbSalary: number;
@@ -807,6 +809,7 @@ export class Admin implements OnInit, OnDestroy {
         patientName: c.patientName,
         caseType: c.caseType,
         receivedDate: c.receivedDateDisplay || 'غير متوفر',
+        exitedDate: c.exitedAt ? c.exitedAt.toLocaleDateString('ar-EG') : (c.deliveryDateDisplay || 'غير متوفر'),
         stage: c.currentStage,
         salary: this.calculateCaseCost(c),
         dbSalary: c.salary || 0,
@@ -1327,6 +1330,7 @@ export class Admin implements OnInit, OnDestroy {
   private mapFinancialReportRowToAdminCase(row: Record<string, unknown>): AdminCaseRow {
     const receivedAt = this.normalizeDate(row['receivedAt']);
     const dueDate = this.normalizeDate(row['dueDate']);
+    const exitedAt = this.normalizeDate(row['exitedAt'] || row['updatedAt']);
     const salaryAmountRaw = Number(row['salaryAmount']);
     const salary = Number.isFinite(salaryAmountRaw) ? salaryAmountRaw : 0;
     const paid = String(row['paymentStatus'] ?? 'unpaid').toLowerCase() === 'paid';
@@ -1350,6 +1354,7 @@ export class Admin implements OnInit, OnDestroy {
       receivedAt: receivedAt || new Date(),
       deliveryDateDisplay: dueDate ? dueDate.toLocaleString() : 'غير متوفر',
       dueDateDisplay: dueDate ? dueDate.toLocaleString() : 'N/A',
+      exitedAtDisplay: exitedAt ? exitedAt.toLocaleDateString('ar-EG') : 'غير متوفر',
       caseType: String(row['caseType'] ?? 'General'),
       salary,
       paid,
