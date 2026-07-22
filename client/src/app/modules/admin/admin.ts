@@ -1097,7 +1097,7 @@ export class Admin implements OnInit, OnDestroy {
         total += qty * prices.pmma;
       } else if (lowerPart.includes('night guard') || lowerPart.includes('nightguard') || lowerPart.includes('guard')) {
         total += qty * prices.nightGuard;
-      } else if (lowerPart.includes('mockup') || lowerPart.includes('mock up') || lowerPart.includes('موكب')) {
+      } else if (lowerPart.includes('mokup') || lowerPart.includes('mockup') || lowerPart.includes('mock up') || lowerPart.includes('موكب')) {
         total += qty * prices.mockup;
       } else if (lowerPart.includes('wax')) {
         total += qty * prices.wax;
