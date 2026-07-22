@@ -166,6 +166,9 @@ export class Admin implements OnInit, OnDestroy {
   customPmmaPrice = 250;
   customNightGuardPrice = 300;
   customMockupPrice = 250;
+  customWaxPrice = 0;
+  customRingPrice = 0;
+  customTryInPrice = 0;
 
   pricingSaveSuccess = false;
   pricingSaveError = '';
@@ -1064,7 +1067,10 @@ export class Admin implements OnInit, OnDestroy {
       peek: custom?.peek ?? 1700,
       pmma: custom?.pmma ?? 250,
       nightGuard: custom?.nightGuard ?? 300,
-      mockup: custom?.mockup ?? 250
+      mockup: custom?.mockup ?? 250,
+      wax: custom?.wax ?? 0,
+      ring: custom?.ring ?? 0,
+      tryIn: custom?.tryIn ?? 0
     };
 
     let total = 0;
@@ -1093,6 +1099,12 @@ export class Admin implements OnInit, OnDestroy {
         total += qty * prices.nightGuard;
       } else if (lowerPart.includes('mockup') || lowerPart.includes('mock up') || lowerPart.includes('موكب')) {
         total += qty * prices.mockup;
+      } else if (lowerPart.includes('wax')) {
+        total += qty * prices.wax;
+      } else if (lowerPart.includes('ring')) {
+        total += qty * prices.ring;
+      } else if (lowerPart.includes('try in') || lowerPart.includes('tryin')) {
+        total += qty * prices.tryIn;
       }
     }
     return total;
@@ -1108,6 +1120,9 @@ export class Admin implements OnInit, OnDestroy {
     let peekQty = 0;
     let pmmaQty = 0;
     let nightGuardQty = 0;
+    let waxQty = 0;
+    let ringQty = 0;
+    let tryInQty = 0;
 
     for (const c of cases) {
       const ct = c.caseType || '';
@@ -1136,6 +1151,12 @@ export class Admin implements OnInit, OnDestroy {
           pmmaQty += qty;
         } else if (lowerPart.includes('night guard') || lowerPart.includes('nightguard') || lowerPart.includes('guard')) {
           nightGuardQty += qty;
+        } else if (lowerPart.includes('wax')) {
+          waxQty += qty;
+        } else if (lowerPart.includes('ring')) {
+          ringQty += qty;
+        } else if (lowerPart.includes('try in') || lowerPart.includes('tryin')) {
+          tryInQty += qty;
         }
       }
     }
@@ -1147,8 +1168,11 @@ export class Admin implements OnInit, OnDestroy {
     const peekTotal = peekQty * 1700;
     const pmmaTotal = pmmaQty * 250;
     const nightGuardTotal = nightGuardQty * 300;
+    const waxTotal = waxQty * 0;
+    const ringTotal = ringQty * 0;
+    const tryInTotal = tryInQty * 0;
 
-    const grandTotal = emaxTotal + germanZirconTotal + zirconTotal + titaniumTotal + peekTotal + pmmaTotal + nightGuardTotal;
+    const grandTotal = emaxTotal + germanZirconTotal + zirconTotal + titaniumTotal + peekTotal + pmmaTotal + nightGuardTotal + waxTotal + ringTotal + tryInTotal;
 
     return {
       emaxQty, emaxTotal,
@@ -1158,6 +1182,9 @@ export class Admin implements OnInit, OnDestroy {
       peekQty, peekTotal,
       pmmaQty, pmmaTotal,
       nightGuardQty, nightGuardTotal,
+      waxQty, waxTotal,
+      ringQty, ringTotal,
+      tryInQty, tryInTotal,
       grandTotal
     };
   }
@@ -1768,6 +1795,9 @@ export class Admin implements OnInit, OnDestroy {
       this.customPmmaPrice = custom.pmma ?? 250;
       this.customNightGuardPrice = custom.nightGuard ?? 300;
       this.customMockupPrice = custom.mockup ?? 250;
+      this.customWaxPrice = custom.wax ?? 0;
+      this.customRingPrice = custom.ring ?? 0;
+      this.customTryInPrice = custom.tryIn ?? 0;
     } else {
       this.customEmaxPrice = 1000;
       this.customGermanZirconPrice = 850;
@@ -1777,6 +1807,9 @@ export class Admin implements OnInit, OnDestroy {
       this.customPmmaPrice = 250;
       this.customNightGuardPrice = 300;
       this.customMockupPrice = 250;
+      this.customWaxPrice = 0;
+      this.customRingPrice = 0;
+      this.customTryInPrice = 0;
     }
   }
 
@@ -1794,7 +1827,10 @@ export class Admin implements OnInit, OnDestroy {
       peek: this.customPeekPrice,
       pmma: this.customPmmaPrice,
       nightGuard: this.customNightGuardPrice,
-      mockup: this.customMockupPrice
+      mockup: this.customMockupPrice,
+      wax: this.customWaxPrice,
+      ring: this.customRingPrice,
+      tryIn: this.customTryInPrice
     };
 
     this.caseApi.updateDoctorPricing(this.reportDoctorFilter, prices).subscribe({
