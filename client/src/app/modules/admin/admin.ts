@@ -428,6 +428,22 @@ export class Admin implements OnInit, OnDestroy {
       .sort((a, b) => b.totalDue - a.totalDue);
   }
 
+  get allDoctorsTotalDue(): number {
+    return this.filteredDoctorReportSummaries.reduce((sum, d) => sum + d.totalDue, 0);
+  }
+
+  get allDoctorsTotalPaid(): number {
+    return this.filteredDoctorReportSummaries.reduce((sum, d) => sum + d.totalPaid, 0);
+  }
+
+  get allDoctorsTotalRemaining(): number {
+    return this.filteredDoctorReportSummaries.reduce((sum, d) => sum + d.remaining, 0);
+  }
+
+  get allDoctorsTotalCases(): number {
+    return this.filteredDoctorReportSummaries.reduce((sum, d) => sum + d.totalCases, 0);
+  }
+
   getDoctorTotalDue(doctorName: string): number {
     const summary = this.doctorReportSummaries.find(d => d.doctorName === doctorName);
     return summary ? summary.totalDue : 0;
