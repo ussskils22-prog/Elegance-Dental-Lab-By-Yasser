@@ -1017,8 +1017,6 @@ export class Admin implements OnInit, OnDestroy {
   calculateCaseCost(c: AdminCaseRow): number {
     const doctor = c.doctorName || c.assignedTo || 'غير محدد';
     const normalizedDoc = doctor.toLowerCase();
-    const isJundi = normalizedDoc.includes('الجندي') || normalizedDoc.includes('jundi') || normalizedDoc.includes('gundi');
-    if (isJundi) return 0;
 
     const ct = (c.caseType || '').toLowerCase();
     const isExcluded = ct.includes('redo') || ct.includes('remake') ||
