@@ -809,7 +809,7 @@ export class Admin implements OnInit, OnDestroy {
         patientName: c.patientName,
         caseType: c.caseType,
         receivedDate: c.receivedDateDisplay || 'غير متوفر',
-        exitedDate: c.exitedAt ? c.exitedAt.toLocaleDateString('ar-EG') : (c.deliveryDateDisplay || 'غير متوفر'),
+        exitedDate: this.formatDateEn(c.exitedAt || c.receivedAt),
         stage: c.currentStage,
         salary: this.calculateCaseCost(c),
         dbSalary: c.salary || 0,
@@ -1352,7 +1352,7 @@ export class Admin implements OnInit, OnDestroy {
       receivedAt: receivedAt || new Date(),
       deliveryDateDisplay: dueDate ? dueDate.toLocaleString() : 'غير متوفر',
       dueDateDisplay: dueDate ? dueDate.toLocaleString() : 'N/A',
-      exitedAtDisplay: exitedAt ? exitedAt.toLocaleDateString('ar-EG') : 'غير متوفر',
+      exitedAtDisplay: this.formatDateEn(exitedAt),
       caseType: String(row['caseType'] ?? 'General'),
       salary,
       paid,
@@ -1399,6 +1399,25 @@ export class Admin implements OnInit, OnDestroy {
     } catch {
       return {};
     }
+  }
+
+  formatDateEn(date: Date | string | undefined | null): string {
+    if (!date) return 'غير متوفر';
+    const d = this.normalizeDate(date);
+    if (!d || isNaN(d.getTime())) return 'غير متوفر';
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}/${m}/${day}`;
+  }
+
+  translateCaseType(type: string): string {
+    if (!type) return '';
+    return type
+      .replace(/modification/gi, 'تعديل')
+      .replace(/redo/gi, 'إعادة')
+      .replace(/remake/gi, 'إعادة')
+      .replace(/unknown/gi, 'غير معروف');
   }
 
   setPage(page: number): void {
