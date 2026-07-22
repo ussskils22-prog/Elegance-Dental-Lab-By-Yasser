@@ -704,7 +704,7 @@
           <!-- عداد إجمالي فواتير كل الأطباء -->
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;">
             <div style="background:linear-gradient(135deg,#1e3a5f,#1e40af);border-radius:16px;padding:20px 24px;box-shadow:0 4px 20px rgba(59,130,246,0.25);border:1px solid rgba(59,130,246,0.3);">
-              <div style="font-size:13px;color:#93c5fd;margin-bottom:8px;font-weight:600;">إجمالي المبلغ المستحق</div>
+              <div style="font-size:13px;color:#93c5fd;margin-bottom:8px;font-weight:600;">إجمالي فواتير الأطباء</div>
               <div style="font-size:24px;font-weight:800;color:#fff;">
                 {{ allDoctorsTotalDue | number:'1.0-0' }}
                 <span style="font-size:14px;font-weight:400;color:#93c5fd;">EGP</span>
@@ -718,7 +718,7 @@
               </div>
             </div>
             <div style="background:linear-gradient(135deg,#7f1d1d,#991b1b);border-radius:16px;padding:20px 24px;box-shadow:0 4px 20px rgba(239,68,68,0.25);border:1px solid rgba(239,68,68,0.3);">
-              <div style="font-size:13px;color:#fca5a5;margin-bottom:8px;font-weight:600;">إجمالي المبلغ المتبقي</div>
+              <div style="font-size:13px;color:#fca5a5;margin-bottom:8px;font-weight:600;">إجمالي المبالغ المستحقة</div>
               <div style="font-size:24px;font-weight:800;color:#fff;">
                 {{ allDoctorsTotalRemaining | number:'1.0-0' }}
                 <span style="font-size:14px;font-weight:400;color:#fca5a5;">EGP</span>
@@ -743,9 +743,9 @@
                   <th>#</th>
                   <th>اسم الطبيب</th>
                   <th>عدد الحالات</th>
-                  <th>المبلغ المستحق</th>
+                  <th>إجمالي الحساب</th>
                   <th>المبلغ المدفوع</th>
-                  <th>باقي المبلغ</th>
+                  <th>المبلغ المستحق</th>
                   <th>التفاصيل</th>
                 </tr>
               </thead>
@@ -784,7 +784,7 @@
               <div class="stat-value" style="color: #3b82f6;">{{ reportFilteredCases.length }}</div>
             </div>
             <div class="stat-card" style="border-top:4px solid #10b981;">
-              <div class="stat-label">المبلغ المستحق الكلي</div>
+              <div class="stat-label">إجمالي الحساب الكلي</div>
               <div class="stat-value" style="color: #10b981;">
                 {{ getDoctorTotalDue(reportDoctorFilter) | number:'1.0-0' }} EGP
               </div>
@@ -796,7 +796,7 @@
               </div>
             </div>
             <div class="stat-card" style="border-top:4px solid #ef4444;">
-              <div class="stat-label">باقي المبلغ (المتبقي)</div>
+              <div class="stat-label">المبلغ المستحق (المتبقي)</div>
               <div class="stat-value" style="color: #ef4444;">
                 {{ (getDoctorTotalDue(reportDoctorFilter) - getDoctorTotalPaid(reportDoctorFilter)) | number:'1.0-0' }} EGP
               </div>
@@ -872,8 +872,9 @@
               <thead>
                 <tr>
                   <th>المريض</th>
+                  <th>تاريخ الخروج</th>
                   <th>نوع العمل (الخامة)</th>
-                  <th>المبلغ المستحق (التلقائي)</th>
+                  <th>سعر الحالة</th>
                   <th>المبلغ المدفوع</th>
                   <th>الإجراء</th>
                 </tr>
