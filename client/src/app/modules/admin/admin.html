@@ -866,6 +866,85 @@
             </div>
           </div>
 
+          <!-- تسجيل وعرض الدفعات المالية المسجلة على الحساب -->
+          <div class="report-table-card" style="margin-bottom:24px; padding:20px;">
+            <div style="font-weight:700;font-size:16px;margin-bottom:16px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:#10b981;"><path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                الدفعات المالية المسجلة على الحساب للطبيب: {{ reportDoctorFilter }}
+              </div>
+            </div>
+
+            <!-- نموذج إضافة دفعة جديدة -->
+            <div style="display:flex;gap:16px;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;background:#0f172a;padding:16px;border-radius:12px;border:1px solid #1e293b;">
+              <div style="flex:1;min-width:150px;">
+                <label style="font-size:12px;color:#94a3b8;margin-bottom:6px;display:block;">قيمة الدفعة (EGP)</label>
+                <input 
+                  type="number" 
+                  [(ngModel)]="newPaymentAmount" 
+                  placeholder="مثال: 10000" 
+                  style="width:100%;background:#1e293b;border:1px solid #334155;color:#fff;padding:8px 12px;border-radius:8px;font-size:14px;" 
+                />
+              </div>
+              <div style="flex:2;min-width:250px;">
+                <label style="font-size:12px;color:#94a3b8;margin-bottom:6px;display:block;">ملاحظات / رقم الإيصال</label>
+                <input 
+                  type="text" 
+                  [(ngModel)]="newPaymentNotes" 
+                  placeholder="ملاحظات اختيارية (مثال: تحويل فودافون كاش، شيك رقم...)" 
+                  style="width:100%;background:#1e293b;border:1px solid #334155;color:#fff;padding:8px 12px;border-radius:8px;font-size:14px;" 
+                />
+              </div>
+              <div>
+                <button 
+                  type="button" 
+                  class="finish-btn" 
+                  style="padding:10px 24px;font-size:14px;background:linear-gradient(135deg,#10b981,#059669);border:none;box-shadow:0 4px 12px rgba(16,185,129,0.2);display:flex;align-items:center;gap:6px;"
+                  [disabled]="paymentSaving || !newPaymentAmount"
+                  (click)="addDoctorPaymentOnAccount()"
+                >
+                  <svg *ngIf="paymentSaving" width="16" height="16" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" style="opacity:0.25;"></circle><path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  {{ paymentSaving ? 'جاري الحفظ...' : 'تسجيل الدفعة' }}
+                </button>
+              </div>
+            </div>
+
+            <p *ngIf="paymentError" style="color:#ef4444;font-size:14px;margin-bottom:12px;">{{ paymentError }}</p>
+
+            <!-- جدول الدفعات السابقة -->
+            <div style="background:#0f172a;border-radius:12px;border:1px solid #1e293b;overflow:hidden;">
+              <table style="width:100%;border-collapse:collapse;text-align:right;">
+                <thead>
+                  <tr style="background:#1e293b;color:#94a3b8;font-size:12px;">
+                    <th style="padding:12px 16px;">تاريخ الدفعة</th>
+                    <th style="padding:12px 16px;">المبلغ</th>
+                    <th style="padding:12px 16px;">الملاحظات</th>
+                    <th style="padding:12px 16px;text-align:center;">إجراء</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let p of getDoctorPaymentsList(reportDoctorFilter)" style="border-bottom:1px solid #1e293b;color:#e2e8f0;font-size:14px;">
+                    <td style="padding:12px 16px;">{{ formatDateEn(p.paymentDate) }}</td>
+                    <td style="padding:12px 16px;font-weight:700;color:#10b981;">{{ p.amount | number:'1.0-0' }} EGP</td>
+                    <td style="padding:12px 16px;color:#94a3b8;">{{ p.notes || '—' }}</td>
+                    <td style="padding:12px 16px;text-align:center;">
+                      <button 
+                        type="button" 
+                        style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:12px;font-weight:600;"
+                        (click)="deleteDoctorPaymentOnAccount(p._id)"
+                      >
+                        حذف
+                      </button>
+                    </td>
+                  </tr>
+                  <tr *ngIf="getDoctorPaymentsList(reportDoctorFilter).length === 0">
+                    <td colspan="4" style="padding:20px;text-align:center;color:#64748b;font-size:14px;">لا توجد دفعات مالية مسجلة على الحساب لهذا الطبيب بعد.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <!-- جدول الحالات التفصيلي -->
           <div class="report-table-card">
             <table>

@@ -182,6 +182,11 @@ export class Admin implements OnInit, OnDestroy {
   patients: AdminPatient[] = [];
   adminCases: AdminCaseRow[] = [];
   reportCases: AdminCaseRow[] = [];
+  doctorPayments: any[] = [];
+  newPaymentAmount: number | null = null;
+  newPaymentNotes = '';
+  paymentSaving = false;
+  paymentError = '';
   selectedPatient: AdminPatient | null = null;
   selectedCase: AdminCaseRow | null = null;
   selectedReportCase: AdminCaseRow | null = null;
@@ -412,6 +417,14 @@ export class Admin implements OnInit, OnDestroy {
       docObj.totalCases += 1;
       docObj.totalDue += cost;
       docObj.totalPaid += paidAmount;
+    });
+
+    doctorMap.forEach((docObj, key) => {
+      const generalPaymentsSum = this.doctorPayments
+        .filter(p => this.doctorGroupKey(p.doctorName) === key)
+        .reduce((sum, p) => sum + (p.amount || 0), 0);
+      
+      docObj.totalPaid += generalPaymentsSum;
       docObj.remaining = docObj.totalDue - docObj.totalPaid;
     });
 
@@ -1287,6 +1300,7 @@ export class Admin implements OnInit, OnDestroy {
         this.reportCases = [];
       },
     });
+    this.loadDoctorPayments();
   }
 
   private mapApiCaseToAdminCase(doc: Record<string, unknown>): AdminCaseRow {
@@ -1801,4 +1815,59 @@ export class Admin implements OnInit, OnDestroy {
     });
   }
 
+  loadDoctorPayments(): void {
+    this.caseApi.getDoctorPayments().subscribe({
+      next: (res) => {
+        this.doctorPayments = res?.data ?? [];
+      },
+      error: (err) => {
+        console.error('Error loading doctor payments:', err);
+        this.doctorPayments = [];
+      }
+    });
+  }
+
+  addDoctorPaymentOnAccount(): void {
+    if (!this.reportDoctorFilter || !this.newPaymentAmount || this.newPaymentAmount <= 0) return;
+    this.paymentSaving = true;
+    this.paymentError = '';
+
+    this.caseApi.addDoctorPayment(
+      this.reportDoctorFilter,
+      this.newPaymentAmount,
+      this.newPaymentNotes
+    ).subscribe({
+      next: () => {
+        this.paymentSaving = false;
+        this.newPaymentAmount = null;
+        this.newPaymentNotes = '';
+        this.loadDoctorPayments();
+      },
+      error: (err) => {
+        this.paymentSaving = false;
+        this.paymentError = 'تعذر تسجيل الدفعة المالية: ' + (err.error?.message || err.message);
+        console.error('Failed to add doctor payment:', err);
+      }
+    });
+  }
+
+  deleteDoctorPaymentOnAccount(id: string): void {
+    if (!confirm('هل أنت متأكد من حذف هذه الدفعة المالية؟')) return;
+    this.caseApi.deleteDoctorPayment(id).subscribe({
+      next: () => {
+        this.loadDoctorPayments();
+      },
+      error: (err) => {
+        alert('تعذر حذف الدفعة: ' + (err.error?.message || err.message));
+        console.error('Failed to delete doctor payment:', err);
+      }
+    });
+  }
+
+  getDoctorPaymentsList(doctorName: string): any[] {
+    const key = this.doctorGroupKey(doctorName);
+    return this.doctorPayments.filter(p => this.doctorGroupKey(p.doctorName) === key);
+  }
+
 }
+

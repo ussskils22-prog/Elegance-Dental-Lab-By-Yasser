@@ -123,4 +123,24 @@ export class CaseApiService {
   updateDoctorPricing(doctorName: string, prices: any): Observable<any> {
     return this.http.put(`${environment.apiUrl}/doctor-pricing`, { doctorName, prices });
   }
+
+  getDoctorPayments(doctorName?: string): Observable<any> {
+    const url = doctorName 
+      ? `${environment.apiUrl}/doctor-payments?doctor=${encodeURIComponent(doctorName)}` 
+      : `${environment.apiUrl}/doctor-payments`;
+    return this.http.get(url);
+  }
+
+  addDoctorPayment(doctorName: string, amount: number, notes: string = '', paymentDate?: string): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/doctor-payments`, {
+      doctorName,
+      amount,
+      notes,
+      paymentDate
+    });
+  }
+
+  deleteDoctorPayment(id: string): Observable<any> {
+    return this.http.delete(`${environment.apiUrl}/doctor-payments/${id}`);
+  }
 }
