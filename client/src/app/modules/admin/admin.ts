@@ -564,6 +564,24 @@ export class Admin implements OnInit, OnDestroy {
     return c.requesterType === 'lab' || !!(c.labName || '').trim();
   }
 
+  /** Referring doctor for a case — never fall back to lab account name. */
+  reportCaseDoctorName(c: AdminCaseRow | null | undefined): string {
+    if (!c) return 'غير محدد';
+    const doctor = String(c.doctor || c.doctorName || '').trim();
+    const lab = String(c.labName || c.accountName || '').trim();
+    if (doctor && (!lab || this.doctorGroupKey(doctor) !== this.doctorGroupKey(lab))) {
+      return this.normalizeDoctorName(doctor);
+    }
+    if (doctor && !this.isLabCaseRow(c)) {
+      return this.normalizeDoctorName(doctor);
+    }
+    const assigned = String(c.assignedTo || '').trim();
+    if (assigned && (!lab || this.doctorGroupKey(assigned) !== this.doctorGroupKey(lab))) {
+      return this.normalizeDoctorName(assigned);
+    }
+    return doctor ? this.normalizeDoctorName(doctor) : 'غير محدد';
+  }
+
   /** True when the opened report account is a lab (show doctor + patient in case rows) */
   get isFilteredReportAccountLab(): boolean {
     if (!this.reportDoctorFilter) return false;
