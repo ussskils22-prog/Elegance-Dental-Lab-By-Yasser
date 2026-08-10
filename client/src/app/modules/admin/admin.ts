@@ -341,6 +341,30 @@ export class Admin implements OnInit, OnDestroy {
     this.auth.performLogout(this.router);
   }
 
+  get adminDisplayName(): string {
+    const session = this.auth.getSession();
+    const name = String(session?.name || '').trim();
+    return name || 'مدير';
+  }
+
+  get adminInitials(): string {
+    const name = this.adminDisplayName;
+    const parts = name.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase() || 'AD';
+  }
+
+  private syncSessionNameIfCurrentUser(userId: string | undefined, fullName: string): void {
+    const session = this.auth.getSession();
+    if (!session || !userId) return;
+    if (String(session.id) !== String(userId)) return;
+    const name = String(fullName || '').trim();
+    if (!name || name === session.name) return;
+    this.auth.setSession({ ...session, name });
+  }
+
   ngOnInit(): void {
     this.restoreActiveNav();
     this.loadCasesFromApi();
@@ -2358,6 +2382,11 @@ export class Admin implements OnInit, OnDestroy {
         this.staffMembers = visible.filter(
           (m) => m.position !== 'دكتور' && m.position !== 'معمل'
         );
+        const session = this.auth.getSession();
+        if (session?.id) {
+          const me = visible.find((m) => String(m.id) === String(session.id));
+          if (me?.name) this.syncSessionNameIfCurrentUser(me.id, me.name);
+        }
       },
       error: (err) => {
         console.error(err);
@@ -2814,6 +2843,7 @@ export class Admin implements OnInit, OnDestroy {
           this.staffSaving = false;
           const pw = this.currentStaff.password?.trim();
           if (pw) this.staffPasswordByEmail.set(email.toLowerCase(), pw);
+          this.syncSessionNameIfCurrentUser(this.currentStaff.id, name);
           this.closeStaffModal();
           this.loadStaffFromApi();
         },
