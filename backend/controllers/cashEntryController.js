@@ -1,4 +1,5 @@
 const CashEntry = require('../models/CashEntry');
+const DoctorPayment = require('../models/DoctorPayment');
 const { syncDoctorPaymentsToCash } = require('./doctorPaymentController');
 
 function startOfDay(d) {
@@ -73,10 +74,20 @@ exports.addEntry = async (req, res) => {
 exports.deleteEntry = async (req, res) => {
   try {
     const { id } = req.params;
-    const entry = await CashEntry.findByIdAndDelete(id);
+    const entry = await CashEntry.findById(id);
     if (!entry) {
       return res.status(404).json({ success: false, message: 'Entry not found' });
     }
+
+    // Doctor/lab report payments are mirrored into cash. Delete the source
+    // payment too, otherwise syncDoctorPaymentsToCash recreates this row.
+    if (entry.doctorPaymentId) {
+      await DoctorPayment.findByIdAndDelete(entry.doctorPaymentId);
+      await CashEntry.deleteMany({ doctorPaymentId: entry.doctorPaymentId });
+    } else {
+      await CashEntry.findByIdAndDelete(id);
+    }
+
     res.status(200).json({ success: true, message: 'Entry deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

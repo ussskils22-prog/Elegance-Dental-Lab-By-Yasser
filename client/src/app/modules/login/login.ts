@@ -19,6 +19,8 @@ export class Login {
   showPassword = false;
   loginError = '';
   submitting = false;
+  /** Egypt mobile 01553063046 → WhatsApp international format */
+  readonly whatsappSupportUrl = 'https://wa.me/201553063046';
   public themeService = inject(ThemeService);
 
   constructor(

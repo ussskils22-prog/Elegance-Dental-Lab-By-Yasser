@@ -3104,7 +3104,10 @@ export class Admin implements OnInit, OnDestroy {
     if (!id) return;
     if (!confirm('هل أنت متأكد من حذف هذه الحركة؟')) return;
     this.caseApi.deleteCashEntry(id).subscribe({
-      next: () => this.loadCashEntries(),
+      next: () => {
+        this.loadCashEntries();
+        this.loadDoctorPayments();
+      },
       error: (err) => {
         this.cashError = 'تعذر الحذف: ' + (err.error?.message || err.message || '');
       },

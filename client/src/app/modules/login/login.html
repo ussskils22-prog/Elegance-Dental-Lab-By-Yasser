@@ -21,15 +21,18 @@
         <header class="form-header">
           <div class="brand">
             <span class="brand-icon" aria-hidden="true">
-              <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect width="32" height="32" rx="6" fill="currentColor" />
-                <path
-                  d="M9 11h14v2.5H9V11zm0 5h10v2.5H9V16zm0 5h14v2.5H9V21z"
-                  fill="#ffffff"
-                />
+              <svg viewBox="0 0 100 100" fill="none" class="brand-tooth-logo" xmlns="http://www.w3.org/2000/svg">
+                <path d="M 32,25 C 20,25 15,45 25,68 C 32,82 46,85 48,72 C 44,64 36,48 40,36 C 44,24 52,28 58,26" stroke="url(#login-logo-grad)" stroke-width="5.5" stroke-linecap="round" />
+                <path d="M 68,25 C 80,25 85,45 75,68 C 68,82 54,85 52,72 C 56,64 64,48 60,36 C 56,24 48,28 42,26" stroke="url(#login-logo-grad)" stroke-width="5.5" stroke-linecap="round" />
+                <defs>
+                  <linearGradient id="login-logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#2563eb" />
+                    <stop offset="100%" stop-color="#0d9488" />
+                  </linearGradient>
+                </defs>
               </svg>
             </span>
-            <span class="brand-name">LabFlow Pro</span>
+            <span class="brand-name">Elite Dental Lab</span>
           </div>
           <h1 class="title">مرحباً بك مجدداً</h1>
           <p class="subtitle">الرجاء إدخال بياناتك للوصول إلى لوحة التحكم</p>
@@ -60,7 +63,7 @@
           <div class="field">
             <div class="field-label-row">
               <label for="login-password">كلمة المرور <abbr title="مطلوب">*</abbr></label>
-              <a class="link-forgot" href="#" (click)="$event.preventDefault()">نسيت كلمة المرور؟</a>
+              <a class="link-forgot" [href]="whatsappSupportUrl" target="_blank" rel="noopener noreferrer">نسيت كلمة المرور؟</a>
             </div>
             <div class="input-wrap">
               <input
@@ -101,7 +104,7 @@
           <span class="version">V2.4.0 CLINICAL EDITION</span>
           <span class="signup-hint">
             ليس لديك حساب؟
-            <a href="#" (click)="$event.preventDefault()">اتصل بالإدارة</a>
+            <a [href]="whatsappSupportUrl" target="_blank" rel="noopener noreferrer">اتصل بالإدارة</a>
           </span>
         </footer>
       </section>

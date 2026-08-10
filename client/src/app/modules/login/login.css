@@ -1,4 +1,4 @@
-/* LabFlow Pro — login (RTL form, fixed LTR column layout) */
+/* Elite Dental Lab — login (RTL form, fixed LTR column layout) */
 :host {
   --primary: var(--accent-primary);
   --primary-mid: var(--accent-blue);
@@ -114,21 +114,25 @@ body.dark-theme .input-wrap input::placeholder,
 
 .brand-icon {
   display: flex;
-  width: 36px;
-  height: 36px;
-  color: var(--primary);
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
 }
 
-.brand-icon svg {
+.brand-icon svg,
+.brand-tooth-logo {
   width: 100%;
   height: 100%;
+  display: block;
 }
 
 .brand-name {
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--primary);
+  white-space: nowrap;
 }
 
 .title {
