@@ -2561,7 +2561,7 @@ export class Admin implements OnInit, OnDestroy {
   openAddLabModal() {
     this.isLabEditMode = false;
     this.labModalError = '';
-    this.showLabPassword = false;
+    this.showLabPassword = true;
     this.currentLab = {
       id: '',
       name: '',
@@ -2579,8 +2579,22 @@ export class Admin implements OnInit, OnDestroy {
     this.isLabEditMode = true;
     this.labModalError = '';
     this.showLabPassword = true;
-    this.currentLab = { ...lab, password: '', position: 'معمل' };
+    this.currentLab = {
+      ...lab,
+      phone: this.normalizeOptionalPhone(lab.phone),
+      password: lab.loginPasswordVisible || '',
+      position: 'معمل',
+    };
     this.showLabModal = true;
+  }
+
+  /** From labs directory → open that lab's request portal (same screen as doctors). */
+  openLabAccountPage(lab: StaffMember): void {
+    const name = (lab?.name || '').trim();
+    if (!name) return;
+    this.router.navigate(['/doctor/dashboard'], {
+      queryParams: { as: name },
+    });
   }
 
   closeLabModal() {
