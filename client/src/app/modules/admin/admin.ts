@@ -168,8 +168,13 @@ export class Admin implements OnInit, OnDestroy {
       this.reportYearFilter = '';
       this.reportMonthFilter = '';
       this.reportSearch = '';
-      this.loadCustomPricesForDoctor(val);
+      // Refresh work-type list (adds/hides) then load this account's prices
+      this.loadReportWorkTypes();
     }
+  }
+
+  trackByPriceFieldKey(_index: number, field: { key: string }): string {
+    return field.key;
   }
 
   paymentFilter: 'all' | 'paid' | 'unpaid' = 'unpaid';
@@ -2887,35 +2892,21 @@ export class Admin implements OnInit, OnDestroy {
       prices[field.key] = this.priceForKey(custom, field.key);
     }
     this.customWorkTypePrices = prices;
-
-    this.customEmaxPrice = this.priceForKey(custom, 'emax');
-    this.customGermanZirconPrice = this.priceForKey(custom, 'germanZircon');
-    this.customZirconPrice = this.priceForKey(custom, 'zircon');
-    this.customTitaniumPrice = this.priceForKey(custom, 'titanium');
-    this.customPeekPrice = this.priceForKey(custom, 'peek');
-    this.customPmmaPrice = this.priceForKey(custom, 'pmma');
-    this.customNightGuardPrice = this.priceForKey(custom, 'nightGuard');
-    this.customMockupPrice = this.priceForKey(custom, 'mockup');
-    this.customWaxPrice = this.priceForKey(custom, 'wax');
-    this.customRingPrice = this.priceForKey(custom, 'ring');
-    this.customTryInPrice = this.priceForKey(custom, 'tryIn');
+    this.syncMapIntoLegacyTemplatePrices(prices);
   }
 
-  private syncTemplatePricesIntoMap(): void {
-    this.customWorkTypePrices = {
-      ...this.customWorkTypePrices,
-      emax: Number(this.customEmaxPrice),
-      germanZircon: Number(this.customGermanZirconPrice),
-      zircon: Number(this.customZirconPrice),
-      titanium: Number(this.customTitaniumPrice),
-      peek: Number(this.customPeekPrice),
-      pmma: Number(this.customPmmaPrice),
-      nightGuard: Number(this.customNightGuardPrice),
-      mockup: Number(this.customMockupPrice),
-      wax: Number(this.customWaxPrice),
-      ring: Number(this.customRingPrice),
-      tryIn: Number(this.customTryInPrice),
-    };
+  private syncMapIntoLegacyTemplatePrices(prices: Record<string, number>): void {
+    this.customEmaxPrice = prices['emax'] ?? this.defaultPriceByKey['emax'] ?? 0;
+    this.customGermanZirconPrice = prices['germanZircon'] ?? this.defaultPriceByKey['germanZircon'] ?? 0;
+    this.customZirconPrice = prices['zircon'] ?? this.defaultPriceByKey['zircon'] ?? 0;
+    this.customTitaniumPrice = prices['titanium'] ?? this.defaultPriceByKey['titanium'] ?? 0;
+    this.customPeekPrice = prices['peek'] ?? this.defaultPriceByKey['peek'] ?? 0;
+    this.customPmmaPrice = prices['pmma'] ?? this.defaultPriceByKey['pmma'] ?? 0;
+    this.customNightGuardPrice = prices['nightGuard'] ?? this.defaultPriceByKey['nightGuard'] ?? 0;
+    this.customMockupPrice = prices['mockup'] ?? this.defaultPriceByKey['mockup'] ?? 0;
+    this.customWaxPrice = prices['wax'] ?? this.defaultPriceByKey['wax'] ?? 0;
+    this.customRingPrice = prices['ring'] ?? this.defaultPriceByKey['ring'] ?? 0;
+    this.customTryInPrice = prices['tryIn'] ?? this.defaultPriceByKey['tryIn'] ?? 0;
   }
 
   saveDoctorCustomPrices(): void {
@@ -2923,28 +2914,15 @@ export class Admin implements OnInit, OnDestroy {
     this.isPricingSaving = true;
     this.pricingSaveSuccess = false;
     this.pricingSaveError = '';
-
-    this.syncTemplatePricesIntoMap();
+    this.rebuildReportPriceFields();
 
     const prices: Record<string, number> = {};
     for (const field of this.reportPriceFields) {
       const raw = this.customWorkTypePrices[field.key];
       prices[field.key] = Number.isFinite(Number(raw)) ? Number(raw) : this.defaultPriceByKey[field.key] ?? 0;
     }
-    // Ensure template-bound defaults are always persisted even if report fields lag
-    Object.assign(prices, {
-      emax: Number(this.customEmaxPrice),
-      germanZircon: Number(this.customGermanZirconPrice),
-      zircon: Number(this.customZirconPrice),
-      titanium: Number(this.customTitaniumPrice),
-      peek: Number(this.customPeekPrice),
-      pmma: Number(this.customPmmaPrice),
-      nightGuard: Number(this.customNightGuardPrice),
-      mockup: Number(this.customMockupPrice),
-      wax: Number(this.customWaxPrice),
-      ring: Number(this.customRingPrice),
-      tryIn: Number(this.customTryInPrice),
-    });
+    this.customWorkTypePrices = { ...this.customWorkTypePrices, ...prices };
+    this.syncMapIntoLegacyTemplatePrices(prices);
 
     this.caseApi.updateDoctorPricing(this.reportDoctorFilter, prices).subscribe({
       next: () => {
