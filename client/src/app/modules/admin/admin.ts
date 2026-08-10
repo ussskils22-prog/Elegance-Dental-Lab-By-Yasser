@@ -1820,6 +1820,11 @@ export class Admin implements OnInit, OnDestroy {
           : 'doctor';
     const accountName =
       requesterType === 'lab' ? labName || doctorName : doctorName;
+    const exitedAt = this.normalizeDate(
+      (doc['stageTimestamps'] as Record<string, unknown>)?.['exited'] ??
+      (doc['stageTimestamps'] as Record<string, unknown>)?.['completed'] ??
+      doc['updatedAt']
+    );
 
     return {
       id: String(doc['_id'] ?? ''),
@@ -1834,7 +1839,7 @@ export class Admin implements OnInit, OnDestroy {
       clinic: '',
       currentStage: forcedCompleted ? 'completed' : String(doc['currentStage'] ?? 'waiting'),
       priority: String(doc['priority'] ?? 'normal'),
-      receivedDateDisplay: createdAt ? createdAt.toLocaleString() : 'غير متوفر',
+      receivedDateDisplay: createdAt ? this.formatDateEn(createdAt) : 'غير متوفر',
       receivedAt: createdAt,
       deliveryDateDisplay: dueDate ? dueDate.toLocaleString() : 'غير متوفر',
       dueDateDisplay: dueDate ? dueDate.toLocaleString() : 'N/A',
@@ -1853,11 +1858,8 @@ export class Admin implements OnInit, OnDestroy {
       deliveryTime: String(parsedMeta['deliveryTime'] ?? ''),
       rawNotes: notes,
       source: 'case',
-      exitedAt: this.normalizeDate(
-        (doc['stageTimestamps'] as Record<string, unknown>)?.['exited'] ??
-        (doc['stageTimestamps'] as Record<string, unknown>)?.['completed'] ??
-        doc['updatedAt']
-      ),
+      exitedAt,
+      exitedAtDisplay: exitedAt ? this.formatDateEn(exitedAt) : 'غير متوفر',
     };
   }
 
@@ -1900,11 +1902,12 @@ export class Admin implements OnInit, OnDestroy {
       clinic: '',
       currentStage: String(row['currentStage'] ?? 'completed'),
       priority: 'normal',
-      receivedDateDisplay: receivedAt ? receivedAt.toLocaleString() : 'غير متوفر',
-      receivedAt: receivedAt || new Date(),
+      receivedDateDisplay: receivedAt ? this.formatDateEn(receivedAt) : 'غير متوفر',
+      receivedAt: receivedAt || undefined,
       deliveryDateDisplay: dueDate ? dueDate.toLocaleString() : 'غير متوفر',
       dueDateDisplay: dueDate ? dueDate.toLocaleString() : 'N/A',
-      exitedAtDisplay: this.formatDateEn(exitedAt),
+      exitedAt,
+      exitedAtDisplay: exitedAt ? this.formatDateEn(exitedAt) : 'غير متوفر',
       caseType: String(row['caseType'] ?? 'General'),
       salary,
       paid,
@@ -3266,6 +3269,32 @@ export class Admin implements OnInit, OnDestroy {
     return !formatted || formatted === 'غير متوفر' ? '—' : formatted;
   }
 
+  private formatPdfCaseEntryDate(c: AdminCaseRow): string {
+    const fromDate = this.formatPdfCaseDate(c.receivedAt);
+    if (fromDate !== '—') return fromDate;
+    const display = String(c.receivedDateDisplay || '').trim();
+    if (display && display !== 'غير متوفر') return display;
+    return '—';
+  }
+
+  private formatPdfCaseExitDate(c: AdminCaseRow): string {
+    const fromDate = this.formatPdfCaseDate(c.exitedAt);
+    if (fromDate !== '—') return fromDate;
+    const display = String(c.exitedAtDisplay || '').trim();
+    if (display && display !== 'غير متوفر') return display;
+    return '—';
+  }
+
+  formatReportEntryDate(c: AdminCaseRow): string {
+    const value = this.formatPdfCaseEntryDate(c);
+    return value === '—' ? 'غير متوفر' : value;
+  }
+
+  formatReportExitDate(c: AdminCaseRow): string {
+    const value = this.formatPdfCaseExitDate(c);
+    return value === '—' ? 'غير متوفر' : value;
+  }
+
   private escapePdfHtml(value: string): string {
     return String(value ?? '')
       .replace(/&/g, '&amp;')
@@ -3309,8 +3338,8 @@ export class Admin implements OnInit, OnDestroy {
           ${doctorCell}
           <td style="${td};text-align:center;white-space:nowrap;">${this.escapePdfHtml(c.patientName || '—')}</td>
           <td style="${td};text-align:right;">${this.escapePdfHtml(this.translateCaseType(c.caseType) || '—')}</td>
-          <td style="${td};text-align:center;white-space:nowrap;">${this.escapePdfHtml(this.formatPdfCaseDate(c.receivedAt))}</td>
-          <td style="${td};text-align:center;white-space:nowrap;">${this.escapePdfHtml(this.formatPdfCaseDate(c.exitedAt))}</td>
+          <td style="${td};text-align:center;white-space:nowrap;">${this.escapePdfHtml(this.formatPdfCaseEntryDate(c))}</td>
+          <td style="${td};text-align:center;white-space:nowrap;">${this.escapePdfHtml(this.formatPdfCaseExitDate(c))}</td>
           <td style="${td};text-align:center;font-weight:700;white-space:nowrap;">${fmt(this.calculateCaseCost(c))}</td>
         </tr>`;
       })
