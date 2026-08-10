@@ -141,12 +141,19 @@ export class CaseApiService {
     return this.http.get(url);
   }
 
-  addDoctorPayment(doctorName: string, amount: number, notes: string = '', paymentDate?: string): Observable<any> {
+  addDoctorPayment(
+    doctorName: string,
+    amount: number,
+    notes: string = '',
+    paymentDate?: string,
+    remainingBefore?: number
+  ): Observable<any> {
     return this.http.post(`${environment.apiUrl}/doctor-payments`, {
       doctorName,
       amount,
       notes,
-      paymentDate
+      paymentDate,
+      remainingBefore,
     });
   }
 

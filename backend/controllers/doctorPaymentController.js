@@ -52,7 +52,7 @@ exports.getAllPayments = async (req, res) => {
 
 exports.addPayment = async (req, res) => {
   try {
-    const { doctorName, amount, paymentDate, notes } = req.body;
+    const { doctorName, amount, paymentDate, notes, remainingBefore } = req.body;
     if (!doctorName || amount === undefined || amount === null) {
       return res.status(400).json({ success: false, message: 'doctorName and amount are required' });
     }
@@ -61,6 +61,24 @@ exports.addPayment = async (req, res) => {
     const num = Number(amount);
     if (!Number.isFinite(num) || num <= 0) {
       return res.status(400).json({ success: false, message: 'Amount must be greater than zero' });
+    }
+
+    if (remainingBefore !== undefined && remainingBefore !== null && remainingBefore !== '') {
+      const remaining = Number(remainingBefore);
+      if (Number.isFinite(remaining)) {
+        if (remaining <= 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'No remaining balance on this account invoice',
+          });
+        }
+        if (num > remaining) {
+          return res.status(400).json({
+            success: false,
+            message: 'Payment cannot exceed remaining invoice balance (' + remaining + ' EGP)',
+          });
+        }
+      }
     }
 
     const when = paymentDate ? new Date(paymentDate) : new Date();

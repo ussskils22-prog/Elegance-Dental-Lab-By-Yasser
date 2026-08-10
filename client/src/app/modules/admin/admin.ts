@@ -741,14 +741,35 @@ export class Admin implements OnInit, OnDestroy {
     return this.filteredDoctorReportSummaries.reduce((sum, d) => sum + d.totalCases, 0);
   }
 
+  private findDoctorReportSummary(doctorName: string) {
+    const key = this.doctorGroupKey(doctorName);
+    return this.doctorReportSummaries.find((d) => this.doctorGroupKey(d.doctorName) === key);
+  }
+
   getDoctorTotalDue(doctorName: string): number {
-    const summary = this.doctorReportSummaries.find(d => d.doctorName === doctorName);
-    return summary ? summary.totalDue : 0;
+    return this.findDoctorReportSummary(doctorName)?.totalDue || 0;
   }
 
   getDoctorTotalPaid(doctorName: string): number {
-    const summary = this.doctorReportSummaries.find(d => d.doctorName === doctorName);
-    return summary ? summary.totalPaid : 0;
+    return this.findDoctorReportSummary(doctorName)?.totalPaid || 0;
+  }
+
+  getDoctorRemainingBalance(doctorName: string): number {
+    const summary = this.findDoctorReportSummary(doctorName);
+    if (!summary) return 0;
+    return Math.max(0, summary.totalDue - summary.totalPaid);
+  }
+
+  cashEntrySourceLabel(entry: {
+    type: 'income' | 'expense';
+    category?: string;
+    notes?: string;
+  }): string {
+    const cat = String(entry.category || '').toLowerCase();
+    if (cat === 'doctor_payment') return 'دفعة دكتور / معمل (تقارير)';
+    if (cat === 'case_payment') return 'تأكيد دفع حالة';
+    if (entry.type === 'income') return 'دخل يدوي';
+    return 'مصروف يدوي';
   }
 
   private monthLabel(date: Date): string {
@@ -3061,13 +3082,25 @@ export class Admin implements OnInit, OnDestroy {
 
   addDoctorPaymentOnAccount(): void {
     if (!this.reportDoctorFilter || !this.newPaymentAmount || this.newPaymentAmount <= 0) return;
+    const amount = Number(this.newPaymentAmount);
+    const remaining = this.getDoctorRemainingBalance(this.reportDoctorFilter);
+    if (remaining <= 0) {
+      this.paymentError = 'لا يوجد متبقي على فاتورة هذا الحساب';
+      return;
+    }
+    if (!Number.isFinite(amount) || amount > remaining) {
+      this.paymentError = `لا يمكن تسجيل دفعة أكبر من المتبقي (${remaining.toLocaleString('en-US')} EGP)`;
+      return;
+    }
     this.paymentSaving = true;
     this.paymentError = '';
 
     this.caseApi.addDoctorPayment(
       this.reportDoctorFilter,
-      this.newPaymentAmount,
-      this.newPaymentNotes
+      amount,
+      this.newPaymentNotes,
+      undefined,
+      remaining
     ).subscribe({
       next: () => {
         this.paymentSaving = false;

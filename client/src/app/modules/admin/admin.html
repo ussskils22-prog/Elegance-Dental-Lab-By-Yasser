@@ -604,134 +604,106 @@
       <ng-container *ngIf="activeNav === 'financials'">
         <div class="page-header">
           <div>
-            <div class="page-label">نظرة مالية</div>
+            <div class="page-label">دفتر النقدية</div>
             <div class="page-title">المالية</div>
-          </div>
-          <div class="financial-summary">
-            <span class="summary-pill">إجمالي المبلغ: {{ totalFinancialAmount | number:'1.0-0' }} EGP</span>
-            <span class="summary-pill">عدد الأطباء: {{ reportDoctors.length }}</span>
-            <button class="export-btn" (click)="exportFinancialYearReport()">تصدير تقرير السنة CSV</button>
           </div>
         </div>
 
         <div class="financial-controls">
           <div class="control-card">
-            <label>السنة</label>
-            <select [ngModel]="financialYearFilter" (ngModelChange)="onFinancialYearChange($event)">
-              <option value="">كل السنوات</option>
-              <option *ngFor="let year of financialYears" [value]="year">{{ year }}</option>
+            <label>العرض</label>
+            <select [(ngModel)]="cashViewMode" (ngModelChange)="onCashFilterChange()">
+              <option value="day">يوم</option>
+              <option value="month">شهر</option>
             </select>
           </div>
-          <div class="control-card">
+          <div class="control-card" *ngIf="cashViewMode === 'day'">
+            <label>اليوم</label>
+            <input type="date" [(ngModel)]="cashDayFilter" (ngModelChange)="onCashFilterChange()" />
+          </div>
+          <div class="control-card" *ngIf="cashViewMode === 'month'">
             <label>الشهر</label>
-            <select [(ngModel)]="financialMonthFilter" [disabled]="!financialYearFilter">
-              <option value="">كل الشهور</option>
-              <option *ngFor="let month of financialMonthsForSelectedYear" [value]="month">{{ monthName(month) }}</option>
-            </select>
-          </div>
-          <div class="control-card">
-            <label>بحث عن طبيب</label>
-            <input type="text" [(ngModel)]="financialDoctorSearch" placeholder="اكتب اسم الطبيب..." />
+            <input type="month" [(ngModel)]="cashMonthFilter" (ngModelChange)="onCashFilterChange()" />
           </div>
         </div>
 
-        <div class="finance-year-list" *ngIf="groupedFinancialSummary.length; else noFinanceData">
-          <div class="finance-year-card" *ngFor="let yearGroup of groupedFinancialSummary">
-            <div class="finance-year-head">
-              <div class="finance-year-title">{{ yearGroup.year }}</div>
-              <div class="finance-year-meta">
-                <span>الحالات المدفوعة: {{ yearGroup.paidCases }}</span>
-                <span>المبلغ المدفوع: {{ yearGroup.paidAmount | number:'1.0-0' }} EGP</span>
-              </div>
-            </div>
-
-            <div class="finance-month-card" *ngFor="let monthGroup of yearGroup.months">
-              <div class="finance-month-head">
-                <strong>{{ monthGroup.monthLabel }}</strong>
-                <span>
-                  مدفوع {{ monthGroup.paidCases }}/{{ monthGroup.cases }} -
-                  {{ monthGroup.paidTotal | number:'1.0-0' }} EGP
-                </span>
-              </div>
-
-              <div class="report-table-card">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>الطبيب</th>
-                      <th>الحالات المدفوعة</th>
-                      <th>المبلغ المدفوع</th>
-                      <th>إجمالي الحالات</th>
-                      <th>إجمالي المبلغ</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr *ngFor="let doctor of monthGroup.byDoctor">
-                      <td>
-                        <button class="doctor-link-btn" (click)="openDoctorDetails(doctor.doctorName)">
-                          {{ doctor.doctorName }}
-                        </button>
-                      </td>
-                      <td>{{ doctor.paidCases }}</td>
-                      <td>{{ doctor.paidAmount | number:'1.0-0' }} EGP</td>
-                      <td>{{ doctor.cases }}</td>
-                      <td>{{ doctor.totalSalary | number:'1.0-0' }} EGP</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+        <div class="financial-summary" style="margin-bottom:20px;">
+          <span class="summary-pill">الدخل: {{ cashIncomeTotal | number:'1.0-0' }} EGP</span>
+          <span class="summary-pill">المصاريف: {{ cashExpenseTotal | number:'1.0-0' }} EGP</span>
+          <span class="summary-pill">الصافي: {{ cashProfitTotal | number:'1.0-0' }} EGP</span>
         </div>
 
-        <ng-template #noFinanceData>
-          <div class="finance-empty">لا توجد بيانات مالية مطابقة للفلاتر المحددة.</div>
-        </ng-template>
-
-        <div class="modal-overlay" *ngIf="showDoctorDetailsModal" (click)="closeDoctorDetails()">
-          <div class="modal-content doctor-modal-content" (click)="$event.stopPropagation()">
-            <div class="modal-header">
-              <h2>{{ selectedDoctorName }} - السجل</h2>
-              <button class="modal-close-btn" (click)="closeDoctorDetails()">
-                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
+        <div class="report-table-card" style="margin-bottom:24px;padding:20px;">
+          <div style="font-weight:700;font-size:15px;margin-bottom:14px;">إضافة حركة</div>
+          <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+            <div style="min-width:120px;">
+              <label style="font-size:12px;display:block;margin-bottom:6px;color:var(--color-text-secondary,#64748b);">النوع</label>
+              <select [(ngModel)]="cashFormType" style="width:100%;padding:8px 10px;border-radius:8px;">
+                <option value="income">دخل</option>
+                <option value="expense">مصروف</option>
+              </select>
             </div>
-            <div class="modal-body doctor-modal-body">
-              <div class="doctor-stats">
-                <span class="summary-pill">الحالات: {{ selectedDoctorTotals.cases }}</span>
-                <span class="summary-pill">الحالات المدفوعة: {{ selectedDoctorTotals.paidCases }}</span>
-                <span class="summary-pill">المبلغ المدفوع: {{ selectedDoctorTotals.paidAmount | number:'1.0-0' }} EGP</span>
-                <span class="summary-pill">إجمالي المبلغ: {{ selectedDoctorTotals.totalAmount | number:'1.0-0' }} EGP</span>
-              </div>
-
-              <div class="report-table-card">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>المريض</th>
-                      <th>النوع</th>
-                      <th>تاريخ الاستلام</th>
-                      <th>تاريخ الخروج</th>
-                      <th>المرحلة</th>
-                      <th>الأجر</th>
-                      <th>الدفع</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr *ngFor="let record of selectedDoctorRecords">
-                      <td>{{ record.patientName }}</td>
-                      <td>{{ translateCaseType(record.caseType) }}</td>
-                      <td>{{ record.receivedDate }}</td>
-                      <td>{{ record.exitedDate }}</td>
-                      <td>{{ record.stage }}</td>
-                      <td>{{ record.salary | number:'1.0-0' }} EGP</td>
-                      <td>{{ record.paid ? 'مدفوع' : 'غير مدفوع' }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+            <div style="min-width:140px;flex:1;">
+              <label style="font-size:12px;display:block;margin-bottom:6px;color:var(--color-text-secondary,#64748b);">المبلغ (EGP)</label>
+              <input type="number" [(ngModel)]="cashFormAmount" placeholder="0" min="1" style="width:100%;padding:8px 10px;border-radius:8px;" />
             </div>
+            <div style="min-width:150px;">
+              <label style="font-size:12px;display:block;margin-bottom:6px;color:var(--color-text-secondary,#64748b);">التاريخ</label>
+              <input type="date" [(ngModel)]="cashFormDate" style="width:100%;padding:8px 10px;border-radius:8px;" />
+            </div>
+            <div style="min-width:220px;flex:2;">
+              <label style="font-size:12px;display:block;margin-bottom:6px;color:var(--color-text-secondary,#64748b);">ملاحظة</label>
+              <input type="text" [(ngModel)]="cashFormNotes" placeholder="اختياري" style="width:100%;padding:8px 10px;border-radius:8px;" />
+            </div>
+            <button type="button" class="export-btn" [disabled]="cashSaving" (click)="addCashEntry()">
+              {{ cashSaving ? 'جاري الحفظ…' : 'إضافة' }}
+            </button>
           </div>
+          <p *ngIf="cashError" style="margin:12px 0 0;color:#dc2626;font-size:13px;">{{ cashError }}</p>
+        </div>
+
+        <div class="report-table-card">
+          <p *ngIf="cashLoading" style="padding:16px;color:#64748b;">جاري تحميل الحركات…</p>
+          <table *ngIf="!cashLoading">
+            <thead>
+              <tr>
+                <th>التاريخ</th>
+                <th>النوع</th>
+                <th>المصدر</th>
+                <th>المبلغ</th>
+                <th>الملاحظات</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let entry of cashEntries">
+                <td>{{ formatCashDate(entry.date) }}</td>
+                <td>
+                  <span [style.color]="entry.type === 'income' ? '#059669' : '#dc2626'">
+                    {{ entry.type === 'income' ? 'دخل' : 'مصروف' }}
+                  </span>
+                </td>
+                <td>{{ cashEntrySourceLabel(entry) }}</td>
+                <td [style.color]="entry.type === 'income' ? '#059669' : '#dc2626'" style="font-weight:700;">
+                  {{ entry.amount | number:'1.0-0' }} EGP
+                </td>
+                <td>{{ entry.notes || '—' }}</td>
+                <td>
+                  <button
+                    type="button"
+                    class="staff-btn"
+                    style="color:#dc2626;border-color:#fecaca;background:#fff5f5;"
+                    (click)="deleteCashEntry(entry._id)"
+                  >
+                    حذف
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="cashEntries.length === 0">
+                <td colspan="6" class="finance-empty">لا توجد حركات في الفترة المحددة.</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </ng-container>
 
@@ -995,6 +967,12 @@
               </div>
             </div>
 
+            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+              <span class="summary-pill">إجمالي الفاتورة: {{ getDoctorTotalDue(reportDoctorFilter) | number:'1.0-0' }} EGP</span>
+              <span class="summary-pill">المدفوع: {{ getDoctorTotalPaid(reportDoctorFilter) | number:'1.0-0' }} EGP</span>
+              <span class="summary-pill">المتبقي: {{ getDoctorRemainingBalance(reportDoctorFilter) | number:'1.0-0' }} EGP</span>
+            </div>
+
             <!-- نموذج إضافة دفعة جديدة -->
             <div style="display:flex;gap:16px;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;background:#0f172a;padding:16px;border-radius:12px;border:1px solid #1e293b;">
               <div style="flex:1;min-width:150px;">
@@ -1002,7 +980,8 @@
                 <input 
                   type="number" 
                   [(ngModel)]="newPaymentAmount" 
-                  placeholder="مثال: 10000" 
+                  placeholder="مثال: 10000"
+                  [attr.max]="getDoctorRemainingBalance(reportDoctorFilter)"
                   style="width:100%;background:#1e293b;border:1px solid #334155;color:#fff;padding:8px 12px;border-radius:8px;font-size:14px;" 
                 />
               </div>
@@ -1020,7 +999,7 @@
                   type="button" 
                   class="finish-btn" 
                   style="padding:10px 24px;font-size:14px;background:linear-gradient(135deg,#10b981,#059669);border:none;box-shadow:0 4px 12px rgba(16,185,129,0.2);display:flex;align-items:center;gap:6px;"
-                  [disabled]="paymentSaving || !newPaymentAmount"
+                  [disabled]="paymentSaving || !newPaymentAmount || getDoctorRemainingBalance(reportDoctorFilter) <= 0"
                   (click)="addDoctorPaymentOnAccount()"
                 >
                   <svg *ngIf="paymentSaving" width="16" height="16" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" style="opacity:0.25;"></circle><path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -1028,6 +1007,9 @@
                 </button>
               </div>
             </div>
+            <p *ngIf="getDoctorRemainingBalance(reportDoctorFilter) <= 0" style="color:#94a3b8;font-size:13px;margin:-8px 0 12px;">
+              لا يوجد متبقي على الفاتورة — مش هينفع تسجيل دفعة جديدة.
+            </p>
 
             <p *ngIf="paymentError" style="color:#ef4444;font-size:14px;margin-bottom:12px;">{{ paymentError }}</p>
 
