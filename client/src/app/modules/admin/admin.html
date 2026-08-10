@@ -627,10 +627,37 @@
           </div>
         </div>
 
-        <div class="financial-summary" style="margin-bottom:20px;">
-          <span class="summary-pill">الدخل: {{ cashIncomeTotal | number:'1.0-0' }} EGP</span>
-          <span class="summary-pill">المصاريف: {{ cashExpenseTotal | number:'1.0-0' }} EGP</span>
-          <span class="summary-pill">الصافي: {{ cashProfitTotal | number:'1.0-0' }} EGP</span>
+        <div class="cash-kpi-grid" aria-label="ملخص المالية">
+          <article class="cash-kpi-card cash-kpi-card--income">
+            <div class="cash-kpi-icon" aria-hidden="true">
+              <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
+            </div>
+            <div class="cash-kpi-body">
+              <div class="cash-kpi-label">الدخل</div>
+              <div class="cash-kpi-value">{{ cashIncomeTotal | number:'1.0-0' }} <span>EGP</span></div>
+              <div class="cash-kpi-hint">{{ cashViewMode === 'day' ? 'إجمالي دخل اليوم' : 'إجمالي دخل الشهر' }}</div>
+            </div>
+          </article>
+          <article class="cash-kpi-card cash-kpi-card--expense">
+            <div class="cash-kpi-icon" aria-hidden="true">
+              <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>
+            </div>
+            <div class="cash-kpi-body">
+              <div class="cash-kpi-label">المصاريف</div>
+              <div class="cash-kpi-value">{{ cashExpenseTotal | number:'1.0-0' }} <span>EGP</span></div>
+              <div class="cash-kpi-hint">{{ cashViewMode === 'day' ? 'إجمالي مصاريف اليوم' : 'إجمالي مصاريف الشهر' }}</div>
+            </div>
+          </article>
+          <article class="cash-kpi-card cash-kpi-card--profit" [class.cash-kpi-card--loss]="cashProfitTotal < 0">
+            <div class="cash-kpi-icon" aria-hidden="true">
+              <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19h16"/><path d="M7 16V9"/><path d="M12 16V5"/><path d="M17 16v-6"/></svg>
+            </div>
+            <div class="cash-kpi-body">
+              <div class="cash-kpi-label">{{ cashProfitTotal < 0 ? 'العجز' : 'الربح' }}</div>
+              <div class="cash-kpi-value">{{ cashProfitTotal | number:'1.0-0' }} <span>EGP</span></div>
+              <div class="cash-kpi-hint">الدخل ناقص المصاريف</div>
+            </div>
+          </article>
         </div>
 
         <div class="report-table-card" style="margin-bottom:24px;padding:20px;">

@@ -353,6 +353,140 @@ tbody td { padding: 12px 16px; font-size: 12px; color: var(--color-text-primary)
   font-weight: 600;
 }
 
+.cash-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 4px 0 22px;
+}
+
+.cash-kpi-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px 18px;
+  border-radius: 16px;
+  border: 1px solid var(--color-border-tertiary);
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--color-background-primary) 88%, transparent), var(--color-background-primary)),
+    var(--color-background-primary);
+  overflow: hidden;
+  min-height: 118px;
+}
+
+.cash-kpi-card::after {
+  content: '';
+  position: absolute;
+  inset-inline-end: -18px;
+  top: -24px;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  opacity: 0.14;
+  pointer-events: none;
+}
+
+.cash-kpi-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.cash-kpi-body {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.cash-kpi-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.cash-kpi-value {
+  font-size: clamp(1.45rem, 2vw, 1.85rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text-primary);
+  line-height: 1.15;
+}
+
+.cash-kpi-value span {
+  font-size: 0.72em;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-inline-start: 4px;
+}
+
+.cash-kpi-hint {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  opacity: 0.9;
+}
+
+.cash-kpi-card--income .cash-kpi-icon {
+  color: #047857;
+  background: color-mix(in srgb, #10b981 18%, var(--color-background-primary));
+}
+
+.cash-kpi-card--income::after {
+  background: #10b981;
+}
+
+.cash-kpi-card--income .cash-kpi-value {
+  color: #059669;
+}
+
+.cash-kpi-card--expense .cash-kpi-icon {
+  color: #b91c1c;
+  background: color-mix(in srgb, #ef4444 16%, var(--color-background-primary));
+}
+
+.cash-kpi-card--expense::after {
+  background: #ef4444;
+}
+
+.cash-kpi-card--expense .cash-kpi-value {
+  color: #dc2626;
+}
+
+.cash-kpi-card--profit .cash-kpi-icon {
+  color: #0f766e;
+  background: color-mix(in srgb, #14b8a6 16%, var(--color-background-primary));
+}
+
+.cash-kpi-card--profit::after {
+  background: #14b8a6;
+}
+
+.cash-kpi-card--profit .cash-kpi-value {
+  color: #0d9488;
+}
+
+.cash-kpi-card--loss .cash-kpi-icon {
+  color: #b45309;
+  background: color-mix(in srgb, #f59e0b 18%, var(--color-background-primary));
+}
+
+.cash-kpi-card--loss::after {
+  background: #f59e0b;
+}
+
+.cash-kpi-card--loss .cash-kpi-value {
+  color: #d97706;
+}
+
+@media (max-width: 960px) {
+  .cash-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .finance-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
