@@ -258,6 +258,7 @@ export class Admin implements OnInit, OnDestroy {
     date: string | Date;
     category?: string;
     notes?: string;
+    doctorPaymentId?: string | null;
   }> = [];
   cashLoading = false;
   cashSaving = false;
@@ -379,6 +380,7 @@ export class Admin implements OnInit, OnDestroy {
     }
     if (this.activeNav === 'financials') {
       this.ensureCashFiltersInitialized();
+      this.loadDoctorPayments();
       this.loadCashEntries();
     }
     this.connectCaseRealtime();
@@ -2043,6 +2045,7 @@ export class Admin implements OnInit, OnDestroy {
       this.loadFinancialReportFromApi();
     } else if (nav === 'financials') {
       this.ensureCashFiltersInitialized();
+      this.loadDoctorPayments();
       this.loadCashEntries();
     } else if (nav === 'archive') {
       this.loadArchiveList();
@@ -3100,14 +3103,84 @@ export class Admin implements OnInit, OnDestroy {
       });
   }
 
-  deleteCashEntry(id: string): void {
-    if (!id) return;
+  private resolveLinkedDoctorPaymentId(entry: {
+    _id?: string;
+    doctorPaymentId?: string | null;
+    category?: string;
+    amount?: number;
+    date?: string | Date;
+    notes?: string;
+  }): string {
+    const direct = String(entry?.doctorPaymentId || '').trim();
+    if (direct) return direct;
+    if (String(entry?.category || '').toLowerCase() !== 'doctor_payment') return '';
+
+    const amount = Number(entry?.amount) || 0;
+    const entryDay = this.formatCashDate(entry?.date);
+    const notes = String(entry?.notes || '').toLowerCase();
+    const match = this.doctorPayments.find((p: any) => {
+      const sameAmount = Number(p?.amount) === amount;
+      const sameDay = this.formatCashDate(p?.paymentDate || p?.createdAt) === entryDay;
+      const name = String(p?.doctorName || '').trim().toLowerCase();
+      const notesMatch = !name || notes.includes(name);
+      return sameAmount && sameDay && notesMatch;
+    });
+    return String(match?._id || match?.id || '').trim();
+  }
+
+  deleteCashEntry(entry: {
+    _id?: string;
+    doctorPaymentId?: string | null;
+    category?: string;
+    amount?: number;
+    date?: string | Date;
+    notes?: string;
+  }): void {
+    const cashId = String(entry?._id || '').trim();
+    const paymentId = this.resolveLinkedDoctorPaymentId(entry);
+    if (!cashId && !paymentId) return;
     if (!confirm('هل أنت متأكد من حذف هذه الحركة؟')) return;
-    this.caseApi.deleteCashEntry(id).subscribe({
-      next: () => {
-        this.loadCashEntries();
-        this.loadDoctorPayments();
-      },
+
+    this.cashError = '';
+    // Report doctor/lab payments are mirrored into cash. Delete the source
+    // payment first so the next cash sync cannot recreate the income row.
+    const finish = () => {
+      this.loadCashEntries();
+      this.loadDoctorPayments();
+    };
+
+    if (paymentId) {
+      this.caseApi.deleteDoctorPayment(paymentId).subscribe({
+        next: () => {
+          if (!cashId) {
+            finish();
+            return;
+          }
+          // Ensure the cash row is gone even if backend forgot the cascade.
+          this.caseApi.deleteCashEntry(cashId).subscribe({
+            next: () => finish(),
+            error: () => finish(),
+          });
+        },
+        error: (err) => {
+          if (!cashId) {
+            this.cashError = 'تعذر الحذف: ' + (err.error?.message || err.message || '');
+            return;
+          }
+          this.caseApi.deleteCashEntry(cashId).subscribe({
+            next: () => finish(),
+            error: (err2) => {
+              this.cashError =
+                'تعذر الحذف: ' + (err2.error?.message || err.error?.message || err2.message || '');
+            },
+          });
+        },
+      });
+      return;
+    }
+
+    this.caseApi.deleteCashEntry(cashId).subscribe({
+      next: () => finish(),
       error: (err) => {
         this.cashError = 'تعذر الحذف: ' + (err.error?.message || err.message || '');
       },
