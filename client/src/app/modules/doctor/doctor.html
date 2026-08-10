@@ -327,6 +327,23 @@
       <div class="modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
         <h2 class="modal-title">{{ dialogMode() === 'edit' ? 'تعديل الحالة' : 'إضافة حالة' }}</h2>
         <form class="case-form" (ngSubmit)="save()">
+          @if (isLabPortal()) {
+            <label class="form-field">
+              <span>اسم الدكتور <abbr title="مطلوب">*</abbr></span>
+              <input
+                type="text"
+                name="doctor"
+                [(ngModel)]="formDraft.doctor"
+                placeholder="اسم الدكتور"
+                required
+                autocomplete="off"
+              />
+              @if (doctorNameError) {
+                <span class="wt-error">{{ doctorNameError }}</span>
+              }
+            </label>
+          }
+
           <label class="form-field">
             <span>اسم المريض (ثنائي) <abbr title="مطلوب">*</abbr></span>
             <input
@@ -340,11 +357,6 @@
             @if (patientNameError) {
               <span class="wt-error">{{ patientNameError }}</span>
             }
-          </label>
-
-          <label class="form-field">
-            <span>الفرع <abbr title="مطلوب">*</abbr></span>
-            <input type="text" name="branch" [(ngModel)]="formDraft.branch" placeholder="اسم الفرع" required autocomplete="off" />
           </label>
 
           <label class="urgent-check">

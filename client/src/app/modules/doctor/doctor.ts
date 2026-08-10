@@ -26,6 +26,8 @@ function todayYmd(): string {
 function emptyDraft() {
   return {
     caseNumber: '',
+    /** Doctor name (lab portal only — doctors use the signed-in account name). */
+    doctor: '',
     patient: '',
     workType: '',
     workDetail: '',
@@ -100,6 +102,7 @@ export class DoctorComponent implements OnInit, OnDestroy {
   editingId: string | null = null;
   formDraft = emptyDraft();
   patientNameError = '';
+  doctorNameError = '';
 
   readonly defaultWorkTypeOptions = [
     'Zircon',
@@ -497,6 +500,7 @@ export class DoctorComponent implements OnInit, OnDestroy {
     this.workTypeQuantities = {};
     this.workTypeError = '';
     this.patientNameError = '';
+    this.doctorNameError = '';
     this.nightGuardType = '';
     this.removableDentureType = '';
     this.newCustomWorkType = '';
@@ -525,11 +529,12 @@ export class DoctorComponent implements OnInit, OnDestroy {
     const caseType = this.getCaseTypeFromWorkType(c.workType);
     this.formDraft = {
       caseNumber: c.caseNumber,
+      doctor: c.doctor || '',
       patient: c.patient,
       workType: c.workType,
       workDetail: c.workDetail || '',
       color: c.color || '',
-      branch: c.branch || c.clinic || '',
+      branch: '',
       quantity: c.quantity || 1,
       date: todayYmd(),
       caseType,
@@ -539,6 +544,7 @@ export class DoctorComponent implements OnInit, OnDestroy {
     this.workTypeQuantities = {};
     this.workTypeError = '';
     this.patientNameError = '';
+    this.doctorNameError = '';
     this.nightGuardType = '';
     this.removableDentureType = '';
     this.restoreWorkTypes(c.workType, caseType, c.quantity);
@@ -747,6 +753,14 @@ export class DoctorComponent implements OnInit, OnDestroy {
       this.flash(isLab ? 'تعذر قراءة اسم المعمل من الحساب' : 'تعذر قراءة اسم الدكتور من الحساب');
       return;
     }
+    this.doctorNameError = '';
+    if (isLab) {
+      if (!d.doctor?.trim()) {
+        this.doctorNameError = 'يرجى إدخال اسم الدكتور';
+        this.flash('يرجى إدخال اسم الدكتور');
+        return;
+      }
+    }
     if (!d.patient?.trim()) {
       this.flash('يرجى إدخال اسم المريض');
       return;
@@ -757,10 +771,6 @@ export class DoctorComponent implements OnInit, OnDestroy {
       return;
     }
     this.patientNameError = '';
-    if (!d.branch?.trim()) {
-      this.flash('يرجى إدخال الفرع');
-      return;
-    }
     if (d.caseType !== 'Empty' && this.selectedWorkTypes.size === 0) {
       this.workTypeError = 'يرجى اختيار نوع عمل واحد على الأقل';
       this.flash('يرجى اختيار نوع العمل');
@@ -778,9 +788,9 @@ export class DoctorComponent implements OnInit, OnDestroy {
     this.saveInProgress.set(true);
 
     const draft = {
-      doctor: accountName,
+      doctor: isLab ? d.doctor.trim() : accountName,
       patient: d.patient.trim(),
-      branch: d.branch.trim(),
+      branch: '',
       caseType: d.caseType,
       workType: d.workType.trim(),
       workDetail: (d.workDetail || '').trim(),
