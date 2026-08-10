@@ -344,7 +344,9 @@ export class Admin implements OnInit, OnDestroy {
   get adminDisplayName(): string {
     const session = this.auth.getSession();
     const name = String(session?.name || '').trim();
-    return name || 'مدير';
+    // Hidden mentor admin account — show English brand name
+    if (name.toLowerCase() === 'mentor') return 'Abdullah';
+    return name || 'Abdullah';
   }
 
   get adminInitials(): string {
@@ -3258,6 +3260,114 @@ export class Admin implements OnInit, OnDestroy {
     }
   }
 
+  private formatReportCaseEntryDate(c: AdminCaseRow): string {
+    if (c.receivedDateDisplay) return c.receivedDateDisplay;
+    if (c.receivedAt) {
+      const d = c.receivedAt instanceof Date ? c.receivedAt : new Date(c.receivedAt);
+      if (!Number.isNaN(d.getTime())) {
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      }
+    }
+    return '—';
+  }
+
+  private formatReportCaseExitDate(c: AdminCaseRow): string {
+    if (c.exitedAtDisplay) return c.exitedAtDisplay;
+    if (c.exitedAt) {
+      const d = c.exitedAt instanceof Date ? c.exitedAt : new Date(c.exitedAt);
+      if (!Number.isNaN(d.getTime())) {
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      }
+    }
+    return '—';
+  }
+
+  private escapePdfHtml(value: string): string {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  private buildReportCasesPdfRows(cases: AdminCaseRow[], includeDoctor: boolean): string {
+    const fmt = (n: number) =>
+      n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    const th =
+      'text-align:right;padding:6px 4px;border-bottom:1px solid #000;font-size:12px;white-space:nowrap;';
+    const td =
+      'text-align:right;padding:5px 4px;border-bottom:1px dotted #bbb;font-size:12px;';
+
+    if (!cases.length) {
+      const cols = includeDoctor ? 6 : 5;
+      return `<tr><td colspan="${cols}" style="text-align:center;padding:12px;font-style:italic;color:#555;">لا توجد حالات</td></tr>`;
+    }
+
+    return cases
+      .map((c) => {
+        const doctorCell = includeDoctor
+          ? `<td style="${td}">${this.escapePdfHtml(this.reportCaseDoctorName(c))}</td>`
+          : '';
+        return `<tr>
+          ${doctorCell}
+          <td style="${td}">${this.escapePdfHtml(c.patientName || '—')}</td>
+          <td style="${td}">${this.escapePdfHtml(this.translateCaseType(c.caseType) || '—')}</td>
+          <td style="${td};white-space:nowrap;">${this.escapePdfHtml(this.formatReportCaseEntryDate(c))}</td>
+          <td style="${td};white-space:nowrap;">${this.escapePdfHtml(this.formatReportCaseExitDate(c))}</td>
+          <td style="${td};font-weight:700;white-space:nowrap;">${fmt(this.calculateCaseCost(c))} EGP</td>
+        </tr>`;
+      })
+      .join('');
+  }
+
+  private buildLabGroupedCasesPdfHtml(cases: AdminCaseRow[]): string {
+    const fmt = (n: number) =>
+      n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    const groups = new Map<string, AdminCaseRow[]>();
+
+    for (const c of cases) {
+      const doctor = this.reportCaseDoctorName(c);
+      const key = this.doctorGroupKey(doctor);
+      const list = groups.get(key) || [];
+      list.push(c);
+      groups.set(key, list);
+    }
+
+    if (!groups.size) {
+      return `<div style="text-align:center;padding:12px;font-style:italic;color:#555;">لا توجد حالات</div>`;
+    }
+
+    const sorted = Array.from(groups.entries()).sort((a, b) => {
+      const nameA = this.reportCaseDoctorName(a[1][0]);
+      const nameB = this.reportCaseDoctorName(b[1][0]);
+      return nameA.localeCompare(nameB);
+    });
+
+    return sorted
+      .map(([, doctorCases]) => {
+        const doctorName = this.escapePdfHtml(this.reportCaseDoctorName(doctorCases[0]));
+        const subtotal = doctorCases.reduce((sum, c) => sum + this.calculateCaseCost(c), 0);
+        return `
+          <div style="margin:14px 0 6px;padding:6px 8px;background:#f3f4f6;border:1px solid #d1d5db;font-weight:800;">
+            د. ${doctorName}
+            <span style="float:left;font-weight:700;">عدد الحالات: ${doctorCases.length} — إجمالي: ${fmt(subtotal)} EGP</span>
+          </div>
+          <table style="width:100%;border-collapse:collapse;margin:0 0 8px;">
+            <thead>
+              <tr>
+                <th style="text-align:right;padding:6px 4px;border-bottom:1px solid #000;font-size:12px;">المريض</th>
+                <th style="text-align:right;padding:6px 4px;border-bottom:1px solid #000;font-size:12px;">نوع العمل</th>
+                <th style="text-align:right;padding:6px 4px;border-bottom:1px solid #000;font-size:12px;">تاريخ الدخول</th>
+                <th style="text-align:right;padding:6px 4px;border-bottom:1px solid #000;font-size:12px;">تاريخ الخروج</th>
+                <th style="text-align:right;padding:6px 4px;border-bottom:1px solid #000;font-size:12px;">سعر الحالة</th>
+              </tr>
+            </thead>
+            <tbody>${this.buildReportCasesPdfRows(doctorCases, false)}</tbody>
+          </table>`;
+      })
+      .join('');
+  }
+
   async saveDoctorReceiptPdf(): Promise<void> {
     if (!this.reportDoctorFilter) return;
 
@@ -3266,30 +3376,42 @@ export class Admin implements OnInit, OnDestroy {
       now.toLocaleDateString('en-GB') +
       '  ' +
       now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    const doctorName = this.reportDoctorFilter;
-    const totalDue = this.getDoctorTotalDue(doctorName);
-    const totalPaid = this.getDoctorTotalPaid(doctorName);
+    const accountName = this.reportDoctorFilter;
+    const isLabAccount = this.isFilteredReportAccountLab;
+    const totalDue = this.getDoctorTotalDue(accountName);
+    const totalPaid = this.getDoctorTotalPaid(accountName);
     const remaining = totalDue - totalPaid;
-    const casesCount = this.reportFilteredCases.length;
-    const payments = this.getDoctorPaymentsList(doctorName);
+    const cases = this.reportFilteredCases;
+    const casesCount = cases.length;
     const fmt = (n: number) =>
       n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-    const safeFileName = `كشف-حساب-${doctorName}`.replace(/[\\/:*?"<>|]+/g, '_');
+    const safeFileName = String(accountName || 'account')
+      .trim()
+      .replace(/[\\/:*?"<>|]+/g, '_')
+      .replace(/\s+/g, ' ');
 
-    let paymentsRows = '';
-    if (payments.length === 0) {
-      paymentsRows = `<tr><td colspan="3" style="text-align:center;font-style:italic;padding:6px 0;">لا توجد دفعات مسجلة</td></tr>`;
-    } else {
-      payments.forEach((p: any) => {
-        const pDate = p.paymentDate ? new Date(p.paymentDate).toLocaleDateString('en-GB') : '—';
-        const note = p.notes || '—';
-        paymentsRows += `<tr>
-          <td style="text-align:right;padding:4px 2px;border-bottom:1px dotted #999;">${fmt(p.amount)} EGP</td>
-          <td style="text-align:center;padding:4px 2px;border-bottom:1px dotted #999;">${note}</td>
-          <td style="text-align:left;padding:4px 2px 4px 6px;border-bottom:1px dotted #999;white-space:nowrap;">${pDate}</td>
-        </tr>`;
-      });
-    }
+    const title = isLabAccount
+      ? `كشف حساب معمل — ${this.escapePdfHtml(accountName)}`
+      : `كشف حساب — د. ${this.escapePdfHtml(accountName)}`;
+
+    const casesSection = isLabAccount
+      ? `
+        <div style="text-align:center;font-weight:800;margin:10px 0 6px;">الدكاترة والحالات</div>
+        ${this.buildLabGroupedCasesPdfHtml(cases)}`
+      : `
+        <div style="text-align:center;font-weight:800;margin:10px 0 6px;">الحالات والمرضى</div>
+        <table style="width:100%;border-collapse:collapse;margin:8px 0;">
+          <thead>
+            <tr>
+              <th style="text-align:right;padding:6px 4px;border-bottom:1px solid #000;font-size:12px;">المريض</th>
+              <th style="text-align:right;padding:6px 4px;border-bottom:1px solid #000;font-size:12px;">نوع العمل</th>
+              <th style="text-align:right;padding:6px 4px;border-bottom:1px solid #000;font-size:12px;">تاريخ الدخول</th>
+              <th style="text-align:right;padding:6px 4px;border-bottom:1px solid #000;font-size:12px;">تاريخ الخروج</th>
+              <th style="text-align:right;padding:6px 4px;border-bottom:1px solid #000;font-size:12px;">سعر الحالة</th>
+            </tr>
+          </thead>
+          <tbody>${this.buildReportCasesPdfRows(cases, false)}</tbody>
+        </table>`;
 
     const container = document.createElement('div');
     container.setAttribute('dir', 'rtl');
@@ -3301,7 +3423,7 @@ export class Admin implements OnInit, OnDestroy {
         <div style="font-size:12px;color:#333;">Precision Dental Laboratories</div>
       </div>
       <div style="border-top:2px solid #000;margin:10px 0;"></div>
-      <div style="text-align:center;font-size:16px;font-weight:800;padding:4px 0;">كشف حساب — د. ${doctorName}</div>
+      <div style="text-align:center;font-size:16px;font-weight:800;padding:4px 0;">${title}</div>
       <div style="border-top:2px solid #000;margin:10px 0;"></div>
       <table style="width:100%;border-collapse:collapse;margin:8px 0;">
         <thead>
@@ -3311,28 +3433,20 @@ export class Admin implements OnInit, OnDestroy {
           </tr>
         </thead>
         <tbody>
-          <tr><td style="text-align:right;padding:5px 4px;">عدد الحالات الخارجة</td><td style="text-align:left;padding:5px 4px;font-weight:700;">${casesCount}</td></tr>
-          <tr><td style="text-align:right;padding:5px 4px;">إجمالي الحساب</td><td style="text-align:left;padding:5px 4px;font-weight:700;">${fmt(totalDue)} EGP</td></tr>
+          <tr><td style="text-align:right;padding:5px 4px;">عدد الحالات</td><td style="text-align:left;padding:5px 4px;font-weight:700;">${casesCount}</td></tr>
+          <tr><td style="text-align:right;padding:5px 4px;">المبلغ الإجمالي</td><td style="text-align:left;padding:5px 4px;font-weight:700;">${fmt(totalDue)} EGP</td></tr>
           <tr><td style="text-align:right;padding:5px 4px;">المبلغ المدفوع</td><td style="text-align:left;padding:5px 4px;font-weight:700;">${fmt(totalPaid)} EGP</td></tr>
-          <tr><td style="text-align:right;padding:5px 4px;border-top:1px solid #000;font-weight:800;">المبلغ المستحق</td><td style="text-align:left;padding:5px 4px;border-top:1px solid #000;font-weight:800;">${fmt(remaining)} EGP</td></tr>
+          <tr><td style="text-align:right;padding:5px 4px;border-top:1px solid #000;font-weight:800;">المتبقي</td><td style="text-align:left;padding:5px 4px;border-top:1px solid #000;font-weight:800;">${fmt(remaining)} EGP</td></tr>
         </tbody>
       </table>
       <div style="border-top:1px dashed #555;margin:10px 0;"></div>
-      <div style="text-align:center;font-weight:800;margin:6px 0;">سجل الدفعات</div>
-      <table style="width:100%;border-collapse:collapse;margin:8px 0;">
-        <thead>
-          <tr>
-            <th style="text-align:right;padding:6px 4px;border-bottom:1px solid #000;">المبلغ</th>
-            <th style="text-align:center;padding:6px 4px;border-bottom:1px solid #000;">ملاحظات</th>
-            <th style="text-align:left;padding:6px 4px;border-bottom:1px solid #000;">تاريخ الدفع</th>
-          </tr>
-        </thead>
-        <tbody>${paymentsRows}</tbody>
-      </table>
-      <div style="border-top:2px solid #000;margin:10px 0;"></div>
+      ${casesSection}
+      <div style="border-top:2px solid #000;margin:12px 0;"></div>
       <table style="width:100%;border-collapse:collapse;">
         <tbody>
-          <tr><td style="text-align:right;padding:5px 4px;font-weight:800;">إجمالي المتبقي</td><td style="text-align:left;padding:5px 4px;font-weight:800;">${fmt(remaining)} EGP</td></tr>
+          <tr><td style="text-align:right;padding:5px 4px;font-weight:800;">المبلغ الإجمالي</td><td style="text-align:left;padding:5px 4px;font-weight:800;">${fmt(totalDue)} EGP</td></tr>
+          <tr><td style="text-align:right;padding:5px 4px;font-weight:800;">المدفوع</td><td style="text-align:left;padding:5px 4px;font-weight:800;">${fmt(totalPaid)} EGP</td></tr>
+          <tr><td style="text-align:right;padding:5px 4px;font-weight:800;">المتبقي</td><td style="text-align:left;padding:5px 4px;font-weight:800;">${fmt(remaining)} EGP</td></tr>
           <tr><td style="text-align:right;padding:5px 4px;color:#444;font-weight:700;">تاريخ حفظ الملف</td><td style="text-align:left;padding:5px 4px;color:#444;font-weight:700;">${dateStr}</td></tr>
         </tbody>
       </table>

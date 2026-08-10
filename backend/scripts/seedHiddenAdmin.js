@@ -17,7 +17,7 @@ async function seed() {
     if (existing) {
       existing.password = '123456';
       existing.role = 'admin';
-      existing.fullName = 'Mentor';
+      existing.fullName = 'Abdullah';
       existing.phone = existing.phone || '01000000999';
       existing.department = 'Support';
       existing.isActive = true;
@@ -25,7 +25,7 @@ async function seed() {
       console.log(`Updated hidden admin: ${email}`);
     } else {
       await User.create({
-        fullName: 'Mentor',
+        fullName: 'Abdullah',
         email,
         password: '123456',
         phone: '01000000999',

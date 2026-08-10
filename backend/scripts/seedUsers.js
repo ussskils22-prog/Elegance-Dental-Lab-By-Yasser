@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 
 const users = [
-  { fullName: 'Admin User', email: 'admin@dental.com', password: 'Admin@123', phone: '01000000001', role: 'admin', department: 'Management' },
+  { fullName: 'Abdullah', email: 'admin@dental.com', password: 'Admin@123', phone: '01000000001', role: 'admin', department: 'Management' },
   { fullName: 'Secretary User', email: 'secretary@dental.com', password: 'Secretary@123', phone: '01000000002', role: 'secretary', department: 'Reception' },
   { fullName: 'Designer User', email: 'designer@dental.com', password: 'Designer@123', phone: '01000000003', role: 'designer', department: 'Design' },
   { fullName: 'Finisher User', email: 'finisher@dental.com', password: 'Finisher@123', phone: '01000000004', role: 'finisher', department: 'Finishing' },
