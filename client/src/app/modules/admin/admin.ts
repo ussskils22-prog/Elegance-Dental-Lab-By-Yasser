@@ -3260,26 +3260,10 @@ export class Admin implements OnInit, OnDestroy {
     }
   }
 
-  private formatReportCaseEntryDate(c: AdminCaseRow): string {
-    if (c.receivedDateDisplay) return c.receivedDateDisplay;
-    if (c.receivedAt) {
-      const d = c.receivedAt instanceof Date ? c.receivedAt : new Date(c.receivedAt);
-      if (!Number.isNaN(d.getTime())) {
-        return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      }
-    }
-    return '—';
-  }
-
-  private formatReportCaseExitDate(c: AdminCaseRow): string {
-    if (c.exitedAtDisplay) return c.exitedAtDisplay;
-    if (c.exitedAt) {
-      const d = c.exitedAt instanceof Date ? c.exitedAt : new Date(c.exitedAt);
-      if (!Number.isNaN(d.getTime())) {
-        return d.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
-      }
-    }
-    return '—';
+  private formatPdfCaseDate(value: Date | string | undefined | null): string {
+    if (!value) return '—';
+    const formatted = this.formatDateEn(value);
+    return !formatted || formatted === 'غير متوفر' ? '—' : formatted;
   }
 
   private escapePdfHtml(value: string): string {
@@ -3290,80 +3274,45 @@ export class Admin implements OnInit, OnDestroy {
       .replace(/"/g, '&quot;');
   }
 
-  private buildReportCasesPdfRows(cases: AdminCaseRow[], includeDoctor: boolean): string {
+  private sortCasesForPdf(cases: AdminCaseRow[], includeDoctor: boolean): AdminCaseRow[] {
+    return [...cases].sort((a, b) => {
+      if (includeDoctor) {
+        const byDoctor = this.reportCaseDoctorName(a).localeCompare(this.reportCaseDoctorName(b));
+        if (byDoctor !== 0) return byDoctor;
+      }
+      const byPatient = String(a.patientName || '').localeCompare(String(b.patientName || ''));
+      if (byPatient !== 0) return byPatient;
+      return this.formatPdfCaseDate(a.receivedAt).localeCompare(this.formatPdfCaseDate(b.receivedAt));
+    });
+  }
+
+  private buildAccountCasesPdfTable(cases: AdminCaseRow[], includeDoctor: boolean): string {
     const fmt = (n: number) =>
       n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     const th =
-      'text-align:right;padding:6px 4px;border-bottom:1px solid #000;font-size:12px;white-space:nowrap;';
-    const td =
-      'text-align:right;padding:5px 4px;border-bottom:1px dotted #bbb;font-size:12px;';
+      'border:1px solid #222;background:#f3f4f6;padding:7px 6px;font-size:11px;font-weight:700;text-align:center;';
+    const td = 'border:1px solid #333;padding:7px 6px;font-size:11px;vertical-align:top;';
+    const sorted = this.sortCasesForPdf(cases, includeDoctor);
+    const colCount = includeDoctor ? 7 : 6;
 
-    if (!cases.length) {
-      const cols = includeDoctor ? 6 : 5;
-      return `<tr><td colspan="${cols}" style="text-align:center;padding:12px;font-style:italic;color:#555;">لا توجد حالات</td></tr>`;
+    if (!sorted.length) {
+      return `<tr><td colspan="${colCount}" style="${td};text-align:center;color:#666;">لا توجد حالات</td></tr>`;
     }
-
-    return cases
-      .map((c) => {
-        const doctorCell = includeDoctor
-          ? `<td style="${td}">${this.escapePdfHtml(this.reportCaseDoctorName(c))}</td>`
-          : '';
-        return `<tr>
-          ${doctorCell}
-          <td style="${td}">${this.escapePdfHtml(c.patientName || '—')}</td>
-          <td style="${td}">${this.escapePdfHtml(this.translateCaseType(c.caseType) || '—')}</td>
-          <td style="${td};white-space:nowrap;">${this.escapePdfHtml(this.formatReportCaseEntryDate(c))}</td>
-          <td style="${td};white-space:nowrap;">${this.escapePdfHtml(this.formatReportCaseExitDate(c))}</td>
-          <td style="${td};font-weight:700;white-space:nowrap;">${fmt(this.calculateCaseCost(c))} EGP</td>
-        </tr>`;
-      })
-      .join('');
-  }
-
-  private buildLabGroupedCasesPdfHtml(cases: AdminCaseRow[]): string {
-    const fmt = (n: number) =>
-      n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-    const groups = new Map<string, AdminCaseRow[]>();
-
-    for (const c of cases) {
-      const doctor = this.reportCaseDoctorName(c);
-      const key = this.doctorGroupKey(doctor);
-      const list = groups.get(key) || [];
-      list.push(c);
-      groups.set(key, list);
-    }
-
-    if (!groups.size) {
-      return `<div style="text-align:center;padding:12px;font-style:italic;color:#555;">لا توجد حالات</div>`;
-    }
-
-    const sorted = Array.from(groups.entries()).sort((a, b) => {
-      const nameA = this.reportCaseDoctorName(a[1][0]);
-      const nameB = this.reportCaseDoctorName(b[1][0]);
-      return nameA.localeCompare(nameB);
-    });
 
     return sorted
-      .map(([, doctorCases]) => {
-        const doctorName = this.escapePdfHtml(this.reportCaseDoctorName(doctorCases[0]));
-        const subtotal = doctorCases.reduce((sum, c) => sum + this.calculateCaseCost(c), 0);
-        return `
-          <div style="margin:14px 0 6px;padding:6px 8px;background:#f3f4f6;border:1px solid #d1d5db;font-weight:800;">
-            د. ${doctorName}
-            <span style="float:left;font-weight:700;">عدد الحالات: ${doctorCases.length} — إجمالي: ${fmt(subtotal)} EGP</span>
-          </div>
-          <table style="width:100%;border-collapse:collapse;margin:0 0 8px;">
-            <thead>
-              <tr>
-                <th style="text-align:right;padding:6px 4px;border-bottom:1px solid #000;font-size:12px;">المريض</th>
-                <th style="text-align:right;padding:6px 4px;border-bottom:1px solid #000;font-size:12px;">نوع العمل</th>
-                <th style="text-align:right;padding:6px 4px;border-bottom:1px solid #000;font-size:12px;">تاريخ الدخول</th>
-                <th style="text-align:right;padding:6px 4px;border-bottom:1px solid #000;font-size:12px;">تاريخ الخروج</th>
-                <th style="text-align:right;padding:6px 4px;border-bottom:1px solid #000;font-size:12px;">سعر الحالة</th>
-              </tr>
-            </thead>
-            <tbody>${this.buildReportCasesPdfRows(doctorCases, false)}</tbody>
-          </table>`;
+      .map((c, index) => {
+        const doctorCell = includeDoctor
+          ? `<td style="${td};text-align:center;white-space:nowrap;">${this.escapePdfHtml(this.reportCaseDoctorName(c))}</td>`
+          : '';
+        return `<tr>
+          <td style="${td};text-align:center;width:28px;">${index + 1}</td>
+          ${doctorCell}
+          <td style="${td};text-align:center;white-space:nowrap;">${this.escapePdfHtml(c.patientName || '—')}</td>
+          <td style="${td};text-align:right;">${this.escapePdfHtml(this.translateCaseType(c.caseType) || '—')}</td>
+          <td style="${td};text-align:center;white-space:nowrap;">${this.escapePdfHtml(this.formatPdfCaseDate(c.receivedAt))}</td>
+          <td style="${td};text-align:center;white-space:nowrap;">${this.escapePdfHtml(this.formatPdfCaseDate(c.exitedAt))}</td>
+          <td style="${td};text-align:center;font-weight:700;white-space:nowrap;">${fmt(this.calculateCaseCost(c))}</td>
+        </tr>`;
       })
       .join('');
   }
@@ -3371,11 +3320,6 @@ export class Admin implements OnInit, OnDestroy {
   async saveDoctorReceiptPdf(): Promise<void> {
     if (!this.reportDoctorFilter) return;
 
-    const now = new Date();
-    const dateStr =
-      now.toLocaleDateString('en-GB') +
-      '  ' +
-      now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     const accountName = this.reportDoctorFilter;
     const isLabAccount = this.isFilteredReportAccountLab;
     const totalDue = this.getDoctorTotalDue(accountName);
@@ -3389,69 +3333,69 @@ export class Admin implements OnInit, OnDestroy {
       .trim()
       .replace(/[\\/:*?"<>|]+/g, '_')
       .replace(/\s+/g, ' ');
-
-    const title = isLabAccount
-      ? `كشف حساب معمل — ${this.escapePdfHtml(accountName)}`
-      : `كشف حساب — د. ${this.escapePdfHtml(accountName)}`;
-
-    const casesSection = isLabAccount
-      ? `
-        <div style="text-align:center;font-weight:800;margin:10px 0 6px;">الدكاترة والحالات</div>
-        ${this.buildLabGroupedCasesPdfHtml(cases)}`
-      : `
-        <div style="text-align:center;font-weight:800;margin:10px 0 6px;">الحالات والمرضى</div>
-        <table style="width:100%;border-collapse:collapse;margin:8px 0;">
-          <thead>
-            <tr>
-              <th style="text-align:right;padding:6px 4px;border-bottom:1px solid #000;font-size:12px;">المريض</th>
-              <th style="text-align:right;padding:6px 4px;border-bottom:1px solid #000;font-size:12px;">نوع العمل</th>
-              <th style="text-align:right;padding:6px 4px;border-bottom:1px solid #000;font-size:12px;">تاريخ الدخول</th>
-              <th style="text-align:right;padding:6px 4px;border-bottom:1px solid #000;font-size:12px;">تاريخ الخروج</th>
-              <th style="text-align:right;padding:6px 4px;border-bottom:1px solid #000;font-size:12px;">سعر الحالة</th>
-            </tr>
-          </thead>
-          <tbody>${this.buildReportCasesPdfRows(cases, false)}</tbody>
-        </table>`;
+    const dateStr = this.formatDateEn(new Date());
+    const accountLabel = isLabAccount
+      ? `معمل: ${this.escapePdfHtml(accountName)}`
+      : `دكتور: ${this.escapePdfHtml(accountName)}`;
+    const doctorHeader = isLabAccount
+      ? `<th style="border:1px solid #222;background:#f3f4f6;padding:7px 6px;font-size:11px;font-weight:700;text-align:center;">الدكتور</th>`
+      : '';
 
     const container = document.createElement('div');
     container.setAttribute('dir', 'rtl');
     container.style.cssText =
-      'position:fixed;left:-10000px;top:0;width:794px;background:#fff;color:#000;padding:28px 32px;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;font-size:14px;z-index:-1;';
+      'position:fixed;left:-10000px;top:0;width:794px;background:#fff;color:#111;padding:24px 28px;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;font-size:13px;line-height:1.45;z-index:-1;';
     container.innerHTML = `
-      <div style="margin-bottom:8px;text-align:center;">
-        <div style="font-size:22px;font-weight:800;letter-spacing:1px;">Elite Lab</div>
-        <div style="font-size:12px;color:#333;">Precision Dental Laboratories</div>
-      </div>
-      <div style="border-top:2px solid #000;margin:10px 0;"></div>
-      <div style="text-align:center;font-size:16px;font-weight:800;padding:4px 0;">${title}</div>
-      <div style="border-top:2px solid #000;margin:10px 0;"></div>
-      <table style="width:100%;border-collapse:collapse;margin:8px 0;">
+      <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
+        <tr>
+          <td style="padding:0 0 10px;border-bottom:2px solid #111;vertical-align:bottom;">
+            <div style="font-size:20px;font-weight:800;">Elite Lab</div>
+            <div style="font-size:12px;color:#555;">كشف حساب</div>
+          </td>
+          <td style="padding:0 0 10px;border-bottom:2px solid #111;text-align:left;vertical-align:bottom;">
+            <div style="font-weight:800;font-size:14px;">${accountLabel}</div>
+            <div style="color:#555;font-size:12px;margin-top:2px;">التاريخ: ${dateStr}</div>
+          </td>
+        </tr>
+      </table>
+
+      <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
         <thead>
           <tr>
-            <th style="text-align:right;padding:6px 4px;border-bottom:1px solid #000;">البيان</th>
-            <th style="text-align:left;padding:6px 4px;border-bottom:1px solid #000;">القيمة</th>
+            <th style="border:1px solid #222;background:#f3f4f6;padding:7px 6px;font-size:11px;font-weight:700;text-align:center;width:36px;">#</th>
+            ${doctorHeader}
+            <th style="border:1px solid #222;background:#f3f4f6;padding:7px 6px;font-size:11px;font-weight:700;text-align:center;width:110px;">المريض</th>
+            <th style="border:1px solid #222;background:#f3f4f6;padding:7px 6px;font-size:11px;font-weight:700;text-align:center;">نوع العمل</th>
+            <th style="border:1px solid #222;background:#f3f4f6;padding:7px 6px;font-size:11px;font-weight:700;text-align:center;width:90px;">تاريخ الدخول</th>
+            <th style="border:1px solid #222;background:#f3f4f6;padding:7px 6px;font-size:11px;font-weight:700;text-align:center;width:90px;">تاريخ الخروج</th>
+            <th style="border:1px solid #222;background:#f3f4f6;padding:7px 6px;font-size:11px;font-weight:700;text-align:center;width:80px;">السعر</th>
           </tr>
         </thead>
-        <tbody>
-          <tr><td style="text-align:right;padding:5px 4px;">عدد الحالات</td><td style="text-align:left;padding:5px 4px;font-weight:700;">${casesCount}</td></tr>
-          <tr><td style="text-align:right;padding:5px 4px;">المبلغ الإجمالي</td><td style="text-align:left;padding:5px 4px;font-weight:700;">${fmt(totalDue)} EGP</td></tr>
-          <tr><td style="text-align:right;padding:5px 4px;">المبلغ المدفوع</td><td style="text-align:left;padding:5px 4px;font-weight:700;">${fmt(totalPaid)} EGP</td></tr>
-          <tr><td style="text-align:right;padding:5px 4px;border-top:1px solid #000;font-weight:800;">المتبقي</td><td style="text-align:left;padding:5px 4px;border-top:1px solid #000;font-weight:800;">${fmt(remaining)} EGP</td></tr>
-        </tbody>
+        <tbody>${this.buildAccountCasesPdfTable(cases, isLabAccount)}</tbody>
       </table>
-      <div style="border-top:1px dashed #555;margin:10px 0;"></div>
-      ${casesSection}
-      <div style="border-top:2px solid #000;margin:12px 0;"></div>
-      <table style="width:100%;border-collapse:collapse;">
-        <tbody>
-          <tr><td style="text-align:right;padding:5px 4px;font-weight:800;">المبلغ الإجمالي</td><td style="text-align:left;padding:5px 4px;font-weight:800;">${fmt(totalDue)} EGP</td></tr>
-          <tr><td style="text-align:right;padding:5px 4px;font-weight:800;">المدفوع</td><td style="text-align:left;padding:5px 4px;font-weight:800;">${fmt(totalPaid)} EGP</td></tr>
-          <tr><td style="text-align:right;padding:5px 4px;font-weight:800;">المتبقي</td><td style="text-align:left;padding:5px 4px;font-weight:800;">${fmt(remaining)} EGP</td></tr>
-          <tr><td style="text-align:right;padding:5px 4px;color:#444;font-weight:700;">تاريخ حفظ الملف</td><td style="text-align:left;padding:5px 4px;color:#444;font-weight:700;">${dateStr}</td></tr>
-        </tbody>
+
+      <table style="width:100%;border-collapse:collapse;margin-top:14px;">
+        <tr>
+          <td style="border:1px solid #222;padding:8px 10px;width:25%;">
+            <div style="font-size:11px;color:#555;">عدد الحالات</div>
+            <div style="font-size:15px;font-weight:800;">${casesCount}</div>
+          </td>
+          <td style="border:1px solid #222;padding:8px 10px;width:25%;">
+            <div style="font-size:11px;color:#555;">الإجمالي</div>
+            <div style="font-size:15px;font-weight:800;">${fmt(totalDue)} EGP</div>
+          </td>
+          <td style="border:1px solid #222;padding:8px 10px;width:25%;">
+            <div style="font-size:11px;color:#555;">المدفوع</div>
+            <div style="font-size:15px;font-weight:800;">${fmt(totalPaid)} EGP</div>
+          </td>
+          <td style="border:1px solid #222;padding:8px 10px;width:25%;">
+            <div style="font-size:11px;color:#555;">المتبقي</div>
+            <div style="font-size:15px;font-weight:800;">${fmt(remaining)} EGP</div>
+          </td>
+        </tr>
       </table>
-      <div style="border-top:1px dashed #555;margin:10px 0;"></div>
-      <div style="text-align:center;font-size:12px;margin-top:8px;">شكراً لتعاملكم معنا — Elite Dental Lab</div>
+
+      <div style="text-align:center;font-size:11px;color:#555;margin-top:14px;">شكراً لتعاملكم معنا — Elite Dental Lab</div>
     `;
 
     document.body.appendChild(container);
