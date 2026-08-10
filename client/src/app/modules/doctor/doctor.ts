@@ -670,81 +670,14 @@ export class DoctorComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** Doctors/labs cannot manage the shared work-type list — secretary only. */
   addCustomWorkType(): void {
-    const name = (this.newCustomWorkType || '').trim();
-    if (!name) {
-      this.customWorkTypeError = 'اكتب اسم نوع العمل';
-      return;
-    }
-    if (this.workTypeOptions.some((x) => x.toLowerCase() === name.toLowerCase())) {
-      this.customWorkTypeError = 'النوع موجود بالفعل';
-      return;
-    }
-    this.customWorkTypeSaving = true;
-    this.customWorkTypeError = '';
-    this.caseApi.addCustomWorkType(name).subscribe({
-      next: (res) => {
-        this.customWorkTypeSaving = false;
-        this.newCustomWorkType = '';
-        if (res?.restoredDefault) {
-          this.hiddenDefaultWorkTypes = this.hiddenDefaultWorkTypes.filter(
-            (n) => n.toLowerCase() !== name.toLowerCase()
-          );
-        } else {
-          const item = res?.data;
-          if (item?._id && item?.name) {
-            if (!this.customWorkTypes.some((c) => c._id === item._id)) {
-              this.customWorkTypes = [
-                ...this.customWorkTypes,
-                { _id: String(item._id), name: String(item.name) },
-              ];
-            }
-          } else {
-            this.loadCustomWorkTypes();
-          }
-        }
-        this.selectedWorkTypes.add(name);
-        this.workTypeQuantities[name] = this.workTypeQuantities[name] || 1;
-        this.updateWorkTypeString();
-      },
-      error: (err) => {
-        this.customWorkTypeSaving = false;
-        this.customWorkTypeError = err?.error?.message || 'تعذر إضافة نوع العمل';
-      },
-    });
+    this.workTypesEditMode = false;
   }
 
-  removeWorkTypeOption(name: string, ev?: Event): void {
+  removeWorkTypeOption(_name: string, ev?: Event): void {
     ev?.stopPropagation();
-    if (!confirm(`حذف نوع العمل "${name}" من القائمة؟`)) return;
-
-    const custom = this.customWorkTypes.find((c) => c.name.toLowerCase() === name.toLowerCase());
-    if (custom) {
-      this.caseApi.deleteCustomWorkType(custom._id).subscribe({
-        next: () => {
-          this.customWorkTypes = this.customWorkTypes.filter((c) => c._id !== custom._id);
-          this.clearSelectedWorkType(name);
-        },
-        error: (err) => {
-          this.customWorkTypeError = err?.error?.message || 'تعذر حذف نوع العمل';
-        },
-      });
-      return;
-    }
-
-    if (this.isDefaultWorkType(name)) {
-      this.caseApi.hideDefaultWorkType(name).subscribe({
-        next: () => {
-          if (!this.hiddenDefaultWorkTypes.some((n) => n.toLowerCase() === name.toLowerCase())) {
-            this.hiddenDefaultWorkTypes = [...this.hiddenDefaultWorkTypes, name];
-          }
-          this.clearSelectedWorkType(name);
-        },
-        error: (err) => {
-          this.customWorkTypeError = err?.error?.message || 'تعذر حذف نوع العمل';
-        },
-      });
-    }
+    this.workTypesEditMode = false;
   }
 
   private clearSelectedWorkType(name: string): void {

@@ -382,45 +382,9 @@
                       </span>
                       {{ wt }}
                     </button>
-                    @if (workTypesEditMode) {
-                      <button
-                        type="button"
-                        class="wt-chip-remove"
-                        title="حذف النوع"
-                        aria-label="حذف النوع"
-                        (click)="removeWorkTypeOption(wt, $event)"
-                      >×</button>
-                    }
                   </div>
                 }
               </div>
-              <div class="custom-wt-manage">
-                <button
-                  type="button"
-                  class="custom-wt-edit-toggle"
-                  (click)="workTypesEditMode = !workTypesEditMode"
-                >
-                  {{ workTypesEditMode ? 'إنهاء التعديل' : 'تعديل الأنواع' }}
-                </button>
-                @if (workTypesEditMode) {
-                  <div class="custom-wt-add">
-                    <input
-                      type="text"
-                      [(ngModel)]="newCustomWorkType"
-                      [ngModelOptions]="{standalone: true}"
-                      placeholder="اسم نوع عمل جديد..."
-                      (keydown.enter)="$event.preventDefault(); addCustomWorkType()"
-                    />
-                    <button type="button" class="custom-wt-add-btn" [disabled]="customWorkTypeSaving" (click)="addCustomWorkType()">
-                      {{ customWorkTypeSaving ? '...' : 'إضافة' }}
-                    </button>
-                  </div>
-                  <p class="custom-wt-hint">اضغط × على أي نوع لحذفه من القائمة.</p>
-                }
-              </div>
-              @if (customWorkTypeError) {
-                <span class="wt-error">{{ customWorkTypeError }}</span>
-              }
               @if (workTypeError) {
                 <span class="wt-error">{{ workTypeError }}</span>
               }
