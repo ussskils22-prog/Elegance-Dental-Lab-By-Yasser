@@ -1,5 +1,5 @@
 {
-  "SERVER_URL": "https://elegance-dental-lab-by-yasser-production.up.railway.app",
+  "SERVER_URL": "https://elegance-dental-lab-by-yasser-production-0d4f.up.railway.app",
   "PRINT_AGENT_SECRET": "elegance-print-secret-2024",
   "PRINTER_NAME": "POSPrinter POS80",
   "POLL_INTERVAL_MS": 20000,
