@@ -12,7 +12,8 @@ import {
   toStoredCaseImagePath,
 } from '../../core/mappers/dental-case-api.mapper';
 
-import { Subscription } from 'rxjs';
+import { Subscription, forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { SocketService } from '../../core/services/socket.service';
 import { CaseDraft, SecretaryService } from './secretary.service';
 import { PatientLabelPipe } from './patient-label.pipe';
@@ -109,6 +110,9 @@ export class Secretary implements OnInit, OnDestroy {
   >('all');
   readonly casesLoading = signal(false);
   readonly saveInProgress = signal(false);
+  /** Multi-select for bulk exit only (edit/delete stay per-case). */
+  readonly selectedExitIds = signal<Set<string>>(new Set());
+  readonly bulkExiting = signal(false);
 
   /** Same stage buckets as the doctor portal filters/dashboard */
   private caseBucket(
@@ -888,6 +892,17 @@ export class Secretary implements OnInit, OnDestroy {
         const mapped = Array.isArray(rows) ? rows.map(r => mapApiCaseToDentalCase(r)) : [];
         this.sharedCases.setCasesFromServer(mapped);
         this.casesLoading.set(false);
+        // Drop selections that no longer exist / already exited
+        const alive = new Set(
+          mapped.filter((c) => c.status !== 'exited').map((c) => c.id)
+        );
+        this.selectedExitIds.update((prev) => {
+          const next = new Set<string>();
+          for (const id of prev) {
+            if (alive.has(id)) next.add(id);
+          }
+          return next;
+        });
       },
       error: () => {
         this.casesLoading.set(false);
@@ -900,6 +915,92 @@ export class Secretary implements OnInit, OnDestroy {
     filter: 'all' | 'urgent' | 'pending' | 'design' | 'finishing' | 'finished' | 'exited'
   ): void {
     this.activeFilter.set(filter);
+    this.clearExitSelection();
+  }
+
+  /** Non-exited cases in the current filtered list (eligible for bulk exit). */
+  selectableCasesForExit(): any[] {
+    return this.cases().filter((c) => c.status !== 'exited');
+  }
+
+  selectedExitCount(): number {
+    return this.selectedExitIds().size;
+  }
+
+  isCaseSelectedForExit(id: string): boolean {
+    return this.selectedExitIds().has(id);
+  }
+
+  isAllSelectableSelected(): boolean {
+    const selectable = this.selectableCasesForExit();
+    if (!selectable.length) return false;
+    const selected = this.selectedExitIds();
+    return selectable.every((c) => selected.has(c.id));
+  }
+
+  clearExitSelection(): void {
+    this.selectedExitIds.set(new Set());
+  }
+
+  toggleCaseExitSelection(c: any, event?: Event): void {
+    event?.stopPropagation();
+    if (!c?.id || c.status === 'exited') return;
+    this.selectedExitIds.update((prev) => {
+      const next = new Set(prev);
+      if (next.has(c.id)) next.delete(c.id);
+      else next.add(c.id);
+      return next;
+    });
+  }
+
+  toggleSelectAllForExit(event?: Event): void {
+    event?.stopPropagation();
+    const selectable = this.selectableCasesForExit();
+    if (!selectable.length) return;
+    if (this.isAllSelectableSelected()) {
+      this.clearExitSelection();
+      return;
+    }
+    this.selectedExitIds.set(new Set(selectable.map((c) => c.id)));
+  }
+
+  exitSelectedCases(): void {
+    const selected = this.selectedExitIds();
+    const targets = this.selectableCasesForExit().filter((c) => selected.has(c.id));
+    if (!targets.length) {
+      this.flash('اختر حالة واحدة على الأقل للإخراج');
+      return;
+    }
+    const ok = confirm(`هل تريد إخراج ${targets.length} حالة نهائيًا؟`);
+    if (!ok) return;
+
+    this.bulkExiting.set(true);
+    forkJoin(
+      targets.map((c) =>
+        this.caseApi.exitCase(c.id).pipe(
+          catchError(() => of({ __failed: true, caseNumber: c.caseNumber }))
+        )
+      )
+    ).subscribe({
+      next: (results) => {
+        this.bulkExiting.set(false);
+        const failed = results.filter((r: any) => r && r.__failed === true);
+        const okCount = targets.length - failed.length;
+        this.clearExitSelection();
+        this.reloadCasesFromBackend();
+        if (failed.length === 0) {
+          this.flash(`تم إخراج ${okCount} حالة بنجاح`);
+        } else if (okCount === 0) {
+          this.flash('تعذر إخراج الحالات المحددة');
+        } else {
+          this.flash(`تم إخراج ${okCount} حالة — فشل ${failed.length}`);
+        }
+      },
+      error: () => {
+        this.bulkExiting.set(false);
+        this.flash('تعذر إخراج الحالات المحددة');
+      },
+    });
   }
 
   goToOverdueCase(caseId: string): void {
@@ -1362,6 +1463,11 @@ export class Secretary implements OnInit, OnDestroy {
 
     this.caseApi.exitCase(c.id).subscribe({
       next: () => {
+        this.selectedExitIds.update((prev) => {
+          const next = new Set(prev);
+          next.delete(c.id);
+          return next;
+        });
         this.flash('تم إخراج الحالة بنجاح');
         this.reloadCasesFromBackend();
       },
@@ -1369,14 +1475,6 @@ export class Secretary implements OnInit, OnDestroy {
         this.flash(this.formatCaseApiError(err));
       },
     });
-  }
-
-  onExitCheckbox(c: any, event: Event): void {
-    const input = event.target as HTMLInputElement | null;
-    if (!input) return;
-    if (!input.checked) return;
-    input.checked = false;
-    this.confirmExit(c);
   }
 
   toggleMenu(id: string, ev: Event): void {
