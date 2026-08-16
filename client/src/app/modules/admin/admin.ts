@@ -214,11 +214,15 @@ export class Admin implements OnInit, OnDestroy {
     peek: 1700,
     pmma: 250,
     nightGuard: 300,
+    nightGuardSoft: 300,
+    nightGuardHard: 300,
     mockup: 250,
     wax: 0,
     ring: 0,
     tryIn: 0,
     removableDenture: 0,
+    removableDentureFlex: 0,
+    removableDentureAcrylic: 0,
   };
 
   private readonly legacyPriceKeyByName: Record<string, string> = {
@@ -231,6 +235,8 @@ export class Admin implements OnInit, OnDestroy {
     pmma: 'pmma',
     'night guard': 'nightGuard',
     nightguard: 'nightGuard',
+    'night guard soft': 'nightGuardSoft',
+    'night guard hard': 'nightGuardHard',
     mokup: 'mockup',
     mockup: 'mockup',
     wax: 'wax',
@@ -238,6 +244,16 @@ export class Admin implements OnInit, OnDestroy {
     'try in': 'tryIn',
     tryin: 'tryIn',
     'removable denture': 'removableDenture',
+    'removable denture flex': 'removableDentureFlex',
+    'removable denture acrylic': 'removableDentureAcrylic',
+  };
+
+  /** Parent price key used when a subtype price was never saved yet */
+  private readonly subtypeParentPriceKey: Record<string, string> = {
+    nightGuardSoft: 'nightGuard',
+    nightGuardHard: 'nightGuard',
+    removableDentureFlex: 'removableDenture',
+    removableDentureAcrylic: 'removableDenture',
   };
 
   currentPrintDate = new Date();
@@ -646,10 +662,25 @@ export class Admin implements OnInit, OnDestroy {
   }
 
   private rebuildReportPriceFields(): void {
-    this.reportPriceFields = this.reportWorkTypeOptions.map((label) => ({
-      label,
-      key: this.workTypeToPriceKey(label),
-    }));
+    const fields: Array<{ label: string; key: string }> = [];
+    for (const label of this.reportWorkTypeOptions) {
+      const lower = String(label || '').toLowerCase().trim();
+      if (lower === 'night guard' || lower === 'nightguard') {
+        fields.push({ label: 'Night Guard Soft', key: 'nightGuardSoft' });
+        fields.push({ label: 'Night Guard Hard', key: 'nightGuardHard' });
+        continue;
+      }
+      if (lower === 'removable denture') {
+        fields.push({ label: 'Removable Denture Flex', key: 'removableDentureFlex' });
+        fields.push({ label: 'Removable Denture Acrylic', key: 'removableDentureAcrylic' });
+        continue;
+      }
+      fields.push({
+        label,
+        key: this.workTypeToPriceKey(label),
+      });
+    }
+    this.reportPriceFields = fields;
   }
 
   loadReportWorkTypes(): void {
@@ -1571,7 +1602,54 @@ export class Admin implements OnInit, OnDestroy {
     if (raw !== undefined && raw !== null && Number.isFinite(Number(raw))) {
       return Number(raw);
     }
+    const parentKey = this.subtypeParentPriceKey[priceKey];
+    if (parentKey) {
+      const parentRaw = custom?.[parentKey];
+      if (parentRaw !== undefined && parentRaw !== null && Number.isFinite(Number(parentRaw))) {
+        return Number(parentRaw);
+      }
+      return this.defaultPriceByKey[priceKey] ?? this.defaultPriceByKey[parentKey] ?? 0;
+    }
     return this.defaultPriceByKey[priceKey] ?? 0;
+  }
+
+  /** Resolve storage price key from a caseType part (supports Night Guard Soft/Hard & Removable Denture Flex/Acrylic). */
+  private priceKeyFromCaseTypePart(lowerPart: string): string {
+    if (lowerPart.includes('night guard') || lowerPart.includes('nightguard')) {
+      if (lowerPart.includes('soft')) return 'nightGuardSoft';
+      if (lowerPart.includes('hard')) return 'nightGuardHard';
+      return 'nightGuard';
+    }
+    if (lowerPart.includes('removable denture')) {
+      if (lowerPart.includes('flex')) return 'removableDentureFlex';
+      if (lowerPart.includes('acrylic')) return 'removableDentureAcrylic';
+      return 'removableDenture';
+    }
+
+    const typeMatchers = [...this.reportWorkTypeOptions]
+      .sort((a, b) => b.length - a.length)
+      .map((label) => ({
+        needle: label.toLowerCase(),
+        priceKey: this.workTypeToPriceKey(label),
+      }));
+
+    for (const m of typeMatchers) {
+      if (m.needle && lowerPart.includes(m.needle)) {
+        return m.priceKey;
+      }
+    }
+
+    if (lowerPart.includes('emax')) return 'emax';
+    if (lowerPart.includes('german zircon') || lowerPart.includes('german')) return 'germanZircon';
+    if (lowerPart.includes('zircon')) return 'zircon';
+    if (lowerPart.includes('titanium')) return 'titanium';
+    if (lowerPart.includes('peek')) return 'peek';
+    if (lowerPart.includes('pmma')) return 'pmma';
+    if (lowerPart.includes('mokup') || lowerPart.includes('mockup') || lowerPart.includes('موكب')) return 'mockup';
+    if (lowerPart.includes('wax')) return 'wax';
+    if (lowerPart.includes('ring')) return 'ring';
+    if (lowerPart.includes('try in') || lowerPart.includes('tryin')) return 'tryIn';
+    return '';
   }
 
   calculateCaseCost(c: AdminCaseRow): number {
@@ -1587,14 +1665,6 @@ export class Admin implements OnInit, OnDestroy {
     const key = this.doctorGroupKey(account);
     const custom = this.doctorPricingsMap.get(key) || {};
 
-    // Longer names first so "German Zircon" wins over "Zircon"
-    const typeMatchers = [...this.reportWorkTypeOptions]
-      .sort((a, b) => b.length - a.length)
-      .map((label) => ({
-        needle: label.toLowerCase(),
-        priceKey: this.workTypeToPriceKey(label),
-      }));
-
     let total = 0;
     const parts = (c.caseType || '').split('+').map(p => p.trim());
     const meta = this.parseNotesMeta(c.rawNotes || '');
@@ -1604,31 +1674,7 @@ export class Admin implements OnInit, OnDestroy {
       const lowerPart = part.toLowerCase();
       const match = part.match(/\((\d+)\)/);
       const qty = match ? parseInt(match[1], 10) : caseOverallQuantity;
-
-      let matchedKey = '';
-      for (const m of typeMatchers) {
-        if (m.needle && lowerPart.includes(m.needle)) {
-          matchedKey = m.priceKey;
-          break;
-        }
-      }
-
-      // Fallback for deleted/hidden types still present on old cases
-      if (!matchedKey) {
-        if (lowerPart.includes('emax')) matchedKey = 'emax';
-        else if (lowerPart.includes('german zircon') || lowerPart.includes('german')) matchedKey = 'germanZircon';
-        else if (lowerPart.includes('zircon')) matchedKey = 'zircon';
-        else if (lowerPart.includes('titanium')) matchedKey = 'titanium';
-        else if (lowerPart.includes('peek')) matchedKey = 'peek';
-        else if (lowerPart.includes('pmma')) matchedKey = 'pmma';
-        else if (lowerPart.includes('night guard') || lowerPart.includes('nightguard')) matchedKey = 'nightGuard';
-        else if (lowerPart.includes('mokup') || lowerPart.includes('mockup') || lowerPart.includes('موكب')) matchedKey = 'mockup';
-        else if (lowerPart.includes('removable denture')) matchedKey = 'removableDenture';
-        else if (lowerPart.includes('wax')) matchedKey = 'wax';
-        else if (lowerPart.includes('ring')) matchedKey = 'ring';
-        else if (lowerPart.includes('try in') || lowerPart.includes('tryin')) matchedKey = 'tryIn';
-      }
-
+      const matchedKey = this.priceKeyFromCaseTypePart(lowerPart);
       if (matchedKey) {
         total += qty * this.priceForKey(custom, matchedKey);
       }
