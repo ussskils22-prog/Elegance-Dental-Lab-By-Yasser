@@ -44,4 +44,9 @@ export class UserApiService {
   deleteUser(id: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`);
   }
+
+  /** Admin or secretary: reset a doctor account password. */
+  resetDoctorPassword(id: string, password: string): Observable<any> {
+    return this.http.patch(`${this.apiUrl}/${id}/reset-doctor-password`, { password });
+  }
 }

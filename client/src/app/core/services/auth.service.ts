@@ -214,6 +214,21 @@ export class AuthService {
       );
   }
 
+  /** POST /auth/register-doctor — admin or secretary. */
+  registerDoctor(payload: Omit<RegisterStaffPayload, 'role' | 'department'>): Observable<void> {
+    return this.http
+      .post<{ success?: boolean; message?: string }>(`${this.apiUrl}/register-doctor`, payload)
+      .pipe(
+        tap((res) => {
+          if (res && res.success === false) {
+            throw new Error(res.message || 'Registration failed');
+          }
+        }),
+        map(() => void 0),
+        catchError((err) => throwError(() => err))
+      );
+  }
+
   /** POST /auth/change-password — authenticated user changes own password. */
   changePassword(currentPassword: string, newPassword: string): Observable<void> {
     return this.http

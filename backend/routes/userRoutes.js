@@ -41,6 +41,14 @@ router.get('/role/:role', userController.getUsersByRole);
 // Get user by ID
 router.get('/:id', userController.getUserById);
 
+// Reset doctor password (admin or secretary)
+router.patch(
+  '/:id/reset-doctor-password',
+  authorize('admin', 'secretary'),
+  body('password').isLength({ min: 6 }),
+  userController.resetDoctorPassword
+);
+
 // Update user (admin — staff management / role / password / active)
 router.put('/:id', authorize('admin'), updateUserValidation, userController.updateUser);
 

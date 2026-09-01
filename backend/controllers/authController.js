@@ -56,6 +56,31 @@ exports.login = async (req, res) => {
   }
 };
 
+async function createStaffUser({ fullName, email, phone, password, role, department }) {
+  let user = await User.findOne({ email: email.toLowerCase() });
+  if (user) {
+    const err = new Error('User already exists');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  user = new User({
+    fullName,
+    email: email.toLowerCase(),
+    phone,
+    password,
+    role: role || 'secretary',
+    department,
+    isActive: true,
+  });
+  if (role === 'doctor') {
+    user.loginPasswordVisible = password;
+  }
+
+  await user.save();
+  return user;
+}
+
 // Register (Admin only)
 exports.register = async (req, res) => {
   try {
@@ -65,28 +90,14 @@ exports.register = async (req, res) => {
     }
 
     const { fullName, email, phone, password, role, department } = req.body;
-
-    // Check if user exists
-    let user = await User.findOne({ email: email.toLowerCase() });
-    if (user) {
-      return res.status(400).json({ message: 'User already exists' });
-    }
-
-    // Create user
-    user = new User({
+    const user = await createStaffUser({
       fullName,
-      email: email.toLowerCase(),
+      email,
       phone,
       password,
       role: role || 'secretary',
       department,
-      isActive: true,
     });
-    if (role === 'doctor') {
-      user.loginPasswordVisible = password;
-    }
-
-    await user.save();
 
     res.status(201).json({
       success: true,
@@ -99,9 +110,49 @@ exports.register = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({
+    const status = error.statusCode || 500;
+    res.status(status).json({
       success: false,
-      message: 'Registration failed',
+      message: status === 400 ? error.message : 'Registration failed',
+      error: error.message,
+    });
+  }
+};
+
+// Register doctor account (Admin or Secretary)
+exports.registerDoctor = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { fullName, email, phone, password } = req.body;
+    const user = await createStaffUser({
+      fullName,
+      email,
+      phone,
+      password,
+      role: 'doctor',
+      department: 'دكتور',
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'تم إنشاء حساب الدكتور',
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    const status = error.statusCode || 500;
+    res.status(status).json({
+      success: false,
+      message: status === 400 ? 'البريد مستخدم بالفعل' : 'فشل إنشاء الحساب',
       error: error.message,
     });
   }

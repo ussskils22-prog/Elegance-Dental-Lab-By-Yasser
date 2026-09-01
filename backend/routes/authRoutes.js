@@ -30,6 +30,13 @@ const registerValidation = [
   body('department').optional().trim(),
 ];
 
+const registerDoctorValidation = [
+  body('fullName').trim().notEmpty(),
+  body('email').isEmail().normalizeEmail(),
+  body('phone').optional({ nullable: true }).trim(),
+  body('password').isLength({ min: 6 }),
+];
+
 // Public routes
 router.post('/login', loginValidation, authController.login);
 router.post(
@@ -47,6 +54,13 @@ router.post(
   authorize('admin'),
   registerValidation,
   authController.register
+);
+router.post(
+  '/register-doctor',
+  authenticate,
+  authorize('admin', 'secretary'),
+  registerDoctorValidation,
+  authController.registerDoctor
 );
 router.post('/logout', authenticate, authController.logout);
 router.get('/me', authenticate, authController.getCurrentUser);

@@ -23,7 +23,7 @@ import { PatientLabelPipe } from './patient-label.pipe';
 import { ThemeService } from '../../core/services/theme.service';
 import { LanguageService } from '../../core/i18n/language.service';
 import { TPipe } from '../../core/i18n/t.pipe';
-import { AppOverflowMenuComponent } from '../../shared/app-overflow-menu/app-overflow-menu';
+import { AppOverflowMenuComponent, type AppMenuItem } from '../../shared/app-overflow-menu/app-overflow-menu';
 import { CaseBarcodeComponent } from '../../shared/case-barcode/case-barcode';
 import { LabConfigService } from '../../core/services/lab-config.service';
 import { ToothChartComponent } from '../../shared/tooth-chart/tooth-chart';
@@ -118,6 +118,56 @@ export class Secretary implements OnInit, OnDestroy {
   private readonly labConfig = inject(LabConfigService);
   brandTitle = 'Elegance';
   private readonly apiBase = environment.apiUrl;
+
+  readonly secretaryMenuItems: AppMenuItem[] = [
+    {
+      id: 'create-doctor',
+      labelKey: 'menu.createDoctor',
+      action: () => this.openCreateDoctorModal(),
+    },
+    {
+      id: 'doctor-list',
+      labelKey: 'menu.doctorList',
+      action: () => this.openDoctorListModal(),
+    },
+    {
+      id: 'reset-doctor-password',
+      labelKey: 'menu.resetDoctorPassword',
+      action: () => this.openResetDoctorPasswordModal(),
+    },
+    {
+      id: 'change-my-password',
+      labelKey: 'menu.changeMyPassword',
+      action: () => this.openChangeMyPasswordModal(),
+    },
+  ];
+
+  readonly createDoctorOpen = signal(false);
+  readonly doctorListOpen = signal(false);
+  readonly resetDoctorPasswordOpen = signal(false);
+  readonly changeMyPasswordOpen = signal(false);
+
+  newDoctor = { name: '', email: '', phone: '', password: '' };
+  createDoctorError = '';
+  createDoctorSaving = false;
+  showNewDoctorPassword = false;
+
+  doctorRows: { id: string; fullName: string; email: string; phone: string }[] = [];
+  doctorListLoading = false;
+  doctorListError = '';
+
+  resetDoctorId = '';
+  resetDoctorPassword = '';
+  resetDoctorError = '';
+  resetDoctorSaving = false;
+  showResetDoctorPassword = false;
+
+  myPasswordCurrent = '';
+  myPasswordNew = '';
+  myPasswordConfirm = '';
+  changeMyPasswordError = '';
+  changeMyPasswordSaving = false;
+  showMyPasswordFields = false;
   private readonly socketSubs: Subscription[] = [];
   readonly activeFilter = signal<
     'all' | 'urgent' | 'pending' | 'design' | 'finishing' | 'finished' | 'exited'
@@ -706,6 +756,176 @@ export class Secretary implements OnInit, OnDestroy {
 
   logout(): void {
     this.auth.performLogout(this.router);
+  }
+
+  openCreateDoctorModal(): void {
+    this.newDoctor = { name: '', email: '', phone: '', password: '' };
+    this.createDoctorError = '';
+    this.showNewDoctorPassword = false;
+    this.createDoctorOpen.set(true);
+  }
+
+  closeCreateDoctorModal(): void {
+    if (this.createDoctorSaving) return;
+    this.createDoctorOpen.set(false);
+  }
+
+  saveNewDoctor(): void {
+    this.createDoctorError = '';
+    const name = this.newDoctor.name.trim();
+    const email = this.newDoctor.email.trim();
+    const phone = this.newDoctor.phone.trim();
+    const password = this.newDoctor.password;
+    if (!name || !email || !password) {
+      this.createDoctorError = this.lang.t('secretary.doctors.err.required');
+      return;
+    }
+    if (password.length < 6) {
+      this.createDoctorError = this.lang.t('secretary.doctors.err.passwordMin');
+      return;
+    }
+    this.createDoctorSaving = true;
+    this.auth
+      .registerDoctor({ fullName: name, email, phone, password })
+      .subscribe({
+        next: () => {
+          this.createDoctorSaving = false;
+          this.createDoctorOpen.set(false);
+          this.flash(this.lang.t('secretary.doctors.created'));
+          this.loadAccountDoctors();
+          this.loadDoctorRows();
+        },
+        error: (err) => {
+          this.createDoctorSaving = false;
+          this.createDoctorError =
+            err?.error?.message || err?.error?.errors?.[0]?.msg || this.lang.t('secretary.toast.saveGeneric');
+        },
+      });
+  }
+
+  openDoctorListModal(): void {
+    this.doctorListOpen.set(true);
+    this.loadDoctorRows();
+  }
+
+  closeDoctorListModal(): void {
+    this.doctorListOpen.set(false);
+  }
+
+  private loadDoctorRows(): void {
+    this.doctorListLoading = true;
+    this.doctorListError = '';
+    this.userApi.getUsersByRole('doctor').subscribe({
+      next: (res) => {
+        const rows = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
+        this.doctorRows = rows
+          .map((u: { _id?: string; id?: string; fullName?: string; email?: string; phone?: string }) => ({
+            id: String(u._id || u.id || ''),
+            fullName: String(u.fullName || '').trim(),
+            email: String(u.email || '').trim(),
+            phone: String(u.phone || '').trim(),
+          }))
+          .filter((u: { id: string; fullName: string }) => u.id && u.fullName);
+        this.doctorListLoading = false;
+      },
+      error: () => {
+        this.doctorListLoading = false;
+        this.doctorListError = this.lang.t('secretary.toast.loadFail');
+        this.doctorRows = [];
+      },
+    });
+  }
+
+  async copyDoctorLoginLink(): Promise<void> {
+    const link = typeof location !== 'undefined' ? `${location.origin}/login` : '/login';
+    try {
+      await navigator.clipboard.writeText(link);
+      this.flash(this.lang.t('secretary.doctors.linkCopied'));
+    } catch {
+      this.flash(link);
+    }
+  }
+
+  openResetDoctorPasswordModal(): void {
+    this.resetDoctorId = '';
+    this.resetDoctorPassword = '';
+    this.resetDoctorError = '';
+    this.showResetDoctorPassword = false;
+    this.resetDoctorPasswordOpen.set(true);
+    if (!this.doctorRows.length) {
+      this.loadDoctorRows();
+    }
+  }
+
+  closeResetDoctorPasswordModal(): void {
+    if (this.resetDoctorSaving) return;
+    this.resetDoctorPasswordOpen.set(false);
+  }
+
+  saveResetDoctorPassword(): void {
+    this.resetDoctorError = '';
+    if (!this.resetDoctorId) {
+      this.resetDoctorError = this.lang.t('secretary.doctors.selectDoctor');
+      return;
+    }
+    if (!this.resetDoctorPassword || this.resetDoctorPassword.length < 6) {
+      this.resetDoctorError = this.lang.t('secretary.doctors.err.passwordMin');
+      return;
+    }
+    this.resetDoctorSaving = true;
+    this.userApi.resetDoctorPassword(this.resetDoctorId, this.resetDoctorPassword).subscribe({
+      next: () => {
+        this.resetDoctorSaving = false;
+        this.resetDoctorPasswordOpen.set(false);
+        this.flash(this.lang.t('secretary.doctors.resetDone'));
+      },
+      error: (err) => {
+        this.resetDoctorSaving = false;
+        this.resetDoctorError = err?.error?.message || this.lang.t('secretary.toast.saveGeneric');
+      },
+    });
+  }
+
+  openChangeMyPasswordModal(): void {
+    this.myPasswordCurrent = '';
+    this.myPasswordNew = '';
+    this.myPasswordConfirm = '';
+    this.changeMyPasswordError = '';
+    this.showMyPasswordFields = false;
+    this.changeMyPasswordOpen.set(true);
+  }
+
+  closeChangeMyPasswordModal(): void {
+    if (this.changeMyPasswordSaving) return;
+    this.changeMyPasswordOpen.set(false);
+  }
+
+  saveChangeMyPassword(): void {
+    this.changeMyPasswordError = '';
+    if (!this.myPasswordCurrent || !this.myPasswordNew) {
+      this.changeMyPasswordError = this.lang.t('secretary.doctors.err.required');
+      return;
+    }
+    if (this.myPasswordNew.length < 6) {
+      this.changeMyPasswordError = this.lang.t('secretary.doctors.err.passwordMin');
+      return;
+    }
+    if (this.myPasswordNew !== this.myPasswordConfirm) {
+      this.changeMyPasswordError = this.lang.t('secretary.doctors.err.mismatch');
+      return;
+    }
+    this.changeMyPasswordSaving = true;
+    this.auth.changePassword(this.myPasswordCurrent, this.myPasswordNew).subscribe({
+      next: () => {
+        this.changeMyPasswordSaving = false;
+        this.changeMyPasswordOpen.set(false);
+        this.flash(this.lang.t('secretary.doctors.passwordChanged'));
+      },
+      error: (err) => {
+        this.changeMyPasswordSaving = false;
+        this.changeMyPasswordError = err?.error?.message || this.lang.t('secretary.err.password');
+      },
+    });
   }
 
   private reloadDebounceTimer: ReturnType<typeof setTimeout> | null = null;

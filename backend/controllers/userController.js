@@ -190,6 +190,46 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
+// Reset doctor password (admin or secretary — doctors only)
+exports.resetDoctorPassword = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { password } = req.body;
+    const user = await User.findById(req.params.id).select('+password +loginPasswordVisible');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    if (user.role !== 'doctor') {
+      return res.status(403).json({ message: 'يمكن إعادة تعيين كلمة مرور الدكاترة فقط' });
+    }
+
+    user.password = String(password);
+    user.loginPasswordVisible = String(password);
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'تم تحديث كلمة مرور الدكتور',
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to reset password',
+      error: error.message,
+    });
+  }
+};
+
 // Get users by role
 exports.getUsersByRole = async (req, res) => {
   try {
