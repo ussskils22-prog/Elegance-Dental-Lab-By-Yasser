@@ -153,6 +153,16 @@ export class Secretary implements OnInit, OnDestroy {
   showNewDoctorPassword = false;
 
   doctorRows: { id: string; fullName: string; email: string; phone: string }[] = [];
+  readonly doctorListSearchQuery = signal('');
+  readonly filteredDoctorRows = computed(() => {
+    const q = this.normalizeSearchText(this.doctorListSearchQuery());
+    if (!q) return this.doctorRows;
+    const tokens = q.split(' ').filter(Boolean);
+    return this.doctorRows.filter((doc) => {
+      const name = this.normalizeSearchText(doc.fullName);
+      return tokens.every((token) => name.includes(token));
+    });
+  });
   doctorListLoading = false;
   doctorListError = '';
 
@@ -804,12 +814,22 @@ export class Secretary implements OnInit, OnDestroy {
   }
 
   openDoctorListModal(): void {
+    this.doctorListSearchQuery.set('');
     this.doctorListOpen.set(true);
     this.loadDoctorRows();
   }
 
   closeDoctorListModal(): void {
     this.doctorListOpen.set(false);
+    this.doctorListSearchQuery.set('');
+  }
+
+  get doctorListSearchQueryValue(): string {
+    return this.doctorListSearchQuery();
+  }
+
+  set doctorListSearchQueryValue(value: string) {
+    this.doctorListSearchQuery.set(value);
   }
 
   private loadDoctorRows(): void {
@@ -837,13 +857,24 @@ export class Secretary implements OnInit, OnDestroy {
   }
 
   async copyDoctorLoginLink(): Promise<void> {
-    const link = typeof location !== 'undefined' ? `${location.origin}/login` : '/login';
+    const link = this.doctorLoginUrl();
     try {
       await navigator.clipboard.writeText(link);
       this.flash(this.lang.t('secretary.doctors.linkCopied'));
     } catch {
       this.flash(link);
     }
+  }
+
+  private doctorLoginUrl(): string {
+    const configured = environment.publicAppUrl?.trim().replace(/\/$/, '');
+    if (configured) return `${configured}/login`;
+    if (typeof location === 'undefined') return '/login';
+    const host = location.hostname;
+    if (host.endsWith('.vercel.app') && host !== 'dental-system-seven.vercel.app') {
+      return 'https://dental-system-seven.vercel.app/login';
+    }
+    return `${location.origin}/login`;
   }
 
   openResetDoctorPasswordModal(): void {
