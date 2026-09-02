@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import type { Html5Qrcode } from 'html5-qrcode';
 import { AppRole } from '../../core/auth/auth.types';
 import { AuthService } from '../../core/services/auth.service';
 import { CaseApiService } from '../../core/services/case-api.service';
@@ -67,6 +68,7 @@ export class StationScanComponent implements OnInit, OnDestroy {
   @ViewChild('scanInput') scanInput?: ElementRef<HTMLInputElement>;
 
   readonly station = signal<ScanStation>('design');
+  readonly canPickStation = signal(false);
   private readonly titleKey = signal<TranslationKey>('scan.title.default');
   private readonly subtitleKey = signal<TranslationKey | ''>('');
   readonly accountName = signal('');
@@ -79,6 +81,9 @@ export class StationScanComponent implements OnInit, OnDestroy {
   readonly queueCases = signal<DentalCase[]>([]);
   readonly queueLoading = signal(false);
   readonly queueSearch = signal('');
+  readonly cameraOpen = signal(false);
+  readonly cameraError = signal('');
+  readonly cameraStarting = signal(false);
 
   readonly title = computed(() => this.lang.t(this.titleKey()));
   readonly subtitle = computed(() => {
@@ -103,6 +108,9 @@ export class StationScanComponent implements OnInit, OnDestroy {
   private clearFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
   private submitTimer: ReturnType<typeof setTimeout> | null = null;
   private lastKeyAt = 0;
+  private html5Qr: Html5Qrcode | null = null;
+  private lastCameraCode = '';
+  private lastCameraAt = 0;
 
   ngOnInit(): void {
     const session = this.auth.getSession();
@@ -114,6 +122,7 @@ export class StationScanComponent implements OnInit, OnDestroy {
     if (!meta) {
       if (role === 'admin' || role === 'designer' || role === 'finisher') {
         this.unauthorized.set(false);
+        this.canPickStation.set(true);
         this.titleKey.set('scan.title.demo');
         this.subtitleKey.set('scan.subtitle.demo');
         this.station.set(role === 'finisher' ? 'finishing' : 'design');
@@ -122,6 +131,7 @@ export class StationScanComponent implements OnInit, OnDestroy {
       }
     } else {
       this.unauthorized.set(false);
+      this.canPickStation.set(false);
       this.station.set(meta.station);
       this.titleKey.set(meta.titleKey);
       this.subtitleKey.set(meta.subtitleKey);
@@ -139,12 +149,18 @@ export class StationScanComponent implements OnInit, OnDestroy {
     if (this.focusTimer) clearInterval(this.focusTimer);
     if (this.clearFeedbackTimer) clearTimeout(this.clearFeedbackTimer);
     if (this.submitTimer) clearTimeout(this.submitTimer);
+    void this.stopCamera();
+  }
+
+  setStation(next: ScanStation): void {
+    if (!this.canPickStation() || this.station() === next) return;
+    this.station.set(next);
+    this.reloadQueue();
   }
 
   focusScanner(): void {
-    if (this.busy() || this.unauthorized()) return;
+    if (this.busy() || this.unauthorized() || this.cameraOpen()) return;
     if (Date.now() - this.lastKeyAt < 200) return;
-    // Don't steal focus while the user is typing in search or using other controls
     if (this.shouldPauseScanFocus()) return;
     const el = this.scanInput?.nativeElement;
     if (!el) return;
@@ -153,7 +169,6 @@ export class StationScanComponent implements OnInit, OnDestroy {
     }
   }
 
-  /** True when autofocus would interrupt search / menus / other inputs. */
   private shouldPauseScanFocus(): boolean {
     const active = document.activeElement as HTMLElement | null;
     if (!active || active === this.scanInput?.nativeElement) return false;
@@ -163,7 +178,7 @@ export class StationScanComponent implements OnInit, OnDestroy {
     if (active.isContentEditable) return true;
     if (
       active.closest(
-        '.scan-search, .scan-search-input, .app-menu-panel, .app-menu-anchor, .scan-queue-refresh, .scan-link, button, a, [role="menu"], [role="search"]'
+        '.scan-search, .scan-search-input, .app-menu-panel, .app-menu-anchor, .scan-queue-refresh, .scan-link, .scan-camera-panel, .scan-station-picker, button, a, [role="menu"], [role="search"]'
       )
     ) {
       return true;
@@ -199,6 +214,96 @@ export class StationScanComponent implements OnInit, OnDestroy {
     }, 80);
   }
 
+  async toggleCamera(): Promise<void> {
+    if (this.cameraOpen()) {
+      await this.stopCamera();
+      return;
+    }
+    await this.startCamera();
+  }
+
+  private async startCamera(): Promise<void> {
+    if (this.unauthorized() || this.cameraStarting()) return;
+    this.cameraError.set('');
+    this.cameraStarting.set(true);
+    this.cameraOpen.set(true);
+
+    await new Promise((r) => setTimeout(r, 80));
+
+    try {
+      const readerId = 'scan-camera-reader';
+      if (!document.getElementById(readerId)) {
+        throw new Error(this.lang.t('scan.camera.mountFail'));
+      }
+      const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import('html5-qrcode');
+      this.html5Qr = new Html5Qrcode(readerId, {
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+        ],
+        verbose: false,
+      });
+
+      await this.html5Qr.start(
+        { facingMode: 'environment' },
+        {
+          fps: 8,
+          qrbox: (viewW, viewH) => {
+            const w = Math.min(Math.floor(viewW * 0.88), 340);
+            const h = Math.min(Math.floor(viewH * 0.28), 140);
+            return { width: Math.max(180, w), height: Math.max(80, h) };
+          },
+          aspectRatio: 1.777,
+        },
+        (decodedText) => this.onCameraDecoded(decodedText),
+        () => {
+          /* ignore frame errors */
+        }
+      );
+      this.cameraStarting.set(false);
+    } catch (err: unknown) {
+      this.cameraStarting.set(false);
+      this.cameraOpen.set(false);
+      this.html5Qr = null;
+      const msg =
+        err && typeof err === 'object' && 'message' in err
+          ? String((err as { message?: string }).message || '')
+          : '';
+      this.cameraError.set(msg || this.lang.t('scan.camera.fail'));
+    }
+  }
+
+  private async stopCamera(): Promise<void> {
+    const scanner = this.html5Qr;
+    this.html5Qr = null;
+    this.cameraOpen.set(false);
+    this.cameraStarting.set(false);
+    if (!scanner) return;
+    try {
+      if (scanner.isScanning) {
+        await scanner.stop();
+      }
+      scanner.clear();
+    } catch {
+      /* ignore stop errors */
+    }
+  }
+
+  private onCameraDecoded(raw: string): void {
+    const code = String(raw || '')
+      .replace(/[\r\n\t]+/g, '')
+      .trim();
+    if (!code || this.busy()) return;
+    const now = Date.now();
+    if (code === this.lastCameraCode && now - this.lastCameraAt < 2800) return;
+    this.lastCameraCode = code;
+    this.lastCameraAt = now;
+    this.submitCode(code);
+  }
+
   queueTitle(): string {
     const s = this.station();
     if (s === 'design') return this.lang.t('scan.queue.design');
@@ -212,14 +317,12 @@ export class StationScanComponent implements OnInit, OnDestroy {
     return '';
   }
 
-  /** Notes for queue cards (work detail + free-text instructions / design notes). */
   cardNotes(c: DentalCase): string {
     const parts: string[] = [];
     const detail = String(c.workDetail || '').trim();
     const design = String(c.designNotes || '').trim();
     const instr = String(c.instructions || '').trim();
     if (detail) parts.push(detail);
-    // Skip auto-generated instruction blocks (always contain "نوع العمل:")
     if (instr && !instr.includes('نوع العمل:') && instr !== detail) {
       parts.push(instr);
     }
@@ -257,7 +360,6 @@ export class StationScanComponent implements OnInit, OnDestroy {
     const raw = c.createdAt || c.receivedDateRaw || c.receivedDate || '';
     const t = Date.parse(String(raw));
     if (!Number.isNaN(t)) return t;
-    // Fallback: parse CASE-YYYY-NNNNN
     const m = String(c.caseNumber || '').match(/(\d{4})-(\d+)/);
     if (m) return Number(m[1]) * 1_000_000 + Number(m[2]);
     return 0;
@@ -309,7 +411,6 @@ export class StationScanComponent implements OnInit, OnDestroy {
         };
         this.pushFeedback(fb);
         this.playTone(true);
-        // Show card immediately from scan payload, then refresh list from API
         try {
           if (c && (c._id || c.id || c.caseNumber)) {
             const mapped = mapApiCaseToDentalCase(c as Record<string, unknown>);
@@ -374,6 +475,7 @@ export class StationScanComponent implements OnInit, OnDestroy {
   }
 
   logout(): void {
+    void this.stopCamera();
     this.auth.performLogout(this.router);
   }
 }

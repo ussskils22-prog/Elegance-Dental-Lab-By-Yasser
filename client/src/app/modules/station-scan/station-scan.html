@@ -51,6 +51,46 @@
       <h1>{{ title() }}</h1>
       <p class="scan-sub">{{ subtitle() }}</p>
       <p class="scan-hint">{{ 'scan.hint' | t }}</p>
+      <p class="scan-hint scan-hint--phone">{{ 'scan.hintPhone' | t }}</p>
+
+      @if (canPickStation()) {
+        <div class="scan-station-picker" role="group" [attr.aria-label]="'scan.pickStation' | t" (click)="$event.stopPropagation()">
+          <span class="scan-station-label">{{ 'scan.pickStation' | t }}</span>
+          <div class="scan-station-btns">
+            <button type="button" class="scan-station-btn" [class.active]="station() === 'design'" (click)="setStation('design')">
+              {{ 'scan.station.design' | t }}
+            </button>
+            <button type="button" class="scan-station-btn" [class.active]="station() === 'finishing'" (click)="setStation('finishing')">
+              {{ 'scan.station.finishing' | t }}
+            </button>
+            <button type="button" class="scan-station-btn" [class.active]="station() === 'reception'" (click)="setStation('reception')">
+              {{ 'scan.station.done' | t }}
+            </button>
+          </div>
+        </div>
+      }
+
+      <div class="scan-actions" (click)="$event.stopPropagation()">
+        <button
+          type="button"
+          class="scan-camera-btn"
+          [class.active]="cameraOpen()"
+          [disabled]="busy() || cameraStarting()"
+          (click)="toggleCamera()"
+        >
+          {{ cameraOpen() ? ('scan.camera.stop' | t) : ('scan.camera.start' | t) }}
+        </button>
+      </div>
+
+      @if (cameraOpen()) {
+        <div class="scan-camera-panel" (click)="$event.stopPropagation()">
+          <div id="scan-camera-reader" class="scan-camera-reader"></div>
+          <p class="scan-camera-tip">{{ 'scan.camera.tip' | t }}</p>
+        </div>
+      }
+      @if (cameraError()) {
+        <p class="scan-camera-error" role="alert">{{ cameraError() }}</p>
+      }
 
       <form class="scan-form" (submit)="onScanSubmit($event)">
         <input

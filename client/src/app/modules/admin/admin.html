@@ -51,6 +51,7 @@
         <app-overflow-menu></app-overflow-menu>
       </div>
       <div class="topbar-right">
+        <a routerLink="/scan" class="action-btn topbar-scan-btn">{{ 'hub.scan' | t }}</a>
         <a routerLink="/secretary/dashboard" class="action-btn topbar-secretary-btn">{{ 'admin.openSecretary' | t }}</a>
         <button type="button" (click)="themeService.toggleTheme()" [attr.title]="'common.theme' | t" style="border:none;background:transparent;cursor:pointer;color:var(--color-text-secondary);display:flex;align-items:center;justify-content:center;">
           <svg *ngIf="!themeService.isDarkMode()" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

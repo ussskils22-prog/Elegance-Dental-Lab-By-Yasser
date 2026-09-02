@@ -183,6 +183,142 @@ body.dark-theme .hub-link:hover,
   font-size: 14px;
 }
 
+.scan-hint--phone {
+  margin-top: -18px;
+  margin-bottom: 18px;
+  color: #0f766e;
+  font-weight: 600;
+}
+
+.scan-station-picker {
+  width: min(720px, 100%);
+  margin: 0 auto 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--border-primary, #e2e8f0);
+  background: color-mix(in srgb, var(--bg-card, #fff) 88%, #0f766e);
+  text-align: start;
+}
+
+.scan-station-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-secondary, #64748b);
+}
+
+.scan-station-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.scan-station-btn {
+  flex: 1;
+  min-width: 96px;
+  border: 1px solid var(--border-primary, #cbd5e1);
+  background: var(--bg-card, #fff);
+  color: var(--text-primary, #0f172a);
+  border-radius: 999px;
+  padding: 10px 12px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.scan-station-btn.active {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #fff;
+}
+
+.scan-actions {
+  width: min(720px, 100%);
+  margin: 0 auto 12px;
+  display: flex;
+  gap: 10px;
+}
+
+.scan-camera-btn {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: linear-gradient(135deg, #0f766e, #2563eb);
+  color: #fff;
+}
+
+.scan-camera-btn.active {
+  background: #b91c1c;
+}
+
+.scan-camera-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.scan-camera-panel {
+  width: min(720px, 100%);
+  margin: 0 auto 14px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--border-primary, #e2e8f0);
+  background: #0f172a;
+}
+
+.scan-camera-reader {
+  width: 100%;
+  min-height: 240px;
+}
+
+.scan-camera-reader video {
+  width: 100% !important;
+  border-radius: 0 !important;
+}
+
+.scan-camera-tip {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 0.82rem;
+  color: #cbd5e1;
+  text-align: center;
+}
+
+.scan-camera-error {
+  width: min(720px, 100%);
+  margin: 0 auto 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: start;
+}
+
+body.dark-theme .scan-station-picker,
+.dark-theme .scan-station-picker {
+  background: color-mix(in srgb, var(--bg-secondary, #1e293b) 90%, #0f766e);
+  border-color: #334155;
+}
+
+body.dark-theme .scan-station-btn,
+.dark-theme .scan-station-btn {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f8fafc;
+}
+
+body.dark-theme .scan-hint--phone,
+.dark-theme .scan-hint--phone {
+  color: #5eead4;
+}
+
 .scan-form {
   width: min(720px, 100%);
   margin-inline: auto;
