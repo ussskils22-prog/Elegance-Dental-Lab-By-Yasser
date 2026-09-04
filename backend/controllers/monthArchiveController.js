@@ -64,7 +64,7 @@ function inMonth(date, year, month) {
 }
 
 function classifyCaseTypeUnits(caseType, quantity) {
-  const type = String(caseType || '').toLowerCase();
+  let type = String(caseType || '').toLowerCase();
   const qty = Math.max(1, Number(quantity) || 1);
   const units = {
     zircon: 0,
@@ -76,6 +76,17 @@ function classifyCaseTypeUnits(caseType, quantity) {
     nightGuard: 0,
     other: 0,
   };
+  // Prova / try-in phase — do not count as final material units
+  if (/try\s*in\s+before|tray\s*in\s+before/.test(type)) {
+    units.other += qty;
+    return units;
+  }
+  // Final after try-in — count the material (emax / zircon / …)
+  type = type
+    .replace(/\s+after\s+try\s*in/gi, '')
+    .replace(/\s+after\s+tray\s*in/gi, '')
+    .replace(/\s+after\s+tary\s*in/gi, '')
+    .trim();
   if (type.includes('german') && type.includes('zircon')) units.germanZircon += qty;
   else if (type.includes('zircon') || type.includes('زيركون')) units.zircon += qty;
   else if (type.includes('emax') || type.includes('ايماكس') || type.includes('إيماكس')) units.emax += qty;

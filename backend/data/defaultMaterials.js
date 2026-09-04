@@ -96,7 +96,7 @@ module.exports = [
     key: 'tryIn',
     label: 'Try in',
     labelAr: 'تراي إن',
-    matchKeywords: ['try in', 'tryin'],
+    matchKeywords: ['try in before', 'try in', 'tryin', 'tray in before'],
     defaultPrice: 0,
     sortOrder: 110,
     color: '#06b6d4',

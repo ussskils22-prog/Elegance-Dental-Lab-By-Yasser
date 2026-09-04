@@ -28,6 +28,16 @@ import { CaseBarcodeComponent } from '../../shared/case-barcode/case-barcode';
 import { LabConfigService } from '../../core/services/lab-config.service';
 import { ToothChartComponent } from '../../shared/tooth-chart/tooth-chart';
 import { ToothAssignment, countByMaterial } from '../../shared/tooth-chart/tooth-chart.types';
+import {
+  applyWorkPhaseToName,
+  buildAfterTryInLabel,
+  formatWorkPartWithQty,
+  isTryInBeforeWorkType,
+  parseMaterialAndPhaseFromPart,
+  parseTryInBeforeMaterial,
+  supportsTryInPhase,
+  type WorkPhase,
+} from '../../core/utils/tryin-phase.util';
 
 function emptyDraft(): CaseDraft {
   const today = new Date();
@@ -573,7 +583,11 @@ export class Secretary implements OnInit, OnDestroy {
   workTypeQuantities: Record<string, number> = {};
   workTypeError = '';
   nightGuardType: 'Soft' | 'Hard' | '' = '';
+  /** فاينل أو بروفة — يظهر بعد اختيار مادة زي Emax/Zircon */
+  workPhase: WorkPhase | '' = '';
   patientWarning = '';
+  /** منع ضغط زر التحويل مرتين */
+  spawningFinalId: string | null = null;
 
   readonly passwordDialogOpen = signal(false);
   passwordInput = '';
@@ -670,6 +684,9 @@ export class Secretary implements OnInit, OnDestroy {
       if (this.activeToothMaterial === type) {
         this.activeToothMaterial = this.chartMaterials[0] || '';
       }
+      if (!this.phaseMaterial) {
+        this.workPhase = '';
+      }
     } else {
       if (type === 'Empty') {
         this.selectedWorkTypes.clear();
@@ -679,6 +696,7 @@ export class Secretary implements OnInit, OnDestroy {
         this.nightGuardType = '';
         this.toothAssignments = [];
         this.activeToothMaterial = '';
+        this.workPhase = '';
       } else {
         this.selectedWorkTypes.delete('Empty');
         delete this.workTypeQuantities['Empty'];
@@ -688,8 +706,40 @@ export class Secretary implements OnInit, OnDestroy {
           this.nightGuardType = 'Soft';
         }
         if (!this.activeToothMaterial) this.activeToothMaterial = type;
+        if (supportsTryInPhase(type) && !this.workPhase) {
+          this.workPhase = 'final';
+        }
+        if (!supportsTryInPhase(type) && type === 'Try in') {
+          this.workPhase = '';
+        }
       }
     }
+    this.updateWorkTypeString();
+  }
+
+  /** المادة الوحيدة اللي ينفع عليها فاينل/بروفة */
+  get phaseMaterial(): string | null {
+    const mats = [...this.selectedWorkTypes].filter((m) => supportsTryInPhase(m));
+    const blockers = [...this.selectedWorkTypes].filter(
+      (m) => !supportsTryInPhase(m) && m !== 'Empty'
+    );
+    if (mats.length === 1 && blockers.length === 0) return mats[0];
+    return null;
+  }
+
+  get showWorkPhaseOptions(): boolean {
+    return !!this.phaseMaterial;
+  }
+
+  get workPhasePreviewLabel(): string {
+    const mat = this.phaseMaterial;
+    if (!mat || !this.workPhase) return '';
+    if (this.workPhase === 'prova') return applyWorkPhaseToName(mat, 'prova');
+    return mat;
+  }
+
+  setWorkPhase(phase: WorkPhase): void {
+    this.workPhase = phase;
     this.updateWorkTypeString();
   }
 
@@ -705,10 +755,11 @@ export class Secretary implements OnInit, OnDestroy {
     }
     let total = 0;
     const parts: string[] = [];
+    const multi = this.selectedWorkTypes.size > 1;
     for (const wt of this.selectedWorkTypes) {
       const q = Number(this.workTypeQuantities[wt]) || 1;
       total += q;
-      
+
       let displayName = wt;
       if (wt === 'Night Guard') {
         if (this.nightGuardType) {
@@ -717,21 +768,21 @@ export class Secretary implements OnInit, OnDestroy {
           displayName = 'Night Guard';
         }
       }
-      
-      if (this.selectedWorkTypes.size > 1 || q > 1) {
-        parts.push(`${displayName} (${q})`);
-      } else {
-        parts.push(displayName);
+
+      if (this.workPhase && supportsTryInPhase(wt)) {
+        displayName = applyWorkPhaseToName(displayName, this.workPhase);
       }
+
+      parts.push(formatWorkPartWithQty(displayName, q, multi || q > 1));
     }
-    
+
     let finalString = parts.join(' + ');
     if (this.formDraft.caseType === 'Modification' && finalString) {
-       finalString = 'Modification - ' + finalString;
+      finalString = 'Modification - ' + finalString;
     } else if (this.formDraft.caseType === 'Redo' && finalString) {
-       finalString = 'Redo - ' + finalString;
+      finalString = 'Redo - ' + finalString;
     } else if ((this.formDraft.caseType === 'Modification' || this.formDraft.caseType === 'Redo') && !finalString) {
-       finalString = this.formDraft.caseType;
+      finalString = this.formDraft.caseType;
     }
 
     this.formDraft.workType = finalString;
@@ -1091,6 +1142,7 @@ export class Secretary implements OnInit, OnDestroy {
     this.toothLinkMode = 'separate';
     this.workTypeError = '';
     this.nightGuardType = '';
+    this.workPhase = '';
     this.patientWarning = '';
     this.intakeType = '';
     this.existingPlyFileName = null;
@@ -1141,6 +1193,7 @@ export class Secretary implements OnInit, OnDestroy {
     this.workTypeQuantities = {};
     this.workTypeError = '';
     this.nightGuardType = '';
+    this.workPhase = '';
     this.patientWarning = '';
     if (currentCaseType !== 'Empty' && c.workType) {
       let wtToParse = c.workType;
@@ -1158,7 +1211,13 @@ export class Secretary implements OnInit, OnDestroy {
           if (wtName === 'Zr') wtName = 'Zircon';
           if (wtName === 'Zr Ger' || wtName === 'Zr Gre') wtName = 'German Zircon';
           const qty = match[2] ? parseInt(match[2], 10) : 1;
-          
+
+          const parsed = parseMaterialAndPhaseFromPart(wtName);
+          wtName = parsed.material;
+          if (parsed.phase) {
+            this.workPhase = parsed.phase;
+          }
+
           if (wtName.startsWith('Night Guard') || wtName.startsWith('Night Gard')) {
             this.selectedWorkTypes.add('Night Guard');
             this.workTypeQuantities['Night Guard'] = qty;
@@ -1169,9 +1228,15 @@ export class Secretary implements OnInit, OnDestroy {
             } else {
               this.nightGuardType = 'Soft';
             }
-          } else if (this.workTypeOptions.includes(wtName)) {
-            this.selectedWorkTypes.add(wtName);
-            this.workTypeQuantities[wtName] = qty;
+          } else if (this.workTypeOptions.includes(wtName) || supportsTryInPhase(wtName)) {
+            // Match catalog label case-insensitively if needed
+            const catalog =
+              this.workTypeOptions.find((o) => o.toLowerCase() === wtName.toLowerCase()) || wtName;
+            this.selectedWorkTypes.add(catalog);
+            this.workTypeQuantities[catalog] = qty;
+            if (supportsTryInPhase(catalog) && !this.workPhase) {
+              this.workPhase = 'final';
+            }
           }
         }
       }
@@ -1284,6 +1349,10 @@ export class Secretary implements OnInit, OnDestroy {
     if (d.caseType !== 'Empty' && this.selectedWorkTypes.size === 0) {
       this.workTypeError = this.lang.t('secretary.err.needWorkType');
       this.flash(this.lang.t('secretary.toast.needWorkType'));
+      return;
+    }
+    if (this.showWorkPhaseOptions && !this.workPhase) {
+      this.flash(this.lang.t('secretary.toast.needWorkPhase'));
       return;
     }
     if (isStudentCase && (!Number.isFinite(Number(d.studentPrice)) || Number(d.studentPrice) <= 0)) {
@@ -1500,6 +1569,120 @@ export class Secretary implements OnInit, OnDestroy {
         this.flash(this.formatCaseApiError(err));
       },
     });
+  }
+
+  canSpawnFinalFromTryIn(c: {
+    id: string;
+    caseNumber?: string;
+    status?: string;
+    workType?: string;
+  }): boolean {
+    if (c.status !== 'exited') return false;
+    if (!isTryInBeforeWorkType(String(c.workType || ''))) return false;
+    return !this.hasSpawnedFinalAlready(c);
+  }
+
+  hasSpawnedFinalAlready(c: { id: string; caseNumber?: string }): boolean {
+    const num = String(c.caseNumber || '').trim();
+    return this.sharedCases.cases().some(
+      (x) =>
+        (num && x.sourceTryInCaseNumber === num) ||
+        (!!c.id && x.sourceTryInCaseId === c.id)
+    );
+  }
+
+  spawnFinalFromTryIn(c: any): void {
+    if (!this.canSpawnFinalFromTryIn(c)) {
+      if (this.hasSpawnedFinalAlready(c)) {
+        this.flash(this.lang.t('secretary.toast.finalAlreadySpawned'));
+      }
+      return;
+    }
+    const material = parseTryInBeforeMaterial(String(c.workType || ''));
+    if (!material) {
+      this.flash(this.lang.t('secretary.toast.spawnFinalFail'));
+      return;
+    }
+    const qty = Number(c.quantity) > 0 ? Number(c.quantity) : 1;
+    const finalWorkType = formatWorkPartWithQty(buildAfterTryInLabel(material), qty, qty > 1);
+    const detailExtra = this.lang
+      .t('secretary.spawnFinalDetail')
+      .replace('{n}', String(c.caseNumber || ''));
+    const workDetail = [String(c.workDetail || '').trim(), detailExtra].filter(Boolean).join(' — ');
+
+    const ok = confirm(
+      this.lang
+        .t('secretary.confirmSpawnFinal')
+        .replace('{n}', String(c.caseNumber || ''))
+        .replace('{wt}', finalWorkType)
+    );
+    if (!ok) return;
+
+    this.spawningFinalId = c.id;
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const dateYmd = `${yyyy}-${mm}-${dd}`;
+
+    const formPayload = {
+      requesterType: (c.requesterType === 'student' ? 'student' : 'doctor') as 'student' | 'doctor',
+      studentPrice: Number(c.salaryAmount || 0),
+      doctor: String(c.doctor || '').trim(),
+      patient: String(c.patient || '').trim(),
+      patientEmail: c.patientEmail?.trim() || undefined,
+      patientPhone: c.patientPhone?.trim() || undefined,
+      workType: finalWorkType,
+      workDetail,
+      color: String(c.color || '').trim(),
+      size: String(c.size || '').trim(),
+      quantity: qty,
+      date: this.formatDateWithCurrentOrOriginalTime(dateYmd),
+      deliveryDate: '',
+      deliveryTime: '',
+      intakeType:
+        c.intakeType === 'scan' || c.intakeType === 'impression' ? c.intakeType : undefined,
+      entrySource: 'secretary' as const,
+      teeth: Array.isArray(c.teeth) && c.teeth.length ? c.teeth : undefined,
+      sourceTryInCaseNumber: String(c.caseNumber || '').trim() || undefined,
+      sourceTryInCaseId: String(c.id || '').trim() || undefined,
+    };
+
+    const printDraft = {
+      doctor: formPayload.doctor,
+      patient: formPayload.patient,
+      branch: '',
+      caseType: 'New' as const,
+      workType: finalWorkType,
+      workDetail,
+      color: formPayload.color,
+      quantity: qty,
+      date: dateYmd,
+      teeth: formPayload.teeth,
+    };
+
+    this.caseApi
+      .createCase(buildCreateCasePayload(formPayload))
+      .pipe(
+        switchMap((res: { case?: { caseNumber?: string; _id?: string; id?: string } }) => {
+          const caseNumber = String(res?.case?.caseNumber ?? '');
+          return this.http.post(`${this.apiBase}/print/job`, {
+            printData: buildPrintData(printDraft, caseNumber),
+          });
+        })
+      )
+      .subscribe({
+        next: () => {
+          this.spawningFinalId = null;
+          this.flash(this.lang.t('secretary.toast.spawnFinalOk'));
+          this.activeFilter.set('all');
+          this.reloadCasesFromBackend();
+        },
+        error: (err: unknown) => {
+          this.spawningFinalId = null;
+          this.flash(this.formatCaseApiError(err) || this.lang.t('secretary.toast.spawnFinalFail'));
+        },
+      });
   }
 
   toggleMenu(id: string, ev: Event): void {

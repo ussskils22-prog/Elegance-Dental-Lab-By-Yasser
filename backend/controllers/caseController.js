@@ -406,6 +406,23 @@ function isJundiDoctorName(name) {
   return doctor.includes('الجندي') || doctor.includes('jundi') || doctor.includes('gundi');
 }
 
+/** Normalize try-in phase labels so counters stay correct:
+ *  - "try in before emax" → tryIn (not emax)
+ *  - "emax after try in" → emax
+ */
+function normalizeMaterialPartForStats(part) {
+  let lower = String(part || '').toLowerCase();
+  if (/try\s*in\s+before|tray\s*in\s+before/.test(lower)) {
+    return 'try in';
+  }
+  lower = lower
+    .replace(/\s+after\s+try\s*in/gi, '')
+    .replace(/\s+after\s+tray\s*in/gi, '')
+    .replace(/\s+after\s+tary\s*in/gi, '')
+    .trim();
+  return lower;
+}
+
 function addMaterialUnits(stats, caseType, quantity, targets) {
   const parts = String(caseType || '')
     .split('+')
@@ -421,7 +438,7 @@ function addMaterialUnits(stats, caseType, quantity, targets) {
   };
 
   for (const part of parts) {
-    const lower = part.toLowerCase();
+    const lower = normalizeMaterialPartForStats(part);
     const match = part.match(/\((\d+)\)/);
     const qty = match ? parseInt(match[1], 10) : overallQty;
 

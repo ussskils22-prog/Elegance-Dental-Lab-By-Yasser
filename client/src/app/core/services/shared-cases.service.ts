@@ -55,6 +55,9 @@ export interface DentalCase {
   receivedDateRaw?: string;
   /** وقت إنشاء الحالة من الخادم (ISO) لعرض الساعة بشكل صحيح */
   createdAt?: string;
+  /** رقم حالة التراي إن اللي اتعمل منها الفاينل */
+  sourceTryInCaseNumber?: string;
+  sourceTryInCaseId?: string;
 }
 
 @Injectable({

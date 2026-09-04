@@ -107,17 +107,31 @@ function resolvePrices(custom, labDefaults) {
   return base;
 }
 
+/** Keep pricing aligned with try-in phase labels (before / after). */
+function normalizeMaterialPartForPricing(lowerPart) {
+  let lower = String(lowerPart || '').toLowerCase();
+  if (/try\s*in\s+before|tray\s*in\s+before/.test(lower)) {
+    return 'try in';
+  }
+  return lower
+    .replace(/\s+after\s+try\s*in/gi, '')
+    .replace(/\s+after\s+tray\s*in/gi, '')
+    .replace(/\s+after\s+tary\s*in/gi, '')
+    .trim();
+}
+
 /**
  * Match a caseType part against material keywords (longest keyword first).
  */
 function resolvePartUnitPrice(lowerPart, prices, materials) {
   const mats = materials || DEFAULT_MATERIALS;
+  const normalized = normalizeMaterialPartForPricing(lowerPart);
   let best = null;
   let bestLen = -1;
   for (const m of mats) {
     const keywords = (m.matchKeywords || []).map((k) => String(k).toLowerCase()).filter(Boolean);
     for (const kw of keywords) {
-      if (lowerPart.includes(kw) && kw.length > bestLen) {
+      if (normalized.includes(kw) && kw.length > bestLen) {
         bestLen = kw.length;
         best = m;
       }

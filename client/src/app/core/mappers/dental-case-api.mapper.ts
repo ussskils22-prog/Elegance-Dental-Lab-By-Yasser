@@ -81,6 +81,9 @@ export type CaseMeta = {
    * مثال: [{ fdi:'16', material:'Zircon', groupId:'g1' }, ...]
    */
   teeth?: Array<{ fdi: string; material: string; groupId: string }>;
+  /** Case number of the try-in this final was spawned from */
+  sourceTryInCaseNumber?: string;
+  sourceTryInCaseId?: string;
 };
 
 export type SecretaryCaseFormPayload = {
@@ -103,6 +106,8 @@ export type SecretaryCaseFormPayload = {
   intakeType?: 'impression' | 'scan';
   entrySource?: 'secretary' | 'print' | 'doctor';
   teeth?: Array<{ fdi: string; material: string; groupId: string }>;
+  sourceTryInCaseNumber?: string;
+  sourceTryInCaseId?: string;
 };
 
 function parseMeta(notes: string | undefined): Record<string, unknown> {
@@ -151,6 +156,12 @@ export function buildSecretaryNotes(
         material: String(t.material),
         groupId: String(t.groupId),
       }));
+  }
+  if (form.sourceTryInCaseNumber?.trim()) {
+    meta.sourceTryInCaseNumber = form.sourceTryInCaseNumber.trim();
+  }
+  if (form.sourceTryInCaseId?.trim()) {
+    meta.sourceTryInCaseId = form.sourceTryInCaseId.trim();
   }
   const path = plyPreserve?.plyScanPath?.trim();
   if (path) {
@@ -369,6 +380,8 @@ export function mapApiCaseToDentalCase(doc: Record<string, unknown>): DentalCase
     teeth,
     exitedAt: exitedDisplay || undefined,
     exitedAtRaw: exitedAtRaw ? String(exitedAtRaw) : undefined,
+    sourceTryInCaseNumber: String(meta['sourceTryInCaseNumber'] ?? '').trim() || undefined,
+    sourceTryInCaseId: String(meta['sourceTryInCaseId'] ?? '').trim() || undefined,
   };
 }
 
