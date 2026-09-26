@@ -1601,6 +1601,18 @@ export class Secretary implements OnInit, OnDestroy {
     };
   }
 
+  private lockedOriginalEntry(c?: DentalCase | null): DentalCase['originalEntry'] | undefined {
+    const original = c?.originalEntry;
+    const workType = String(original?.workType || '').trim();
+    if (!workType) return undefined;
+    return {
+      workType,
+      quantity: Number(original?.quantity) || 0,
+      color: String(original?.color || '').trim(),
+      workDetail: String(original?.workDetail || '').trim() || undefined,
+    };
+  }
+
   originalEntryChanged(c: DentalCase | null): boolean {
     if (!c?.originalEntry?.workType) return false;
     const currentType = String(c.workType || '').trim();
@@ -1991,6 +2003,7 @@ export class Secretary implements OnInit, OnDestroy {
       intakeType: existing.intakeType,
       entrySource: 'secretary' as const,
       teeth: teeth.length ? teeth : undefined,
+      originalEntry: this.lockedOriginalEntry(existing),
     };
     const plyPreserveMeta = existing.plyScanUrl
       ? (() => {
@@ -2138,6 +2151,7 @@ export class Secretary implements OnInit, OnDestroy {
       intakeType: this.intakeType === 'scan' || this.intakeType === 'impression' ? this.intakeType : undefined,
       entrySource: 'secretary' as const,
       teeth: this.toothAssignments.length ? this.toothAssignments : undefined,
+      originalEntry: this.lockedOriginalEntry(existing),
     };
 
     const plyPreserveMeta =

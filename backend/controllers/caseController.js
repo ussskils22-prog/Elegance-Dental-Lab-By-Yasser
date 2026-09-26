@@ -220,20 +220,23 @@ function originalFromCreatedAudit(audit, meta) {
   return normalizeOriginalEntry(buildOriginalEntry(caseType, meta));
 }
 
-/** Create-audit wins when a late stamp saved the edited work as "original". */
-function resolveOriginalEntry(meta, currentCaseType, audit) {
-  const stamped = normalizeOriginalEntry(meta?.originalEntry);
+/**
+ * Dedicated field wins when it is not just a copy of the current (edited) work.
+ * Create-audit recovers a late stamp that saved the edited work as "original".
+ */
+function resolveOriginalEntry(stored, meta, currentCaseType, audit) {
+  const field = normalizeOriginalEntry(stored);
+  const stamped = field || normalizeOriginalEntry(meta?.originalEntry);
   const fromAudit = originalFromCreatedAudit(audit, meta);
-  if (fromAudit) {
-    if (!stamped) return fromAudit;
-    if (workTypesEqual(stamped.workType, fromAudit.workType)) return stamped;
-    if (workTypesEqual(stamped.workType, currentCaseType)) return fromAudit;
+  const fromCurrent = normalizeOriginalEntry(buildOriginalEntry(currentCaseType, meta));
+
+  if (field && !workTypesEqual(field.workType, currentCaseType)) {
+    return field;
+  }
+  if (fromAudit && !workTypesEqual(fromAudit.workType, currentCaseType)) {
     return fromAudit;
   }
-  return (
-    stamped ||
-    normalizeOriginalEntry(buildOriginalEntry(currentCaseType, meta))
-  );
+  return stamped || fromAudit || fromCurrent;
 }
 
 function applyOriginalEntryToNotes(notes, entry) {
@@ -244,7 +247,33 @@ function applyOriginalEntryToNotes(notes, entry) {
   return sanitizeNotesMetaString(`__META__\n${JSON.stringify(meta)}`);
 }
 
-/** Freeze first intake (work + units) so later edits cannot overwrite it. */
+function applyOriginalToDoc(dentalCase, entry) {
+  const locked = normalizeOriginalEntry(entry);
+  if (!dentalCase || !locked) return null;
+  dentalCase.originalEntry = locked;
+  if (typeof dentalCase.markModified === 'function') {
+    dentalCase.markModified('originalEntry');
+  }
+  dentalCase.notes = applyOriginalEntryToNotes(dentalCase.notes, locked);
+  return locked;
+}
+
+function shouldPersistOriginal(row, chosen) {
+  if (!chosen) return false;
+  const existing = normalizeOriginalEntry(row?.originalEntry);
+  if (!existing) return true;
+  if (workTypesEqual(existing.workType, chosen.workType)) return false;
+  return workTypesEqual(existing.workType, row?.caseType);
+}
+
+function persistOriginalEntries(ops) {
+  if (!ops.length) return;
+  DentalCase.collection.bulkWrite(ops, { ordered: false }).catch((err) => {
+    console.warn('[originalEntry] backfill failed', err?.message || err);
+  });
+}
+
+/** Freeze first intake on the document field. Never overwrite a real original. */
 function stampOriginalEntry(notes, caseType, fallbackMeta, fallbackCaseType) {
   if (!notes || typeof notes !== 'string') return notes;
   if (!String(notes).replace(/^\uFEFF/, '').startsWith('__META__')) return notes;
@@ -276,22 +305,39 @@ async function loadCreatedAudits(ids) {
 function presentCaseWithOriginal(row, audit) {
   const plain = presentCase(row);
   const meta = parseNotesMeta(plain.notes || '');
-  const chosen = resolveOriginalEntry(meta, plain.caseType, audit);
+  const chosen = resolveOriginalEntry(plain.originalEntry, meta, plain.caseType, audit);
   if (chosen) {
+    plain.originalEntry = chosen;
     plain.notes = applyOriginalEntryToNotes(plain.notes, chosen);
   }
   return plain;
 }
 
-async function stampOriginalEntryFromHistory(dentalCase) {
+async function stampOriginalEntryFromHistory(dentalCase, fallbackMeta, fallbackCaseType) {
   if (!dentalCase) return;
+  const existing = normalizeOriginalEntry(dentalCase.originalEntry);
+  if (existing && !workTypesEqual(existing.workType, dentalCase.caseType)) {
+    applyOriginalToDoc(dentalCase, existing);
+    return;
+  }
   const audit = await AuditLog.findOne({ caseId: dentalCase._id, action: 'created' })
     .select('details')
     .lean();
-  const meta = parseNotesMeta(dentalCase.notes || '');
-  const chosen = resolveOriginalEntry(meta, dentalCase.caseType, audit);
-  if (!chosen) return;
-  dentalCase.notes = applyOriginalEntryToNotes(dentalCase.notes, chosen);
+  const meta = {
+    ...parseNotesMeta(dentalCase.notes || ''),
+    ...(fallbackMeta && typeof fallbackMeta === 'object' ? fallbackMeta : {}),
+  };
+  const chosen = resolveOriginalEntry(existing, meta, dentalCase.caseType, audit);
+  if (
+    chosen &&
+    workTypesEqual(chosen.workType, dentalCase.caseType) &&
+    fallbackCaseType &&
+    !workTypesEqual(fallbackCaseType, dentalCase.caseType)
+  ) {
+    applyOriginalToDoc(dentalCase, buildOriginalEntry(fallbackCaseType, fallbackMeta || meta));
+    return;
+  }
+  applyOriginalToDoc(dentalCase, chosen);
 }
 
 /** Force referring-doctor name inside __META__ notes (doctor portal cannot spoof). */
@@ -375,7 +421,12 @@ exports.createCase = async (req, res) => {
       requesterType === 'student' ? 'student' : requesterType === 'lab' ? 'lab' : 'doctor';
     priority = priorityForRequester(normalizedRequesterType, priority);
     const isStudentCase = normalizedRequesterType === 'student';
-    const notesFinal = stampOriginalEntry(notes ?? '', caseType, parseNotesMeta(notes || ''), caseType);
+    const createMeta = parseNotesMeta(notes || '');
+    const notesFinal = stampOriginalEntry(notes ?? '', caseType, createMeta, caseType);
+    const originalEntry =
+      normalizeOriginalEntry(req.body?.originalEntry) ||
+      normalizeOriginalEntry(parseNotesMeta(notesFinal).originalEntry) ||
+      normalizeOriginalEntry(buildOriginalEntry(caseType, createMeta));
     const referringDoctor = referringDoctorFromNotes(notesFinal);
     const accountEnsure = await maybeEnsureClientAccount(
       req,
@@ -394,6 +445,7 @@ exports.createCase = async (req, res) => {
       paidBy: isStudentCase ? req.user.id : null,
       notes: notesFinal,
       referringDoctor,
+      originalEntry,
       caseType,
       priority,
       dueDate: new Date(dueDate),
@@ -613,7 +665,7 @@ exports.getAllCases = async (req, res) => {
         .populate('assignedTo', 'fullName email role')
         .populate('createdBy', 'fullName email role')
         .select(
-          'caseNumber patientName patientEmail patientPhone requesterType notes referringDoctor plyScanPath plyFileName currentStage status assignedTo createdBy caseType priority dueDate salaryAmount paymentStatus paidAt stageTimestamps createdAt updatedAt'
+          'caseNumber patientName patientEmail patientPhone requesterType notes referringDoctor plyScanPath plyFileName currentStage status assignedTo createdBy caseType originalEntry priority dueDate salaryAmount paymentStatus paidAt stageTimestamps createdAt updatedAt'
         )
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -623,9 +675,24 @@ exports.getAllCases = async (req, res) => {
     ]);
 
     const createdAudits = await loadCreatedAudits(cases.map((row) => row._id));
+    const persistOps = [];
+    const data = cases.map((row) => {
+      const presented = presentCaseWithOriginal(row, createdAudits.get(String(row._id)));
+      const chosen = normalizeOriginalEntry(presented.originalEntry);
+      if (shouldPersistOriginal(row, chosen)) {
+        persistOps.push({
+          updateOne: {
+            filter: { _id: row._id },
+            update: { $set: { originalEntry: chosen } },
+          },
+        });
+      }
+      return presented;
+    });
+    persistOriginalEntries(persistOps);
     res.status(200).json({
       success: true,
-      data: cases.map((row) => presentCaseWithOriginal(row, createdAudits.get(String(row._id)))),
+      data,
       pagination: {
         total,
         page: pageNum,
@@ -1141,12 +1208,24 @@ exports.getCaseById = async (req, res) => {
     }
 
     dentalCase.notes = sanitizeNotesMetaString(dentalCase.notes);
+    const createdAudit = await AuditLog.findOne({ caseId: dentalCase._id, action: 'created' })
+      .select('details')
+      .lean();
+    const presented = presentCaseWithOriginal(dentalCase, createdAudit);
+    const chosen = normalizeOriginalEntry(presented.originalEntry);
+    if (shouldPersistOriginal(dentalCase, chosen)) {
+      persistOriginalEntries([
+        {
+          updateOne: {
+            filter: { _id: dentalCase._id },
+            update: { $set: { originalEntry: chosen } },
+          },
+        },
+      ]);
+    }
     res.status(200).json({
       success: true,
-      case: presentCaseWithOriginal(
-        dentalCase,
-        await AuditLog.findOne({ caseId: dentalCase._id, action: 'created' }).select('details').lean()
-      ),
+      case: presented,
     });
   } catch (error) {
     res.status(500).json({
@@ -2276,7 +2355,7 @@ exports.updateCase = async (req, res) => {
       prevMetaForEntry,
       prevCaseTypeForEntry
     );
-    await stampOriginalEntryFromHistory(dentalCase);
+    await stampOriginalEntryFromHistory(dentalCase, prevMetaForEntry, prevCaseTypeForEntry);
     if (priority !== undefined) {
       const allowed = ['low', 'normal', 'high', 'urgent'];
       const p = String(priority);

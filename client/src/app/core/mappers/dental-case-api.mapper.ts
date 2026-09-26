@@ -123,6 +123,12 @@ export type SecretaryCaseFormPayload = {
   teeth?: Array<{ fdi: string; material: string; groupId: string }>;
   sourceTryInCaseNumber?: string;
   sourceTryInCaseId?: string;
+  originalEntry?: {
+    workType?: string;
+    quantity?: number;
+    color?: string;
+    workDetail?: string;
+  };
 };
 
 function parseJsonObject(text: string): Record<string, unknown> | null {
@@ -197,6 +203,14 @@ export function buildSecretaryNotes(
   if (form.sourceTryInCaseId?.trim()) {
     meta.sourceTryInCaseId = form.sourceTryInCaseId.trim();
   }
+  if (form.originalEntry?.workType?.trim()) {
+    meta.originalEntry = {
+      workType: form.originalEntry.workType.trim(),
+      quantity: Number(form.originalEntry.quantity) || 0,
+      color: String(form.originalEntry.color || '').trim(),
+      workDetail: String(form.originalEntry.workDetail || '').trim() || undefined,
+    };
+  }
   const path = plyPreserve?.plyScanPath?.trim();
   if (path) {
     meta.plyScanPath = path;
@@ -220,12 +234,35 @@ export function buildDueIso(form: SecretaryCaseFormPayload): string {
   return d.toISOString();
 }
 
+function snapshotOriginalEntry(
+  form: Pick<SecretaryCaseFormPayload, 'workType' | 'quantity' | 'color' | 'workDetail' | 'originalEntry'>
+): NonNullable<SecretaryCaseFormPayload['originalEntry']> | undefined {
+  const existing = String(form.originalEntry?.workType || '').trim();
+  if (existing) {
+    return {
+      workType: existing,
+      quantity: Number(form.originalEntry?.quantity) || 0,
+      color: String(form.originalEntry?.color || '').trim(),
+      workDetail: String(form.originalEntry?.workDetail || '').trim() || undefined,
+    };
+  }
+  const workType = String(form.workType || '').trim();
+  if (!workType) return undefined;
+  return {
+    workType,
+    quantity: Number(form.quantity) || 0,
+    color: String(form.color || '').trim(),
+    workDetail: String(form.workDetail || '').trim() || undefined,
+  };
+}
+
 export function buildCreateCasePayload(
   form: SecretaryCaseFormPayload,
   plyPreserve?: { plyScanPath: string; plyFileName?: string }
 ): Record<string, unknown> {
   const email = (form.patientEmail || '').trim() || `case+${Date.now()}@mylab.com`;
   const phone = (form.patientPhone || '').trim() || '0000000000';
+  const originalEntry = snapshotOriginalEntry(form);
   const payload: Record<string, unknown> = {
     patientName: (form.patient || '').trim() || 'غير محدد',
     patientEmail: email,
@@ -235,7 +272,8 @@ export function buildCreateCasePayload(
     caseType: (form.workType || '').trim(),
     priority: 'normal',
     dueDate: buildDueIso(form),
-    notes: buildSecretaryNotes(form, plyPreserve),
+    notes: buildSecretaryNotes({ ...form, originalEntry }, plyPreserve),
+    originalEntry,
   };
 
   if (form.exitedAt) {
@@ -451,7 +489,7 @@ export function mapApiCaseToDentalCase(doc: Record<string, unknown>): DentalCase
     exitedAtRaw: exitedAtRaw ? String(exitedAtRaw) : undefined,
     sourceTryInCaseNumber: String(meta['sourceTryInCaseNumber'] ?? '').trim() || undefined,
     sourceTryInCaseId: String(meta['sourceTryInCaseId'] ?? '').trim() || undefined,
-    originalEntry: mapOriginalEntry(meta),
+    originalEntry: mapOriginalEntry(doc['originalEntry']) || mapOriginalEntry(meta['originalEntry']),
     ...(() => {
       const ex = (doc['exocad'] || {}) as Record<string, unknown>;
       const actual = ex['actualDesignedUnits'];
@@ -475,20 +513,21 @@ export function mapApiCaseToDentalCase(doc: Record<string, unknown>): DentalCase
   };
 }
 
-function mapOriginalEntry(
-  meta: Record<string, unknown>
-): DentalCase['originalEntry'] | undefined {
-  const raw = meta['originalEntry'];
+function mapOriginalEntry(raw: unknown): DentalCase['originalEntry'] | undefined {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
   const row = raw as Record<string, unknown>;
-  const workType = String(row['workType'] ?? '').trim();
+  const nested =
+    row['originalEntry'] && typeof row['originalEntry'] === 'object' && !Array.isArray(row['originalEntry'])
+      ? (row['originalEntry'] as Record<string, unknown>)
+      : row;
+  const workType = String(nested['workType'] ?? '').trim();
   if (!workType) return undefined;
-  const quantity = Number(row['quantity']);
+  const quantity = Number(nested['quantity']);
   return {
     workType,
     quantity: Number.isFinite(quantity) ? quantity : 0,
-    color: String(row['color'] ?? '').trim(),
-    workDetail: String(row['workDetail'] ?? '').trim() || undefined,
+    color: String(nested['color'] ?? '').trim(),
+    workDetail: String(nested['workDetail'] ?? '').trim() || undefined,
   };
 }
 

@@ -113,6 +113,14 @@ const dentalCaseSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: null,
     },
+    /**
+     * First intake (work + units + color). Set once on create / first backfill.
+     * Later secretary edits and Exocad sync must never overwrite this.
+     */
+    originalEntry: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
     /** Material COGS snapshot at exit (from inventory avg cost × qty). */
     materialCost: {
       type: Number,
