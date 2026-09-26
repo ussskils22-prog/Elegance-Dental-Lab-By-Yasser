@@ -93,6 +93,12 @@ export type CaseMeta = {
   /** Case number of the try-in this final was spawned from */
   sourceTryInCaseNumber?: string;
   sourceTryInCaseId?: string;
+  originalEntry?: {
+    workType?: string;
+    quantity?: number;
+    color?: string;
+    workDetail?: string;
+  };
 };
 
 export type SecretaryCaseFormPayload = {
@@ -445,6 +451,7 @@ export function mapApiCaseToDentalCase(doc: Record<string, unknown>): DentalCase
     exitedAtRaw: exitedAtRaw ? String(exitedAtRaw) : undefined,
     sourceTryInCaseNumber: String(meta['sourceTryInCaseNumber'] ?? '').trim() || undefined,
     sourceTryInCaseId: String(meta['sourceTryInCaseId'] ?? '').trim() || undefined,
+    originalEntry: mapOriginalEntry(meta),
     ...(() => {
       const ex = (doc['exocad'] || {}) as Record<string, unknown>;
       const actual = ex['actualDesignedUnits'];
@@ -465,6 +472,23 @@ export function mapApiCaseToDentalCase(doc: Record<string, unknown>): DentalCase
           actualN != null && Number.isFinite(quantity) ? actualN - Number(quantity) : null,
       };
     })(),
+  };
+}
+
+function mapOriginalEntry(
+  meta: Record<string, unknown>
+): DentalCase['originalEntry'] | undefined {
+  const raw = meta['originalEntry'];
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+  const row = raw as Record<string, unknown>;
+  const workType = String(row['workType'] ?? '').trim();
+  if (!workType) return undefined;
+  const quantity = Number(row['quantity']);
+  return {
+    workType,
+    quantity: Number.isFinite(quantity) ? quantity : 0,
+    color: String(row['color'] ?? '').trim(),
+    workDetail: String(row['workDetail'] ?? '').trim() || undefined,
   };
 }
 

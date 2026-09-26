@@ -179,6 +179,53 @@ const sanitizeNotesMetaString = (notes) => {
   }
 };
 
+function isValidOriginalEntry(entry) {
+  return !!(entry && typeof entry === 'object' && String(entry.workType || '').trim());
+}
+
+function buildOriginalEntry(caseType, meta) {
+  const m = meta && typeof meta === 'object' ? meta : {};
+  const quantity = Number(m.quantity);
+  return {
+    workType: String(caseType || m.workType || '').trim(),
+    quantity: Number.isFinite(quantity) ? quantity : 0,
+    color: String(m.color || '').trim(),
+    workDetail: String(m.workDetail || '').trim(),
+  };
+}
+
+function normalizeOriginalEntry(entry) {
+  if (!isValidOriginalEntry(entry)) return null;
+  const quantity = Number(entry.quantity);
+  return {
+    workType: String(entry.workType || '').trim(),
+    quantity: Number.isFinite(quantity) ? quantity : 0,
+    color: String(entry.color || '').trim(),
+    workDetail: String(entry.workDetail || '').trim(),
+  };
+}
+
+/** Freeze first intake (work + units) so later edits cannot overwrite it. */
+function stampOriginalEntry(notes, caseType, fallbackMeta, fallbackCaseType) {
+  if (!notes || typeof notes !== 'string') return notes;
+  if (!String(notes).replace(/^\uFEFF/, '').startsWith('__META__')) return notes;
+  const meta = parseNotesMeta(notes || '');
+  const locked =
+    normalizeOriginalEntry(fallbackMeta?.originalEntry) ||
+    normalizeOriginalEntry(meta.originalEntry) ||
+    normalizeOriginalEntry(
+      buildOriginalEntry(
+        fallbackCaseType || caseType,
+        fallbackMeta && typeof fallbackMeta === 'object' && Object.keys(fallbackMeta).length
+          ? fallbackMeta
+          : meta
+      )
+    );
+  if (!locked) return notes;
+  meta.originalEntry = locked;
+  return sanitizeNotesMetaString(`__META__\n${JSON.stringify(meta)}`);
+}
+
 /** Force referring-doctor name inside __META__ notes (doctor portal cannot spoof). */
 function forceDoctorNameInNotes(notes, doctorFullName) {
   const prefix = '__META__\n';
@@ -260,7 +307,7 @@ exports.createCase = async (req, res) => {
       requesterType === 'student' ? 'student' : requesterType === 'lab' ? 'lab' : 'doctor';
     priority = priorityForRequester(normalizedRequesterType, priority);
     const isStudentCase = normalizedRequesterType === 'student';
-    const notesFinal = notes ?? '';
+    const notesFinal = stampOriginalEntry(notes ?? '', caseType, parseNotesMeta(notes || ''), caseType);
     const referringDoctor = referringDoctorFromNotes(notesFinal);
     const accountEnsure = await maybeEnsureClientAccount(
       req,
@@ -1760,6 +1807,12 @@ exports.exitCase = async (req, res) => {
     dentalCase.status = 'exited';
     dentalCase.currentStage = 'exited';
     dentalCase.stageTimestamps.exited = new Date();
+    dentalCase.notes = stampOriginalEntry(
+      dentalCase.notes,
+      dentalCase.caseType,
+      parseNotesMeta(dentalCase.notes || ''),
+      dentalCase.caseType
+    );
 
     // Freeze doctor bill at exit (stop live reprice rewriting history)
     try {
@@ -2104,6 +2157,9 @@ exports.updateCase = async (req, res) => {
     } =
       req.body;
 
+    const prevMetaForEntry = parseNotesMeta(dentalCase.notes || '');
+    const prevCaseTypeForEntry = dentalCase.caseType;
+
     if (patientName !== undefined) dentalCase.patientName = patientName;
     if (patientEmail !== undefined) dentalCase.patientEmail = String(patientEmail).toLowerCase();
     if (patientPhone !== undefined) dentalCase.patientPhone = patientPhone;
@@ -2147,6 +2203,12 @@ exports.updateCase = async (req, res) => {
       }
     }
     if (caseType !== undefined) dentalCase.caseType = caseType;
+    dentalCase.notes = stampOriginalEntry(
+      dentalCase.notes,
+      dentalCase.caseType,
+      prevMetaForEntry,
+      prevCaseTypeForEntry
+    );
     if (priority !== undefined) {
       const allowed = ['low', 'normal', 'high', 'urgent'];
       const p = String(priority);

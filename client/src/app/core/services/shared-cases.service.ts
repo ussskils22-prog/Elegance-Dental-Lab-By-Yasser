@@ -58,6 +58,13 @@ export interface DentalCase {
   /** رقم حالة التراي إن اللي اتعمل منها الفاينل */
   sourceTryInCaseNumber?: string;
   sourceTryInCaseId?: string;
+  /** First intake before later edits (work + units) */
+  originalEntry?: {
+    workType: string;
+    quantity: number;
+    color: string;
+    workDetail?: string;
+  };
   /** Exocad: actual designed units (does not replace quantity) */
   exocadActualUnits?: number | null;
   exocadActualTeeth?: string[];

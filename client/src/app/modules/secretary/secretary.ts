@@ -8,7 +8,7 @@ import type { Observable } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { type ClientAccountKind } from '../../core/auth/client-account';
 import { CaseApiService } from '../../core/services/case-api.service';
-import { SharedCasesService } from '../../core/services/shared-cases.service';
+import { SharedCasesService, type DentalCase } from '../../core/services/shared-cases.service';
 import { UserApiService } from '../../core/services/user-api.service';
 import {
   buildCreateCasePayload,
@@ -424,6 +424,8 @@ export class Secretary implements OnInit, OnDestroy {
   }
 
   readonly dialogOpen = signal(false);
+  readonly originalEntryOpen = signal(false);
+  readonly originalEntryCase = signal<DentalCase | null>(null);
   readonly dialogMode = signal<'create' | 'edit'>('create');
   createRequesterType: RequesterType = 'doctor';
   readonly formRequesterType = signal<RequesterType>('doctor');
@@ -1564,6 +1566,50 @@ export class Secretary implements OnInit, OnDestroy {
     }, 50);
   }
 
+  onCaseCardClick(c: DentalCase): void {
+    if (c.status !== 'exited') return;
+    this.originalEntryCase.set(c);
+    this.originalEntryOpen.set(true);
+  }
+
+  closeOriginalEntry(): void {
+    this.originalEntryOpen.set(false);
+    this.originalEntryCase.set(null);
+  }
+
+  originalEntrySummary(c: DentalCase | null): {
+    workType: string;
+    quantity: number;
+    color: string;
+    workDetail: string;
+  } {
+    if (!c) return { workType: '', quantity: 0, color: '', workDetail: '' };
+    const original = c.originalEntry;
+    if (original?.workType) {
+      return {
+        workType: original.workType,
+        quantity: Number(original.quantity) || 0,
+        color: original.color || '',
+        workDetail: original.workDetail || '',
+      };
+    }
+    return {
+      workType: c.workType || '',
+      quantity: Number(c.quantity) || 0,
+      color: c.color || '',
+      workDetail: c.workDetail || '',
+    };
+  }
+
+  originalEntryChanged(c: DentalCase | null): boolean {
+    if (!c?.originalEntry?.workType) return false;
+    const currentType = String(c.workType || '').trim();
+    const originalType = String(c.originalEntry.workType || '').trim();
+    const currentQty = Number(c.quantity) || 0;
+    const originalQty = Number(c.originalEntry.quantity) || 0;
+    return currentType !== originalType || currentQty !== originalQty;
+  }
+
   openCreateDialog(type: RequesterType = 'doctor'): void {
     this.dialogMode.set('create');
     this.createRequesterType = normalizeRequesterType(type);
@@ -2648,6 +2694,11 @@ export class Secretary implements OnInit, OnDestroy {
   toggleMenu(id: string, ev: Event): void {
     ev.stopPropagation();
     this.menuOpenId.update((open) => (open === id ? null : id));
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeOriginalEntry(): void {
+    if (this.originalEntryOpen()) this.closeOriginalEntry();
   }
 
   @HostListener('document:click', ['$event'])
