@@ -183,12 +183,21 @@ function isValidOriginalEntry(entry) {
   return !!(entry && typeof entry === 'object' && String(entry.workType || '').trim());
 }
 
+function quantityFromWorkType(workType) {
+  const nums = [...String(workType || '').matchAll(/\((\d+)\)/g)].map((m) => parseInt(m[1], 10));
+  return nums.length ? nums.reduce((a, b) => a + b, 0) : 0;
+}
+
+function workTypesEqual(a, b) {
+  return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+}
+
 function buildOriginalEntry(caseType, meta) {
   const m = meta && typeof meta === 'object' ? meta : {};
   const quantity = Number(m.quantity);
   return {
     workType: String(caseType || m.workType || '').trim(),
-    quantity: Number.isFinite(quantity) ? quantity : 0,
+    quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : quantityFromWorkType(caseType),
     color: String(m.color || '').trim(),
     workDetail: String(m.workDetail || '').trim(),
   };
@@ -199,10 +208,40 @@ function normalizeOriginalEntry(entry) {
   const quantity = Number(entry.quantity);
   return {
     workType: String(entry.workType || '').trim(),
-    quantity: Number.isFinite(quantity) ? quantity : 0,
+    quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : quantityFromWorkType(entry.workType),
     color: String(entry.color || '').trim(),
     workDetail: String(entry.workDetail || '').trim(),
   };
+}
+
+function originalFromCreatedAudit(audit, meta) {
+  const caseType = String(audit?.details?.newValue?.caseType || '').trim();
+  if (!caseType) return null;
+  return normalizeOriginalEntry(buildOriginalEntry(caseType, meta));
+}
+
+/** Create-audit wins when a late stamp saved the edited work as "original". */
+function resolveOriginalEntry(meta, currentCaseType, audit) {
+  const stamped = normalizeOriginalEntry(meta?.originalEntry);
+  const fromAudit = originalFromCreatedAudit(audit, meta);
+  if (fromAudit) {
+    if (!stamped) return fromAudit;
+    if (workTypesEqual(stamped.workType, fromAudit.workType)) return stamped;
+    if (workTypesEqual(stamped.workType, currentCaseType)) return fromAudit;
+    return fromAudit;
+  }
+  return (
+    stamped ||
+    normalizeOriginalEntry(buildOriginalEntry(currentCaseType, meta))
+  );
+}
+
+function applyOriginalEntryToNotes(notes, entry) {
+  if (!entry || !notes || typeof notes !== 'string') return notes;
+  if (!String(notes).replace(/^\uFEFF/, '').startsWith('__META__')) return notes;
+  const meta = parseNotesMeta(notes);
+  meta.originalEntry = entry;
+  return sanitizeNotesMetaString(`__META__\n${JSON.stringify(meta)}`);
 }
 
 /** Freeze first intake (work + units) so later edits cannot overwrite it. */
@@ -210,20 +249,49 @@ function stampOriginalEntry(notes, caseType, fallbackMeta, fallbackCaseType) {
   if (!notes || typeof notes !== 'string') return notes;
   if (!String(notes).replace(/^\uFEFF/, '').startsWith('__META__')) return notes;
   const meta = parseNotesMeta(notes || '');
+  const sourceMeta =
+    fallbackMeta && typeof fallbackMeta === 'object' && Object.keys(fallbackMeta).length
+      ? fallbackMeta
+      : meta;
   const locked =
-    normalizeOriginalEntry(fallbackMeta?.originalEntry) ||
+    normalizeOriginalEntry(sourceMeta.originalEntry) ||
     normalizeOriginalEntry(meta.originalEntry) ||
-    normalizeOriginalEntry(
-      buildOriginalEntry(
-        fallbackCaseType || caseType,
-        fallbackMeta && typeof fallbackMeta === 'object' && Object.keys(fallbackMeta).length
-          ? fallbackMeta
-          : meta
-      )
-    );
+    normalizeOriginalEntry(buildOriginalEntry(fallbackCaseType || caseType, sourceMeta));
   if (!locked) return notes;
   meta.originalEntry = locked;
   return sanitizeNotesMetaString(`__META__\n${JSON.stringify(meta)}`);
+}
+
+async function loadCreatedAudits(ids) {
+  const list = (Array.isArray(ids) ? ids : []).filter(Boolean);
+  if (!list.length) return new Map();
+  const rows = await AuditLog.find({ caseId: { $in: list }, action: 'created' })
+    .select('caseId details')
+    .lean();
+  const map = new Map();
+  for (const row of rows) map.set(String(row.caseId), row);
+  return map;
+}
+
+function presentCaseWithOriginal(row, audit) {
+  const plain = presentCase(row);
+  const meta = parseNotesMeta(plain.notes || '');
+  const chosen = resolveOriginalEntry(meta, plain.caseType, audit);
+  if (chosen) {
+    plain.notes = applyOriginalEntryToNotes(plain.notes, chosen);
+  }
+  return plain;
+}
+
+async function stampOriginalEntryFromHistory(dentalCase) {
+  if (!dentalCase) return;
+  const audit = await AuditLog.findOne({ caseId: dentalCase._id, action: 'created' })
+    .select('details')
+    .lean();
+  const meta = parseNotesMeta(dentalCase.notes || '');
+  const chosen = resolveOriginalEntry(meta, dentalCase.caseType, audit);
+  if (!chosen) return;
+  dentalCase.notes = applyOriginalEntryToNotes(dentalCase.notes, chosen);
 }
 
 /** Force referring-doctor name inside __META__ notes (doctor portal cannot spoof). */
@@ -554,9 +622,10 @@ exports.getAllCases = async (req, res) => {
       DentalCase.countDocuments(filter),
     ]);
 
+    const createdAudits = await loadCreatedAudits(cases.map((row) => row._id));
     res.status(200).json({
       success: true,
-      data: cases.map((row) => presentCase(row)),
+      data: cases.map((row) => presentCaseWithOriginal(row, createdAudits.get(String(row._id)))),
       pagination: {
         total,
         page: pageNum,
@@ -1074,7 +1143,10 @@ exports.getCaseById = async (req, res) => {
     dentalCase.notes = sanitizeNotesMetaString(dentalCase.notes);
     res.status(200).json({
       success: true,
-      case: presentCase(dentalCase),
+      case: presentCaseWithOriginal(
+        dentalCase,
+        await AuditLog.findOne({ caseId: dentalCase._id, action: 'created' }).select('details').lean()
+      ),
     });
   } catch (error) {
     res.status(500).json({
@@ -1807,12 +1879,7 @@ exports.exitCase = async (req, res) => {
     dentalCase.status = 'exited';
     dentalCase.currentStage = 'exited';
     dentalCase.stageTimestamps.exited = new Date();
-    dentalCase.notes = stampOriginalEntry(
-      dentalCase.notes,
-      dentalCase.caseType,
-      parseNotesMeta(dentalCase.notes || ''),
-      dentalCase.caseType
-    );
+    await stampOriginalEntryFromHistory(dentalCase);
 
     // Freeze doctor bill at exit (stop live reprice rewriting history)
     try {
@@ -2209,6 +2276,7 @@ exports.updateCase = async (req, res) => {
       prevMetaForEntry,
       prevCaseTypeForEntry
     );
+    await stampOriginalEntryFromHistory(dentalCase);
     if (priority !== undefined) {
       const allowed = ['low', 'normal', 'high', 'urgent'];
       const p = String(priority);
