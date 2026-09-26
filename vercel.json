@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd client && npm run build",
+  "buildCommand": "if [ -f client/package.json ]; then npm run build --prefix client; else npm run build; fi",
   "outputDirectory": "client/dist/client/browser",
   "routes": [
     {
