@@ -3512,8 +3512,8 @@ export class Admin implements OnInit, OnDestroy {
     const fmt = (n: number) =>
       n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     const th =
-      'border:1px solid #222;background:#f3f4f6;padding:7px 6px;font-size:11px;font-weight:700;text-align:center;';
-    const td = 'border:1px solid #333;padding:7px 6px;font-size:11px;vertical-align:top;';
+      'border:1px solid #cbd5e1;background:#f8fafc;padding:8px 6px;font-size:11px;font-weight:700;text-align:center;';
+    const td = 'border:1px solid #e2e8f0;padding:8px 6px;font-size:11px;vertical-align:middle;background:#ffffff;';
     const sorted = this.sortCasesForPdf(cases, includeDoctor);
     const colCount = includeDoctor ? 7 : 6;
 
@@ -3539,16 +3539,58 @@ export class Admin implements OnInit, OnDestroy {
       .join('');
   }
 
+  /** Slice a tall canvas into clean A4 pages — avoids black seam + duplicated mid rows. */
+  private addCanvasPagesToPdf(pdf: any, canvas: HTMLCanvasElement, marginMm: number): void {
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const contentWidthMm = pageWidth - marginMm * 2;
+    const contentHeightMm = pageHeight - marginMm * 2;
+    const pxPerMm = canvas.width / contentWidthMm;
+    const pageSlicePx = Math.max(1, Math.floor(contentHeightMm * pxPerMm));
+
+    let sourceY = 0;
+    let pageIndex = 0;
+    while (sourceY < canvas.height) {
+      const slicePx = Math.min(pageSlicePx, canvas.height - sourceY);
+      const pageCanvas = document.createElement('canvas');
+      pageCanvas.width = canvas.width;
+      pageCanvas.height = slicePx;
+      const ctx = pageCanvas.getContext('2d');
+      if (!ctx) break;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+      ctx.drawImage(
+        canvas,
+        0,
+        sourceY,
+        canvas.width,
+        slicePx,
+        0,
+        0,
+        canvas.width,
+        slicePx
+      );
+
+      const sliceHeightMm = slicePx / pxPerMm;
+      const imgData = pageCanvas.toDataURL('image/jpeg', 0.95);
+      if (pageIndex > 0) pdf.addPage();
+      pdf.setFillColor(255, 255, 255);
+      pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+      pdf.addImage(imgData, 'JPEG', marginMm, marginMm, contentWidthMm, sliceHeightMm);
+
+      sourceY += slicePx;
+      pageIndex += 1;
+    }
+  }
+
   async saveDoctorReceiptPdf(): Promise<void> {
     if (!this.reportDoctorFilter) return;
 
     const accountName = this.reportDoctorFilter;
     const isLabAccount = this.isFilteredReportAccountLab;
-    const totalDue = this.getDoctorTotalDue(accountName);
-    const totalPaid = this.getDoctorTotalPaid(accountName);
-    const remaining = totalDue - totalPaid;
     const cases = this.reportFilteredCases;
     const casesCount = cases.length;
+    const totalDue = cases.reduce((sum, c) => sum + this.calculateCaseCost(c), 0);
     const fmt = (n: number) =>
       n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     const safeFileName = String(accountName || 'account')
@@ -3560,23 +3602,23 @@ export class Admin implements OnInit, OnDestroy {
       ? `معمل: ${this.escapePdfHtml(accountName)}`
       : `دكتور: ${this.escapePdfHtml(accountName)}`;
     const doctorHeader = isLabAccount
-      ? `<th style="border:1px solid #222;background:#f3f4f6;padding:7px 6px;font-size:11px;font-weight:700;text-align:center;">الدكتور</th>`
+      ? `<th style="border:1px solid #cbd5e1;background:#f8fafc;padding:8px 6px;font-size:11px;font-weight:700;text-align:center;">الدكتور</th>`
       : '';
 
     const container = document.createElement('div');
     container.setAttribute('dir', 'rtl');
     container.style.cssText =
-      'position:fixed;left:-10000px;top:0;width:794px;background:#fff;color:#111;padding:24px 28px;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;font-size:13px;line-height:1.45;z-index:-1;';
+      'position:fixed;left:-10000px;top:0;width:794px;background:#ffffff;color:#0f172a;padding:28px 32px;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;font-size:13px;line-height:1.5;z-index:-1;';
     container.innerHTML = `
-      <table style="width:100%;border-collapse:collapse;margin-bottom:12px;">
+      <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
         <tr>
-          <td style="padding:0 0 10px;border-bottom:2px solid #111;vertical-align:bottom;">
-            <div style="font-size:20px;font-weight:800;">Elite Lab</div>
-            <div style="font-size:12px;color:#555;">كشف حساب</div>
+          <td style="padding:0 0 12px;border-bottom:2px solid #0f172a;vertical-align:bottom;">
+            <div style="font-size:22px;font-weight:800;letter-spacing:0.2px;">Elite Lab</div>
+            <div style="font-size:12px;color:#64748b;margin-top:2px;">كشف حساب</div>
           </td>
-          <td style="padding:0 0 10px;border-bottom:2px solid #111;text-align:left;vertical-align:bottom;">
+          <td style="padding:0 0 12px;border-bottom:2px solid #0f172a;text-align:left;vertical-align:bottom;">
             <div style="font-weight:800;font-size:14px;">${accountLabel}</div>
-            <div style="color:#555;font-size:12px;margin-top:2px;">التاريخ: ${dateStr}</div>
+            <div style="color:#64748b;font-size:12px;margin-top:2px;">التاريخ: ${dateStr}</div>
           </td>
         </tr>
       </table>
@@ -3584,40 +3626,32 @@ export class Admin implements OnInit, OnDestroy {
       <table style="width:100%;border-collapse:collapse;table-layout:fixed;">
         <thead>
           <tr>
-            <th style="border:1px solid #222;background:#f3f4f6;padding:7px 6px;font-size:11px;font-weight:700;text-align:center;width:36px;">#</th>
+            <th style="border:1px solid #cbd5e1;background:#f8fafc;padding:8px 6px;font-size:11px;font-weight:700;text-align:center;width:36px;">#</th>
             ${doctorHeader}
-            <th style="border:1px solid #222;background:#f3f4f6;padding:7px 6px;font-size:11px;font-weight:700;text-align:center;width:110px;">المريض</th>
-            <th style="border:1px solid #222;background:#f3f4f6;padding:7px 6px;font-size:11px;font-weight:700;text-align:center;">نوع العمل</th>
-            <th style="border:1px solid #222;background:#f3f4f6;padding:7px 6px;font-size:11px;font-weight:700;text-align:center;width:90px;">تاريخ الدخول</th>
-            <th style="border:1px solid #222;background:#f3f4f6;padding:7px 6px;font-size:11px;font-weight:700;text-align:center;width:90px;">تاريخ الخروج</th>
-            <th style="border:1px solid #222;background:#f3f4f6;padding:7px 6px;font-size:11px;font-weight:700;text-align:center;width:80px;">السعر</th>
+            <th style="border:1px solid #cbd5e1;background:#f8fafc;padding:8px 6px;font-size:11px;font-weight:700;text-align:center;width:110px;">المريض</th>
+            <th style="border:1px solid #cbd5e1;background:#f8fafc;padding:8px 6px;font-size:11px;font-weight:700;text-align:center;">نوع العمل</th>
+            <th style="border:1px solid #cbd5e1;background:#f8fafc;padding:8px 6px;font-size:11px;font-weight:700;text-align:center;width:90px;">تاريخ الدخول</th>
+            <th style="border:1px solid #cbd5e1;background:#f8fafc;padding:8px 6px;font-size:11px;font-weight:700;text-align:center;width:90px;">تاريخ الخروج</th>
+            <th style="border:1px solid #cbd5e1;background:#f8fafc;padding:8px 6px;font-size:11px;font-weight:700;text-align:center;width:80px;">السعر</th>
           </tr>
         </thead>
         <tbody>${this.buildAccountCasesPdfTable(cases, isLabAccount)}</tbody>
       </table>
 
-      <table style="width:100%;border-collapse:collapse;margin-top:14px;">
+      <table style="width:100%;border-collapse:collapse;margin-top:16px;">
         <tr>
-          <td style="border:1px solid #222;padding:8px 10px;width:25%;">
-            <div style="font-size:11px;color:#555;">عدد الحالات</div>
-            <div style="font-size:15px;font-weight:800;">${casesCount}</div>
+          <td style="border:1px solid #cbd5e1;padding:10px 12px;width:50%;background:#f8fafc;">
+            <div style="font-size:11px;color:#64748b;">عدد الحالات</div>
+            <div style="font-size:16px;font-weight:800;margin-top:2px;">${casesCount}</div>
           </td>
-          <td style="border:1px solid #222;padding:8px 10px;width:25%;">
-            <div style="font-size:11px;color:#555;">الإجمالي</div>
-            <div style="font-size:15px;font-weight:800;">${fmt(totalDue)} EGP</div>
-          </td>
-          <td style="border:1px solid #222;padding:8px 10px;width:25%;">
-            <div style="font-size:11px;color:#555;">المدفوع</div>
-            <div style="font-size:15px;font-weight:800;">${fmt(totalPaid)} EGP</div>
-          </td>
-          <td style="border:1px solid #222;padding:8px 10px;width:25%;">
-            <div style="font-size:11px;color:#555;">المتبقي</div>
-            <div style="font-size:15px;font-weight:800;">${fmt(remaining)} EGP</div>
+          <td style="border:1px solid #cbd5e1;padding:10px 12px;width:50%;background:#f8fafc;">
+            <div style="font-size:11px;color:#64748b;">إجمالي الحساب</div>
+            <div style="font-size:16px;font-weight:800;margin-top:2px;">${fmt(totalDue)} EGP</div>
           </td>
         </tr>
       </table>
 
-      <div style="text-align:center;font-size:11px;color:#555;margin-top:14px;">شكراً لتعاملكم معنا — Elite Dental Lab</div>
+      <div style="text-align:center;font-size:11px;color:#64748b;margin-top:16px;">شكراً لتعاملكم معنا — Elite Dental Lab</div>
     `;
 
     document.body.appendChild(container);
@@ -3631,26 +3665,8 @@ export class Admin implements OnInit, OnDestroy {
         backgroundColor: '#ffffff',
         useCORS: true,
       });
-      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 10;
-      const imgWidth = pageWidth - margin * 2;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      let heightLeft = imgHeight;
-      let position = margin;
-      pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight - margin * 2;
-
-      while (heightLeft > 0) {
-        position = margin - (imgHeight - heightLeft);
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight - margin * 2;
-      }
-
+      this.addCanvasPagesToPdf(pdf, canvas, 10);
       pdf.save(`${safeFileName}.pdf`);
     } catch (err) {
       console.error(err);
