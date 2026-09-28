@@ -1093,7 +1093,7 @@
                       type="button"
                       class="finish-btn"
                       *ngIf="!c.paid"
-                      [disabled]="!canConfirmPayment(c)"
+                      [disabled]="!canConfirmPayment(c) || isSalarySaving(c)"
                       (click)="$event.stopPropagation(); confirmPayment(c)"
                     >
                       تأكيد الدفع

@@ -147,6 +147,10 @@ export interface AiChatMessage {
 export class Admin implements OnInit, OnDestroy {
   private salaryDrafts: Record<string, string> = {};
   private salarySavingByCaseId: Record<string, boolean> = {};
+  /** Survives overlapping financial-report reloads after rapid تأكيد الدفع clicks. */
+  private pendingPaidOverrides = new Map<string, number>();
+  private financialReportReloadTimer: ReturnType<typeof setTimeout> | null = null;
+  private financialReportLoadSeq = 0;
   activeNav = 'dashboard';
   showStaffPassword = false;
   showStaffModal = false;
@@ -403,6 +407,10 @@ export class Admin implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.financialReportReloadTimer) {
+      clearTimeout(this.financialReportReloadTimer);
+      this.financialReportReloadTimer = null;
+    }
     this.destroy$.next();
     this.destroy$.complete();
   }
@@ -769,7 +777,12 @@ export class Admin implements OnInit, OnDestroy {
       const key = this.doctorGroupKey(name);
 
       const cost = this.calculateCaseCost(c);
-      const paidAmount = c.paid ? (c.salary || 0) : 0;
+      // Paid counters must never ignore a paid case with missing salary (race / old bug).
+      const paidAmount = c.paid
+        ? Number(c.salary) > 0
+          ? Number(c.salary)
+          : cost
+        : 0;
 
       if (!doctorMap.has(key)) {
         doctorMap.set(key, {
@@ -1308,21 +1321,30 @@ export class Admin implements OnInit, OnDestroy {
     if (!Number.isFinite(parsed) || parsed <= 0) {
       return;
     }
+    if (this.isSalarySaving(caseItem)) return;
     this.financialSaveError = '';
+    this.salarySavingByCaseId[caseItem.id] = true;
+    // Optimistic: counters update immediately and survive stale reloads
+    this.pendingPaidOverrides.set(caseItem.id, parsed);
+    caseItem.salary = parsed;
+    caseItem.paid = true;
     this.caseApi
       .updateCaseFinancials(caseItem.id, { salaryAmount: parsed, paymentStatus: 'paid' })
       .subscribe({
         next: () => {
-          caseItem.salary = parsed;
-          caseItem.paid = true;
+          this.salarySavingByCaseId[caseItem.id] = false;
           delete this.salaryDrafts[caseItem.id];
-          this.loadCasesFromApi();
-          this.loadFinancialReportFromApi();
+          this.scheduleFinancialReportReload();
           this.loadCashEntries();
         },
         error: (err) => {
           console.error(err);
+          this.salarySavingByCaseId[caseItem.id] = false;
+          this.pendingPaidOverrides.delete(caseItem.id);
+          caseItem.paid = false;
+          caseItem.salary = 0;
           this.financialSaveError = 'تعذر حفظ بيانات الدفع';
+          this.scheduleFinancialReportReload();
         },
       });
   }
@@ -1335,22 +1357,24 @@ export class Admin implements OnInit, OnDestroy {
     }
     this.financialSaveError = '';
     this.salarySavingByCaseId[caseItem.id] = true;
+    this.pendingPaidOverrides.set(caseItem.id, parsed);
+    caseItem.salary = parsed;
+    caseItem.paid = true;
     this.caseApi
       .updateCaseFinancials(caseItem.id, { salaryAmount: parsed, paymentStatus: 'paid' })
       .subscribe({
         next: () => {
-          caseItem.salary = parsed;
-          caseItem.paid = true;
           delete this.salaryDrafts[caseItem.id];
           this.salarySavingByCaseId[caseItem.id] = false;
-          this.loadCasesFromApi();
-          this.loadFinancialReportFromApi();
+          this.scheduleFinancialReportReload();
           this.loadCashEntries();
         },
         error: (err) => {
           console.error(err);
           this.salarySavingByCaseId[caseItem.id] = false;
+          this.pendingPaidOverrides.delete(caseItem.id);
           this.financialSaveError = 'تعذر تعديل سعر الحالة المدفوعة';
+          this.scheduleFinancialReportReload();
         },
       });
   }
@@ -1848,20 +1872,46 @@ export class Admin implements OnInit, OnDestroy {
     });
   }
 
+  private scheduleFinancialReportReload(): void {
+    if (this.financialReportReloadTimer) {
+      clearTimeout(this.financialReportReloadTimer);
+    }
+    this.financialReportReloadTimer = setTimeout(() => {
+      this.financialReportReloadTimer = null;
+      this.loadFinancialReportFromApi();
+      this.loadCasesFromApi();
+    }, 450);
+  }
+
   private loadFinancialReportFromApi(): void {
+    const seq = ++this.financialReportLoadSeq;
     this.caseApi.getFinancialReport().subscribe({
       next: (res) => {
+        if (seq !== this.financialReportLoadSeq) return; // ignore stale overlapping responses
         const rows = (res?.data ?? []) as Record<string, unknown>[];
-        this.reportCases = Array.isArray(rows)
+        const mapped = Array.isArray(rows)
           ? rows.map((row) => this.mapFinancialReportRowToAdminCase(row))
           : [];
+        this.reportCases = mapped.map((c) => this.applyPendingPaidOverride(c));
       },
       error: (err) => {
+        if (seq !== this.financialReportLoadSeq) return;
         console.error(err);
         this.reportCases = [];
       },
     });
     this.loadDoctorPayments();
+  }
+
+  private applyPendingPaidOverride(c: AdminCaseRow): AdminCaseRow {
+    const override = this.pendingPaidOverrides.get(c.id);
+    if (override === undefined) return c;
+    if (c.paid && Number(c.salary) > 0) {
+      // Server caught up with a real amount — drop override
+      this.pendingPaidOverrides.delete(c.id);
+      return c;
+    }
+    return { ...c, paid: true, salary: override };
   }
 
   private mapApiCaseToAdminCase(doc: Record<string, unknown>): AdminCaseRow {

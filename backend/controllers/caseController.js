@@ -3,8 +3,10 @@ const AuditLog = require('../models/AuditLog');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
 const CashEntry = require('../models/CashEntry');
+const DoctorPricing = require('../models/DoctorPricing');
 const { validationResult } = require('express-validator');
 const { emitToAll } = require('../services/socketService');
+const { repairPaidZeroSalaries } = require('../utils/caseCost');
 
 function normalizeDocId(ref) {
   if (ref === undefined || ref === null) return '';
@@ -385,6 +387,18 @@ exports.getAllCases = async (req, res) => {
 // Financial report rows + summary (admin only)
 exports.getFinancialReport = async (req, res) => {
   try {
+    // Safe one-time-style heal: only paid cases stuck at salaryAmount=0
+    try {
+      await repairPaidZeroSalaries({
+        DentalCase,
+        DoctorPricing,
+        CashEntry,
+        userId: req.user?.id || null,
+      });
+    } catch (healErr) {
+      console.error('repairPaidZeroSalaries failed:', healErr);
+    }
+
     const { year, month, doctor, paymentStatus } = req.query;
 
     const filter = { currentStage: 'exited' };
@@ -1463,6 +1477,16 @@ exports.updateCaseFinancials = async (req, res) => {
     if (paymentStatus !== undefined) {
       if (!['paid', 'unpaid'].includes(paymentStatus)) {
         return res.status(400).json({ message: 'paymentStatus must be paid or unpaid' });
+      }
+
+      // Never mark paid without a positive amount — prevents counters showing مدفوع with 0
+      if (paymentStatus === 'paid') {
+        const amountNow = Number(dentalCase.salaryAmount) || 0;
+        if (amountNow <= 0) {
+          return res.status(400).json({
+            message: 'Cannot mark case as paid without a positive salaryAmount',
+          });
+        }
       }
 
       dentalCase.paymentStatus = paymentStatus;
