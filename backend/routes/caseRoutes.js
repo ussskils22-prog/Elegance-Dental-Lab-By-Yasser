@@ -72,6 +72,11 @@ router.post(
 );
 
 router.get('/financial-report', authorize('admin'), caseController.getFinancialReport);
+router.post(
+  '/carry-forward-unpaid',
+  authorize('admin'),
+  caseController.carryForwardUnpaidCases
+);
 
 // Station barcode/QR scan (must be before /:id)
 router.post(

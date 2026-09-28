@@ -453,10 +453,22 @@ exports.getFinancialReport = async (req, res) => {
           dueDate: doc.dueDate || null,
           notes: doc.notes || '',
           exitedAt: doc.stageTimestamps?.exited || doc.updatedAt || null,
+          billingYear: doc.billingYear != null ? Number(doc.billingYear) : null,
+          billingMonth: doc.billingMonth != null ? Number(doc.billingMonth) : null,
         };
       })
       .filter((row) => {
-        const rowDate = new Date(row.receivedAt);
+        const byBilling =
+          Number.isFinite(row.billingYear) &&
+          Number(row.billingYear) > 0 &&
+          Number.isFinite(row.billingMonth) &&
+          Number(row.billingMonth) >= 1 &&
+          Number(row.billingMonth) <= 12;
+        const rowDate = byBilling
+          ? new Date(Number(row.billingYear), Number(row.billingMonth) - 1, 1)
+          : row.exitedAt
+            ? new Date(row.exitedAt)
+            : new Date(row.receivedAt);
         if (year && Number(year) !== rowDate.getFullYear()) return false;
         if (month && Number(month) !== rowDate.getMonth() + 1) return false;
         if (doctor) {
@@ -1564,6 +1576,55 @@ exports.updateCaseFinancials = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to update case financials',
+      error: error.message,
+    });
+  }
+};
+
+/** Carry unpaid exited cases into the next billing month (admin reports). */
+exports.carryForwardUnpaidCases = async (req, res) => {
+  try {
+    const caseIds = Array.isArray(req.body?.caseIds) ? req.body.caseIds : [];
+    const targetYear = Number(req.body?.targetYear);
+    const targetMonth = Number(req.body?.targetMonth);
+
+    if (!caseIds.length) {
+      return res.status(400).json({ success: false, message: 'caseIds are required' });
+    }
+    if (!Number.isFinite(targetYear) || targetYear < 2000 || targetYear > 2100) {
+      return res.status(400).json({ success: false, message: 'Invalid targetYear' });
+    }
+    if (!Number.isFinite(targetMonth) || targetMonth < 1 || targetMonth > 12) {
+      return res.status(400).json({ success: false, message: 'Invalid targetMonth' });
+    }
+
+    const uniqueIds = [...new Set(caseIds.map((id) => String(id)).filter(Boolean))];
+    const result = await DentalCase.updateMany(
+      {
+        _id: { $in: uniqueIds },
+        currentStage: 'exited',
+        paymentStatus: { $ne: 'paid' },
+      },
+      {
+        $set: {
+          billingYear: targetYear,
+          billingMonth: targetMonth,
+        },
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Cases carried forward',
+      matched: result.matchedCount ?? result.n,
+      modified: result.modifiedCount ?? result.nModified,
+      targetYear,
+      targetMonth,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to carry forward cases',
       error: error.message,
     });
   }

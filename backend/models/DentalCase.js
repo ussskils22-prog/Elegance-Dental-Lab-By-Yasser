@@ -106,6 +106,19 @@ const dentalCaseSchema = new mongoose.Schema(
       ref: 'User',
       default: null,
     },
+    /** Billing period for reports (carry-forward). When set, reports filter by this instead of exitedAt. */
+    billingYear: {
+      type: Number,
+      default: null,
+      index: true,
+    },
+    billingMonth: {
+      type: Number,
+      default: null,
+      min: 1,
+      max: 12,
+      index: true,
+    },
 
     // Timestamps for each stage
     stageTimestamps: {

@@ -76,6 +76,9 @@ export interface AdminCaseRow {
   deliveryTime?: string;
   rawNotes?: string;
   exitedAt?: Date;  // تاريخ الخروج الفعلي من stageTimestamps
+  /** Report billing period after ترحيل (overrides exitedAt for month filters) */
+  billingYear?: number | null;
+  billingMonth?: number | null;
 }
 
 export interface MonthlyDoctorSummary {
@@ -169,10 +172,11 @@ export class Admin implements OnInit, OnDestroy {
   set reportDoctorFilter(val: string) {
     this._reportDoctorFilter = val;
     if (val) {
-      this.reportYearFilter = '';
-      this.reportMonthFilter = '';
       this.reportSearch = '';
-      // Refresh work-type list (adds/hides) then load this account's prices
+      if (!this.reportYearFilter) {
+        this.reportYearFilter = String(new Date().getFullYear());
+      }
+      // Keep month if set; otherwise show all months of the year until user picks one
       this.loadReportWorkTypes();
     }
   }
@@ -181,7 +185,8 @@ export class Admin implements OnInit, OnDestroy {
     return field.key;
   }
 
-  paymentFilter: 'all' | 'paid' | 'unpaid' = 'unpaid';
+  paymentFilter: 'all' | 'paid' | 'unpaid' = 'all';
+  carryForwardSaving = false;
 
   doctorPricingsMap = new Map<string, any>();
 
@@ -599,12 +604,25 @@ export class Admin implements OnInit, OnDestroy {
 
   private matchesReportPeriod(c: AdminCaseRow): boolean {
     if (!this.reportYearFilter && !this.reportMonthFilter) return true;
-    const d = c.exitedAt || c.receivedAt;
-    if (!d) return false;
-    const dt = d instanceof Date ? d : new Date(d);
-    if (this.reportYearFilter && dt.getFullYear() !== Number(this.reportYearFilter)) return false;
-    if (this.reportMonthFilter && dt.getMonth() + 1 !== Number(this.reportMonthFilter)) return false;
+    const period = this.getReportBillingPeriod(c);
+    if (!period) return false;
+    if (this.reportYearFilter && period.year !== Number(this.reportYearFilter)) return false;
+    if (this.reportMonthFilter && period.month !== Number(this.reportMonthFilter)) return false;
     return true;
+  }
+
+  /** Billing month for filters: billingYear/Month if set, else exitedAt || receivedAt */
+  private getReportBillingPeriod(c: AdminCaseRow): { year: number; month: number } | null {
+    const by = Number(c.billingYear);
+    const bm = Number(c.billingMonth);
+    if (Number.isFinite(by) && by > 0 && Number.isFinite(bm) && bm >= 1 && bm <= 12) {
+      return { year: by, month: bm };
+    }
+    const d = c.exitedAt || c.receivedAt;
+    if (!d) return null;
+    const dt = d instanceof Date ? d : new Date(d);
+    if (Number.isNaN(dt.getTime())) return null;
+    return { year: dt.getFullYear(), month: dt.getMonth() + 1 };
   }
 
   /** Account shown in report list: lab name for lab cases, doctor otherwise */
@@ -1379,6 +1397,98 @@ export class Admin implements OnInit, OnDestroy {
       });
   }
 
+  markCaseUnpaid(caseItem: AdminCaseRow): void {
+    if (!caseItem?.paid) return;
+    if (this.isSalarySaving(caseItem)) return;
+    const ok = window.confirm(
+      `إلغاء دفع حالة ${caseItem.caseNumber || ''}؟\nهترجع غير مدفوعة ويتشال قيد الخزنة المرتبط بيها.`
+    );
+    if (!ok) return;
+
+    this.financialSaveError = '';
+    this.salarySavingByCaseId[caseItem.id] = true;
+    this.pendingPaidOverrides.delete(caseItem.id);
+    this.caseApi.updateCaseFinancials(caseItem.id, { paymentStatus: 'unpaid' }).subscribe({
+      next: () => {
+        caseItem.paid = false;
+        this.salarySavingByCaseId[caseItem.id] = false;
+        this.scheduleFinancialReportReload();
+        this.loadCashEntries();
+      },
+      error: (err) => {
+        console.error(err);
+        this.salarySavingByCaseId[caseItem.id] = false;
+        this.financialSaveError = 'تعذر إلغاء الدفع';
+        this.scheduleFinancialReportReload();
+      },
+    });
+  }
+
+  /** Unpaid cases in the currently selected doctor + year/month (ignores paymentFilter). */
+  get unpaidCasesForCarryForward(): AdminCaseRow[] {
+    if (!this.reportDoctorFilter || !this.reportYearFilter || !this.reportMonthFilter) {
+      return [];
+    }
+    const filterKey = this.doctorGroupKey(this.reportDoctorFilter);
+    return this.reportCases.filter((c) => {
+      if (c.paid) return false;
+      if (this.doctorGroupKey(this.getReportAccountName(c)) !== filterKey) return false;
+      return this.matchesReportPeriod(c);
+    });
+  }
+
+  carryForwardUnpaidCases(): void {
+    if (!this.reportDoctorFilter) return;
+    if (!this.reportYearFilter || !this.reportMonthFilter) {
+      this.financialSaveError = 'اختَر السنة والشهر أولاً قبل الترحيل';
+      return;
+    }
+    const unpaid = this.unpaidCasesForCarryForward;
+    if (!unpaid.length) {
+      this.financialSaveError = 'مفيش حالات غير مدفوعة في الشهر ده للترحيل';
+      return;
+    }
+
+    let year = Number(this.reportYearFilter);
+    let month = Number(this.reportMonthFilter);
+    if (month >= 12) {
+      month = 1;
+      year += 1;
+    } else {
+      month += 1;
+    }
+
+    const ok = window.confirm(
+      `ترحيل ${unpaid.length} حالة غير مدفوعة من ${this.monthName(Number(this.reportMonthFilter))} ${this.reportYearFilter} إلى ${this.monthName(month)} ${year}؟`
+    );
+    if (!ok) return;
+
+    this.carryForwardSaving = true;
+    this.financialSaveError = '';
+    this.caseApi
+      .carryForwardUnpaidCases({
+        caseIds: unpaid.map((c) => c.id),
+        targetYear: year,
+        targetMonth: month,
+      })
+      .subscribe({
+        next: (res) => {
+          this.carryForwardSaving = false;
+          const moved = Number(res?.modified ?? unpaid.length) || unpaid.length;
+          // Jump filter to the destination month so user sees carried cases
+          this.reportYearFilter = String(year);
+          this.reportMonthFilter = String(month);
+          this.loadFinancialReportFromApi();
+          alert(`تم ترحيل ${moved} حالة إلى ${this.monthName(month)} ${year}`);
+        },
+        error: (err) => {
+          console.error(err);
+          this.carryForwardSaving = false;
+          this.financialSaveError = 'تعذر ترحيل الحالات';
+        },
+      });
+  }
+
   get totalPages(): number {
     return Math.max(1, Math.ceil(this.filteredCases.length / this.pageSize));
   }
@@ -1979,6 +2089,8 @@ export class Admin implements OnInit, OnDestroy {
       source: 'case',
       exitedAt,
       exitedAtDisplay: exitedAt ? this.formatDateEn(exitedAt) : 'غير متوفر',
+      billingYear: Number.isFinite(Number(doc['billingYear'])) ? Number(doc['billingYear']) : null,
+      billingMonth: Number.isFinite(Number(doc['billingMonth'])) ? Number(doc['billingMonth']) : null,
     };
   }
 
@@ -2042,6 +2154,8 @@ export class Admin implements OnInit, OnDestroy {
       deliveryTime: String(parsedMeta['deliveryTime'] ?? ''),
       rawNotes: notes,
       source: 'case',
+      billingYear: Number.isFinite(Number(row['billingYear'])) ? Number(row['billingYear']) : null,
+      billingMonth: Number.isFinite(Number(row['billingMonth'])) ? Number(row['billingMonth']) : null,
     };
   }
 
@@ -2280,23 +2394,27 @@ export class Admin implements OnInit, OnDestroy {
   get reportYears(): number[] {
     const years = new Set<number>();
     this.reportCases.forEach((c) => {
-      const d = c.exitedAt || c.receivedAt;
-      if (d) years.add((d instanceof Date ? d : new Date(d)).getFullYear());
+      const period = this.getReportBillingPeriod(c);
+      if (period) years.add(period.year);
     });
     const current = new Date().getFullYear();
     years.add(current);
+    years.add(current + 1);
     return Array.from(years).sort((a, b) => b - a);
   }
 
   get reportMonthsForSelectedYear(): number[] {
     if (!this.reportYearFilter) return [];
+    // In doctor detail always offer all 12 months so user can pick any month
+    if (this.reportDoctorFilter) {
+      return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    }
     const year = Number(this.reportYearFilter);
     const months = new Set<number>();
     this.reportCases.forEach((c) => {
-      const d = c.exitedAt || c.receivedAt;
-      if (!d) return;
-      const dt = d instanceof Date ? d : new Date(d);
-      if (dt.getFullYear() === year) months.add(dt.getMonth() + 1);
+      const period = this.getReportBillingPeriod(c);
+      if (!period) return;
+      if (period.year === year) months.add(period.month);
     });
     return Array.from(months).sort((a, b) => a - b);
   }
