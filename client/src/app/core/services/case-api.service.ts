@@ -169,6 +169,31 @@ export class CaseApiService {
     return this.http.delete(`${environment.apiUrl}/doctor-payments/${id}`);
   }
 
+  getDoctorCharges(doctorName?: string): Observable<any> {
+    const url = doctorName
+      ? `${environment.apiUrl}/doctor-charges?doctor=${encodeURIComponent(doctorName)}`
+      : `${environment.apiUrl}/doctor-charges`;
+    return this.http.get(url);
+  }
+
+  addDoctorCharge(
+    doctorName: string,
+    amount: number,
+    notes: string = '',
+    chargeDate?: string
+  ): Observable<any> {
+    return this.http.post(`${environment.apiUrl}/doctor-charges`, {
+      doctorName,
+      amount,
+      notes,
+      chargeDate,
+    });
+  }
+
+  deleteDoctorCharge(id: string): Observable<any> {
+    return this.http.delete(`${environment.apiUrl}/doctor-charges/${id}`);
+  }
+
   getCashEntries(params?: { from?: string; to?: string; type?: string }): Observable<any> {
     const q = new URLSearchParams();
     if (params?.from) q.set('from', params.from);

@@ -1075,6 +1075,89 @@
             </div>
           </div>
 
+          <!-- زيادات على الفاتورة (بتزوّد الإجمالي / المتبقي) -->
+          <div class="report-table-card" style="margin-bottom:24px; padding:20px;">
+            <div style="font-weight:700;font-size:16px;margin-bottom:16px;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:#3b82f6;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                زيادات على الفاتورة للطبيب: {{ reportDoctorFilter }}
+              </div>
+            </div>
+
+            <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+              <span class="summary-pill">إجمالي الفاتورة: {{ getDoctorTotalDue(reportDoctorFilter) | number:'1.0-0' }} EGP</span>
+              <span class="summary-pill">إجمالي الزيادات: {{ getDoctorChargesTotal(reportDoctorFilter) | number:'1.0-0' }} EGP</span>
+              <span class="summary-pill">المتبقي: {{ getDoctorRemainingBalance(reportDoctorFilter) | number:'1.0-0' }} EGP</span>
+            </div>
+
+            <div style="display:flex;gap:16px;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;background:#0f172a;padding:16px;border-radius:12px;border:1px solid #1e293b;">
+              <div style="flex:1;min-width:150px;">
+                <label style="font-size:12px;color:#94a3b8;margin-bottom:6px;display:block;">قيمة الزيادة (EGP)</label>
+                <input
+                  type="number"
+                  [(ngModel)]="newChargeAmount"
+                  placeholder="مثال: 500"
+                  min="1"
+                  style="width:100%;background:#1e293b;border:1px solid #334155;color:#fff;padding:8px 12px;border-radius:8px;font-size:14px;"
+                />
+              </div>
+              <div style="flex:2;min-width:250px;">
+                <label style="font-size:12px;color:#94a3b8;margin-bottom:6px;display:block;">ملاحظات / سبب الزيادة</label>
+                <input
+                  type="text"
+                  [(ngModel)]="newChargeNotes"
+                  placeholder="ملاحظات اختيارية (مثال: رسوم توصيل، تعديل إضافي...)"
+                  style="width:100%;background:#1e293b;border:1px solid #334155;color:#fff;padding:8px 12px;border-radius:8px;font-size:14px;"
+                />
+              </div>
+              <div>
+                <button
+                  type="button"
+                  class="finish-btn"
+                  style="padding:10px 24px;font-size:14px;background:linear-gradient(135deg,#3b82f6,#2563eb);border:none;box-shadow:0 4px 12px rgba(37,99,235,0.25);display:flex;align-items:center;gap:6px;"
+                  [disabled]="chargeSaving || !newChargeAmount || newChargeAmount <= 0"
+                  (click)="addDoctorChargeOnAccount()"
+                >
+                  {{ chargeSaving ? 'جاري الحفظ...' : 'تسجيل الزيادة' }}
+                </button>
+              </div>
+            </div>
+
+            <p *ngIf="chargeError" style="color:#ef4444;font-size:14px;margin-bottom:12px;">{{ chargeError }}</p>
+
+            <div style="background:#0f172a;border-radius:12px;border:1px solid #1e293b;overflow:hidden;">
+              <table style="width:100%;border-collapse:collapse;text-align:right;">
+                <thead>
+                  <tr style="background:#1e293b;color:#94a3b8;font-size:12px;">
+                    <th style="padding:12px 16px;">تاريخ الزيادة</th>
+                    <th style="padding:12px 16px;">المبلغ</th>
+                    <th style="padding:12px 16px;">الملاحظات</th>
+                    <th style="padding:12px 16px;text-align:center;">إجراء</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let c of getDoctorChargesList(reportDoctorFilter)" style="border-bottom:1px solid #1e293b;color:#e2e8f0;font-size:14px;">
+                    <td style="padding:12px 16px;">{{ formatDateEn(c.chargeDate) }}</td>
+                    <td style="padding:12px 16px;font-weight:700;color:#3b82f6;">+{{ c.amount | number:'1.0-0' }} EGP</td>
+                    <td style="padding:12px 16px;color:#94a3b8;">{{ c.notes || '—' }}</td>
+                    <td style="padding:12px 16px;text-align:center;">
+                      <button
+                        type="button"
+                        style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:12px;font-weight:600;"
+                        (click)="deleteDoctorChargeOnAccount(c._id)"
+                      >
+                        حذف
+                      </button>
+                    </td>
+                  </tr>
+                  <tr *ngIf="getDoctorChargesList(reportDoctorFilter).length === 0">
+                    <td colspan="4" style="padding:20px;text-align:center;color:#64748b;font-size:14px;">لا توجد زيادات مسجلة على فاتورة هذا الطبيب بعد.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <!-- جدول الحالات التفصيلي -->
           <div class="report-table-card">
             <table>

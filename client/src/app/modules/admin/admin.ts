@@ -333,6 +333,11 @@ export class Admin implements OnInit, OnDestroy {
   newPaymentNotes = '';
   paymentSaving = false;
   paymentError = '';
+  doctorCharges: any[] = [];
+  newChargeAmount: number | null = null;
+  newChargeNotes = '';
+  chargeSaving = false;
+  chargeError = '';
   selectedPatient: AdminPatient | null = null;
   selectedCase: AdminCaseRow | null = null;
   selectedReportCase: AdminCaseRow | null = null;
@@ -822,7 +827,11 @@ export class Admin implements OnInit, OnDestroy {
       const generalPaymentsSum = this.doctorPayments
         .filter(p => this.doctorGroupKey(p.doctorName) === key)
         .reduce((sum, p) => sum + (p.amount || 0), 0);
-      
+      const chargesSum = this.doctorCharges
+        .filter(c => this.doctorGroupKey(c.doctorName) === key)
+        .reduce((sum, c) => sum + (c.amount || 0), 0);
+
+      docObj.totalDue += chargesSum;
       docObj.totalPaid += generalPaymentsSum;
       docObj.remaining = docObj.totalDue - docObj.totalPaid;
     });
@@ -3226,6 +3235,19 @@ export class Admin implements OnInit, OnDestroy {
         this.doctorPayments = [];
       }
     });
+    this.loadDoctorCharges();
+  }
+
+  loadDoctorCharges(): void {
+    this.caseApi.getDoctorCharges().subscribe({
+      next: (res) => {
+        this.doctorCharges = res?.data ?? [];
+      },
+      error: (err) => {
+        console.error('Error loading doctor charges:', err);
+        this.doctorCharges = [];
+      },
+    });
   }
 
   private localYmd(d = new Date()): string {
@@ -3478,6 +3500,50 @@ export class Admin implements OnInit, OnDestroy {
     return this.doctorPayments.filter(p => this.doctorGroupKey(p.doctorName) === key);
   }
 
+  getDoctorChargesList(doctorName: string): any[] {
+    const key = this.doctorGroupKey(doctorName);
+    return this.doctorCharges.filter((c) => this.doctorGroupKey(c.doctorName) === key);
+  }
+
+  getDoctorChargesTotal(doctorName: string): number {
+    return this.getDoctorChargesList(doctorName).reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+  }
+
+  addDoctorChargeOnAccount(): void {
+    if (!this.reportDoctorFilter || !this.newChargeAmount || this.newChargeAmount <= 0) return;
+    const amount = Number(this.newChargeAmount);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      this.chargeError = 'قيمة الزيادة غير صحيحة';
+      return;
+    }
+    this.chargeSaving = true;
+    this.chargeError = '';
+    this.caseApi.addDoctorCharge(this.reportDoctorFilter, amount, this.newChargeNotes).subscribe({
+      next: () => {
+        this.chargeSaving = false;
+        this.newChargeAmount = null;
+        this.newChargeNotes = '';
+        this.loadDoctorCharges();
+      },
+      error: (err) => {
+        this.chargeSaving = false;
+        this.chargeError = 'تعذر تسجيل الزيادة: ' + (err.error?.message || err.message);
+        console.error('Failed to add doctor charge:', err);
+      },
+    });
+  }
+
+  deleteDoctorChargeOnAccount(id: string): void {
+    if (!confirm('هل أنت متأكد من حذف هذه الزيادة من الفاتورة؟')) return;
+    this.caseApi.deleteDoctorCharge(id).subscribe({
+      next: () => this.loadDoctorCharges(),
+      error: (err) => {
+        alert('تعذر حذف الزيادة: ' + (err.error?.message || err.message));
+        console.error('Failed to delete doctor charge:', err);
+      },
+    });
+  }
+
   printDoctorReceipt(): void {
     if (!this.reportDoctorFilter) return;
 
@@ -3708,7 +3774,9 @@ export class Admin implements OnInit, OnDestroy {
     const isLabAccount = this.isFilteredReportAccountLab;
     const cases = this.reportFilteredCases;
     const casesCount = cases.length;
-    const totalDue = cases.reduce((sum, c) => sum + this.calculateCaseCost(c), 0);
+    const totalDue =
+      cases.reduce((sum, c) => sum + this.calculateCaseCost(c), 0) +
+      this.getDoctorChargesTotal(accountName);
     const fmt = (n: number) =>
       n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
     const safeFileName = String(accountName || 'account')
