@@ -1175,6 +1175,9 @@ export class Secretary implements OnInit, OnDestroy {
   readonly menuOpenId = signal<string | null>(null);
   readonly notificationsOpen = signal(false);
   readonly toast = signal<string | null>(null);
+  /** Live Print Agent (Windows service) — null until first status fetch */
+  readonly printAgentOnline = signal<boolean | null>(null);
+  private printAgentPollTimer: ReturnType<typeof setInterval> | null = null;
   readonly highlightedCaseId = signal<string | null>(null);
   private highlightTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -1559,6 +1562,7 @@ export class Secretary implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.reloadCasesFromBackend();
     this.connectRealtimeUpdates();
+    this.startPrintAgentStatusWatch();
     this.loadAccountDoctors();
     this.labConfig.workTypeLabels().subscribe((labels) => {
       if (labels?.length) this.workTypeOptions = labels;
@@ -1573,7 +1577,34 @@ export class Secretary implements OnInit, OnDestroy {
       clearTimeout(this.reloadDebounceTimer);
       this.reloadDebounceTimer = null;
     }
+    if (this.printAgentPollTimer) {
+      clearInterval(this.printAgentPollTimer);
+      this.printAgentPollTimer = null;
+    }
     this.socketSubs.forEach((s) => s.unsubscribe());
+  }
+
+  private startPrintAgentStatusWatch(): void {
+    this.refreshPrintAgentStatus();
+    this.printAgentPollTimer = setInterval(() => this.refreshPrintAgentStatus(), 20000);
+    this.socketSubs.push(
+      this.socketService.onPrintAgentStatus().subscribe((evt) => {
+        if (evt && typeof evt.online === 'boolean') {
+          this.printAgentOnline.set(evt.online);
+        }
+      })
+    );
+  }
+
+  private refreshPrintAgentStatus(): void {
+    this.http
+      .get<{ success?: boolean; online?: boolean }>(`${this.apiBase}/print/agent-status`)
+      .subscribe({
+        next: (res) => this.printAgentOnline.set(Boolean(res?.online)),
+        error: () => {
+          /* keep last known status */
+        },
+      });
   }
 
   private connectRealtimeUpdates(): void {
@@ -2366,7 +2397,9 @@ export class Secretary implements OnInit, OnDestroy {
             this.saveInProgress.set(false);
             const saved = skipPrint
               ? this.lang.t('secretary.toast.savedNoPrint')
-              : this.lang.t('secretary.toast.savedPrint');
+              : this.printAgentOnline() === false
+                ? this.lang.t('secretary.toast.savedPrintOffline')
+                : this.lang.t('secretary.toast.savedPrint');
             this.flash(
               createdAccount ? `${saved} — ${this.lang.t('secretary.clients.autoCreated')}` : saved
             );
@@ -2818,7 +2851,9 @@ export class Secretary implements OnInit, OnDestroy {
           this.flash(
             skipPrint
               ? this.lang.t('secretary.toast.spawnFinalOkNoPrint')
-              : this.lang.t('secretary.toast.spawnFinalOk')
+              : this.printAgentOnline() === false
+                ? this.lang.t('secretary.toast.spawnFinalOkOffline')
+                : this.lang.t('secretary.toast.spawnFinalOk')
           );
           this.activeFilter.set('all');
           this.reloadCasesFromBackend();
@@ -3109,7 +3144,12 @@ export class Secretary implements OnInit, OnDestroy {
         printData: buildPrintData(printDraft, caseNumber),
       })
       .subscribe({
-        next: () => this.flash(this.lang.t('secretary.toast.reprintOk')),
+        next: () =>
+          this.flash(
+            this.printAgentOnline() === false
+              ? this.lang.t('secretary.toast.savedPrintOffline')
+              : this.lang.t('secretary.toast.reprintOk')
+          ),
         error: () => this.flash(this.lang.t('secretary.toast.reprintFail')),
       });
   }

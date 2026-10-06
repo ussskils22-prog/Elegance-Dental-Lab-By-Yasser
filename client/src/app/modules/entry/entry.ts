@@ -97,6 +97,8 @@ export class EntryComponent implements OnInit, OnDestroy {
   readonly notificationsOpen = signal(false);
   readonly jobsLoading = signal(true);
   readonly showReceptionHub = signal(false);
+  readonly printAgentOnline = signal<boolean | null>(null);
+  private printAgentPollTimer: ReturnType<typeof setInterval> | null = null;
 
   isAdminUser(): boolean {
     return this.auth.getSession()?.role === 'admin';
@@ -478,6 +480,7 @@ export class EntryComponent implements OnInit, OnDestroy {
     const role = this.auth.getSession()?.role;
     this.showReceptionHub.set(role === 'secretary' || role === 'admin');
     this.loadAccountDoctors();
+    this.startPrintAgentStatusWatch();
 
     // Load cases (for list context / shared state)
     this.caseApi.getAllCases(1, 1500).subscribe({
@@ -562,10 +565,36 @@ export class EntryComponent implements OnInit, OnDestroy {
       clearInterval(this.jobsPollTimer);
       this.jobsPollTimer = null;
     }
+    if (this.printAgentPollTimer) {
+      clearInterval(this.printAgentPollTimer);
+      this.printAgentPollTimer = null;
+    }
     if (this.onVisibilityChange) {
       document.removeEventListener('visibilitychange', this.onVisibilityChange);
       this.onVisibilityChange = null;
     }
+  }
+
+  private startPrintAgentStatusWatch(): void {
+    this.socketService.connect();
+    this.refreshPrintAgentStatus();
+    this.printAgentPollTimer = setInterval(() => this.refreshPrintAgentStatus(), 20000);
+    this.socketSubs.push(
+      this.socketService.onPrintAgentStatus().subscribe((evt) => {
+        if (evt && typeof evt.online === 'boolean') {
+          this.printAgentOnline.set(evt.online);
+        }
+      })
+    );
+  }
+
+  private refreshPrintAgentStatus(): void {
+    this.http
+      .get<{ success?: boolean; online?: boolean }>(`${this.apiBase}/print/agent-status`)
+      .subscribe({
+        next: (res) => this.printAgentOnline.set(Boolean(res?.online)),
+        error: () => {},
+      });
   }
 
   openDialog(): void {
@@ -653,7 +682,11 @@ export class EntryComponent implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.saveInProgress.set(false);
-          this.flash(this.lang.t('entry.toast.saved'));
+          this.flash(
+            this.printAgentOnline() === false
+              ? this.lang.t('entry.toast.savedOffline')
+              : this.lang.t('entry.toast.saved')
+          );
           this.loadTodayJobs();
         },
         error: () => {
@@ -780,7 +813,11 @@ export class EntryComponent implements OnInit, OnDestroy {
       })
       .subscribe({
         next: () => {
-          this.flash(this.lang.t('entry.toast.reprinted'));
+          this.flash(
+            this.printAgentOnline() === false
+              ? this.lang.t('entry.toast.savedOffline')
+              : this.lang.t('entry.toast.reprinted')
+          );
           this.loadTodayJobs();
         },
         error: () => this.flash(this.lang.t('entry.toast.reprintFail')),

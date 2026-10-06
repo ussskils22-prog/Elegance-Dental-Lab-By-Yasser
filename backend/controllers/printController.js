@@ -1,6 +1,6 @@
 const PrintJob = require('../models/PrintJob');
 const DentalCase = require('../models/DentalCase');
-const { getIO } = require('../services/socketService');
+const { getIO, getPrintAgentStatus } = require('../services/socketService');
 
 const META_PREFIX = '__META__\n';
 
@@ -333,6 +333,22 @@ exports.clearAllJobs = async (req, res) => {
     return res.json({ success: true, message: 'تم مسح جميع الريكويستات' });
   } catch (err) {
     console.error('clearAllJobs error:', err);
+    return res.status(500).json({ success: false, message: 'خطأ في السيرفر' });
+  }
+};
+
+// GET /api/print/agent-status — staff: is a Print Agent connected right now?
+exports.getAgentStatus = async (req, res) => {
+  try {
+    const status = getPrintAgentStatus();
+    return res.json({
+      success: true,
+      online: status.online,
+      agentCount: status.agentCount,
+      connectedAt: status.connectedAt,
+    });
+  } catch (err) {
+    console.error('getAgentStatus error:', err);
     return res.status(500).json({ success: false, message: 'خطأ في السيرفر' });
   }
 };

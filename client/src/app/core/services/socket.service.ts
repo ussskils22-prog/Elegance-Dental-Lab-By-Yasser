@@ -27,6 +27,13 @@ export class SocketService {
   // Notification Events
   private notificationReceived$ = new BehaviorSubject<any>(null);
 
+  // Print Agent online/offline (lab Windows service)
+  private printAgentStatus$ = new BehaviorSubject<{
+    online: boolean;
+    agentCount?: number;
+    connectedAt?: string | null;
+  } | null>(null);
+
   constructor(private authService: AuthService) {}
 
   connect(): void {
@@ -125,6 +132,15 @@ export class SocketService {
       console.log('New notification:', data);
       this.notificationReceived$.next(data);
     });
+
+    this.socket.on('print:agent-status', (data: unknown) => {
+      const row = data as { online?: boolean; agentCount?: number; connectedAt?: string | null };
+      this.printAgentStatus$.next({
+        online: Boolean(row?.online),
+        agentCount: Number(row?.agentCount) || 0,
+        connectedAt: row?.connectedAt ?? null,
+      });
+    });
   }
 
   disconnect(): void {
@@ -205,5 +221,13 @@ export class SocketService {
 
   onNotificationReceived(): Observable<any> {
     return this.notificationReceived$.asObservable();
+  }
+
+  onPrintAgentStatus(): Observable<{
+    online: boolean;
+    agentCount?: number;
+    connectedAt?: string | null;
+  } | null> {
+    return this.printAgentStatus$.asObservable();
   }
 }

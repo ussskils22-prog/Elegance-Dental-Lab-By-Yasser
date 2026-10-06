@@ -1,19 +1,43 @@
-# تحديث Print Agent (لابتوب الطباعة)
+# Print Agent على لابتوب الطباعة
 
-الشيت المطبوع بقى **صفحة واحدة** + مخطط Palmer كلاسيك:
-- أرقام `8 7 6 5 4 3 2 1 | 1 2 3 4 5 6 7 8` مع R/L (مش FDI جوه مربعات)
-- الأسنان المتصلة (`groupId` واحد = جسر) في مستطيل واحد
-- اختصار الخامة فوق المستطيل (فك علوي) أو تحته (فك سفلي): `Em` / `Zr` / `GZ` …
-- بدون صندوق ملخص الأسنان الكبير (كان بيسبب صفحة تانية)
+الطباعة الصامتة **لازم** تشتغل من جهاز مربوط بالطابعة. السحابة (Vercel / Railway) بتحط الـ job في الطابور؛ الايجنت هو اللي يطبع.
 
-## على لابتوب الطباعة
-1. انسخ الملف الجديد `print-agent/agent.js` مكان القديم
-2. أوقف الـ agent
-3. شغّله تاني:
+## التشغيل الدائم (موصى به) — خدمة ويندوز
+
+مرة واحدة كـ **Administrator** على جهاز الطباعة:
+
+1. حدّث ملفات `print-agent` (خاصة `agent.js` و `config.json`).
+2. تأكد من `config.json`:
+   - `SERVER_URL` = عنوان Railway (مثل `…-da7c.up.railway.app`)
+   - `PRINT_AGENT_SECRET` = نفس قيمة Railway env
+   - `PRINTER_NAME` = اسم الطابعة في ويندوز (مثل `POSPrinter POS80`)
+3. من مجلد `print-agent`:
    ```bat
-   cd print-agent
-   node agent.js
+   npm install
+   npm run install-service
    ```
-4. اطبع ريكويست **جديد** فيه أسنان (جسر + تيجان منفصلة)
+   أو شغّل `install-as-service.bat` كـ Administrator.
+4. افتح `services.msc` → ابحث عن **ElegancePrintAgent** → Status = Running، Startup = Automatic.
 
-Vercel وحده مش بيحدّث الـ agent.
+بعد كده مفيش فتح ترمينال يوميًا: الخدمة تشتغل مع الجهاز وتعيد التشغيل لو وقعت.
+
+إلغاء التثبيت:
+
+```bat
+npm run uninstall-service
+```
+
+## تشغيل يدوي (اختبار فقط)
+
+```bat
+cd print-agent
+node agent.js
+```
+
+## تحديث الشيت / الـ agent
+
+1. انسخ `agent.js` (وأي ملفات تانية اتغيرت) مكان القديم.
+2. أعد تشغيل الخدمة من `services.msc` (Restart) — أو لو شغال يدوي: أوقف وأعد `node agent.js`.
+3. اطبع ريكويست جديد للتأكد.
+
+**مهم:** Vercel وحده مش بيحدّث الـ agent على جهاز الطباعة.

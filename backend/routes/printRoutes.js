@@ -55,6 +55,14 @@ router.get(
   printController.listTodayJobs
 );
 
+// Live Print Agent connection status (Windows service / agent.js)
+router.get(
+  '/agent-status',
+  authenticate,
+  authorize('admin', 'secretary', 'finisher', 'designer'),
+  printController.getAgentStatus
+);
+
 // Destructive deletes — admin (or secretary) only
 router.delete(
   '/job/:id',

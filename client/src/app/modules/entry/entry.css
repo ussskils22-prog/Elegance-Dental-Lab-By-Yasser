@@ -39,6 +39,67 @@
   color: #fff;
 }
 
+.entry-page .topbar-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.print-agent-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-primary, #e2e8f0);
+  white-space: nowrap;
+  color: var(--muted, #64748b);
+  background: color-mix(in srgb, var(--bg-secondary, #f1f5f9) 80%, transparent);
+}
+
+.print-agent-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #94a3b8;
+  flex-shrink: 0;
+}
+
+.print-agent-badge--online {
+  color: #047857;
+  border-color: color-mix(in srgb, #10b981 45%, transparent);
+  background: color-mix(in srgb, #10b981 12%, transparent);
+}
+
+.print-agent-badge--online .print-agent-dot {
+  background: #10b981;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #10b981 25%, transparent);
+}
+
+.print-agent-badge--offline {
+  color: #b91c1c;
+  border-color: color-mix(in srgb, #ef4444 45%, transparent);
+  background: color-mix(in srgb, #ef4444 12%, transparent);
+}
+
+.print-agent-badge--offline .print-agent-dot {
+  background: #ef4444;
+}
+
+body.dark-theme .print-agent-badge--online,
+.dark-theme .print-agent-badge--online {
+  color: #6ee7b7;
+}
+
+body.dark-theme .print-agent-badge--offline,
+.dark-theme .print-agent-badge--offline {
+  color: #fca5a5;
+}
+
 body.dark-theme .hub-back-admin,
 .dark-theme .hub-back-admin {
   border-color: #14b8a6;

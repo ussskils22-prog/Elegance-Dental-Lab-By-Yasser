@@ -4,6 +4,34 @@ const User = require('../models/User');
 
 let io;
 const userConnections = new Map(); // userId -> socket id
+/** socket.id -> { connectedAt: Date } for live Print Agents */
+const printAgentConnections = new Map();
+
+function broadcastPrintAgentStatus() {
+  if (!io) return;
+  const online = printAgentConnections.size > 0;
+  let connectedAt = null;
+  for (const row of printAgentConnections.values()) {
+    if (!connectedAt || row.connectedAt < connectedAt) connectedAt = row.connectedAt;
+  }
+  io.emit('print:agent-status', {
+    online,
+    agentCount: printAgentConnections.size,
+    connectedAt: connectedAt ? connectedAt.toISOString() : null,
+  });
+}
+
+function getPrintAgentStatus() {
+  let connectedAt = null;
+  for (const row of printAgentConnections.values()) {
+    if (!connectedAt || row.connectedAt < connectedAt) connectedAt = row.connectedAt;
+  }
+  return {
+    online: printAgentConnections.size > 0,
+    agentCount: printAgentConnections.size,
+    connectedAt: connectedAt ? connectedAt.toISOString() : null,
+  };
+}
 
 const setupSocket = (server) => {
   io = new Server(server, {
@@ -56,7 +84,11 @@ const setupSocket = (server) => {
     // ── Print Agent connection ──────────────────────────
     if (socket.isPrintAgent) {
       socket.join('print-agents');
-      console.log('🖨️  Print Agent connected and joined print-agents room');
+      printAgentConnections.set(socket.id, { connectedAt: new Date() });
+      console.log(
+        `🖨️  Print Agent connected (${printAgentConnections.size} online) — joined print-agents room`
+      );
+      broadcastPrintAgentStatus();
 
       // Fetch and send accumulated pending / failed print jobs for catch-up
       (async () => {
@@ -105,7 +137,13 @@ const setupSocket = (server) => {
         }
       });
 
-      socket.on('disconnect', () => console.log('🖨️  Print Agent disconnected'));
+      socket.on('disconnect', () => {
+        printAgentConnections.delete(socket.id);
+        console.log(
+          `🖨️  Print Agent disconnected (${printAgentConnections.size} still online)`
+        );
+        broadcastPrintAgentStatus();
+      });
       return; // Don't run user-related logic for agents
     }
 
@@ -292,4 +330,5 @@ module.exports = {
   getIO,
   emitToUser,
   emitToAll,
+  getPrintAgentStatus,
 };
