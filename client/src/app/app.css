@@ -34,6 +34,19 @@
   }
 }
 
+.demo-mode-banner {
+  position: sticky;
+  top: 0;
+  z-index: 100001;
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  background: #b45309;
+  color: #fff;
+}
+
 .sw-update-banner {
   position: fixed;
   top: 0;

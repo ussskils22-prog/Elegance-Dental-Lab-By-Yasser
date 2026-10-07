@@ -1,8 +1,10 @@
-﻿{
-    "SERVER_URL":  "https://elegance-dental-lab-by-yasser-production-da7c.up.railway.app",
-    "PRINT_AGENT_SECRET":  "elegance-print-secret-2024",
-    "PRINTER_NAME":  "POSPrinter POS80",
-    "POLL_INTERVAL_MS":  20000,
+{
     "PRINT_CONFIRM_TIMEOUT_MS":  90000,
-    "PRINTER_CHECK_MS":  10000
+    "PRINT_AGENT_SECRET":  "elegance-print-secret-2024",
+    "PRINTER_CHECK_MS":  10000,
+    "SERVER_URL":  "https://elegance-dental-lab-by-yasser-production-da7c.up.railway.app",
+    "PRINTER_NAME":  "HP LaserJet Professional P1102",
+    "POLL_INTERVAL_MS":  20000,
+    "CONTROL_PORT":  17891,
+    "AUTO_START_AGENT":  true
 }

@@ -16,6 +16,7 @@ import {
 import { Subscription, catchError, switchMap, of } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
 import { SocketService } from '../../core/services/socket.service';
+import { LocalPrintControlService } from '../../core/services/local-print-control.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { LanguageService } from '../../core/i18n/language.service';
 import { TPipe } from '../../core/i18n/t.pipe';
@@ -81,6 +82,7 @@ export class EntryComponent implements OnInit, OnDestroy {
   private readonly sharedCases = inject(SharedCasesService);
   private readonly userApi = inject(UserApiService);
   private readonly socketService = inject(SocketService);
+  readonly localPrint = inject(LocalPrintControlService);
   private readonly router = inject(Router);
   private readonly http = inject(HttpClient);
   public readonly themeService = inject(ThemeService);
@@ -578,7 +580,11 @@ export class EntryComponent implements OnInit, OnDestroy {
   private startPrintAgentStatusWatch(): void {
     this.socketService.connect();
     this.refreshPrintAgentStatus();
-    this.printAgentPollTimer = setInterval(() => this.refreshPrintAgentStatus(), 20000);
+    void this.localPrint.refresh();
+    this.printAgentPollTimer = setInterval(() => {
+      this.refreshPrintAgentStatus();
+      void this.localPrint.refresh();
+    }, 10000);
     this.socketSubs.push(
       this.socketService.onPrintAgentStatus().subscribe((evt) => {
         if (evt && typeof evt.online === 'boolean') {
@@ -595,6 +601,26 @@ export class EntryComponent implements OnInit, OnDestroy {
         next: (res) => this.printAgentOnline.set(Boolean(res?.online)),
         error: () => {},
       });
+  }
+
+  async startLocalPrinting(): Promise<void> {
+    const st = await this.localPrint.start();
+    if (!st.reachable) {
+      this.flash(this.lang.t('print.controlUnavailable'));
+      return;
+    }
+    this.flash(this.lang.t('print.startedToast'));
+    setTimeout(() => this.refreshPrintAgentStatus(), 1500);
+  }
+
+  async stopLocalPrinting(): Promise<void> {
+    const st = await this.localPrint.stop();
+    if (!st.reachable && this.localPrint.lastError() === 'unreachable') {
+      this.flash(this.lang.t('print.controlUnavailable'));
+      return;
+    }
+    this.printAgentOnline.set(false);
+    this.flash(this.lang.t('print.stoppedToast'));
   }
 
   openDialog(): void {

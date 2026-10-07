@@ -1,4 +1,10 @@
-﻿@if (swUpdate.updateReady()) {
+﻿@if (demoModeSvc.demoMode()) {
+  <div class="demo-mode-banner" role="status" aria-live="polite" dir="rtl">
+    وضع تجريبي — بيانات وهمية · Admin Demo · مش داتا المعمل الحقيقية
+  </div>
+}
+
+@if (swUpdate.updateReady()) {
   <div class="sw-update-banner" role="status" aria-live="polite" dir="rtl">
     <span>فيه تحديث جديد للنظام</span>
     <button

@@ -22,6 +22,7 @@ import { formatCaseWorkflowError } from '../../core/utils/api-error';
 import { environment } from '../../../environments/environment';
 
 import { SocketService } from '../../core/services/socket.service';
+import { LocalPrintControlService } from '../../core/services/local-print-control.service';
 import { CaseDraft, SecretaryService } from './secretary.service';
 import { PatientLabelPipe } from './patient-label.pipe';
 import { ThemeService } from '../../core/services/theme.service';
@@ -150,6 +151,7 @@ export class Secretary implements OnInit, OnDestroy {
   private readonly userApi = inject(UserApiService);
   private readonly http = inject(HttpClient);
   private readonly socketService = inject(SocketService);
+  readonly localPrint = inject(LocalPrintControlService);
   private readonly router = inject(Router);
   public readonly themeService = inject(ThemeService);
   public readonly lang = inject(LanguageService);
@@ -1586,7 +1588,11 @@ export class Secretary implements OnInit, OnDestroy {
 
   private startPrintAgentStatusWatch(): void {
     this.refreshPrintAgentStatus();
-    this.printAgentPollTimer = setInterval(() => this.refreshPrintAgentStatus(), 20000);
+    void this.localPrint.refresh();
+    this.printAgentPollTimer = setInterval(() => {
+      this.refreshPrintAgentStatus();
+      void this.localPrint.refresh();
+    }, 10000);
     this.socketSubs.push(
       this.socketService.onPrintAgentStatus().subscribe((evt) => {
         if (evt && typeof evt.online === 'boolean') {
@@ -1605,6 +1611,26 @@ export class Secretary implements OnInit, OnDestroy {
           /* keep last known status */
         },
       });
+  }
+
+  async startLocalPrinting(): Promise<void> {
+    const st = await this.localPrint.start();
+    if (!st.reachable) {
+      this.flash(this.lang.t('print.controlUnavailable'));
+      return;
+    }
+    this.flash(this.lang.t('print.startedToast'));
+    setTimeout(() => this.refreshPrintAgentStatus(), 1500);
+  }
+
+  async stopLocalPrinting(): Promise<void> {
+    const st = await this.localPrint.stop();
+    if (!st.reachable && this.localPrint.lastError() === 'unreachable') {
+      this.flash(this.lang.t('print.controlUnavailable'));
+      return;
+    }
+    this.printAgentOnline.set(false);
+    this.flash(this.lang.t('print.stoppedToast'));
   }
 
   private connectRealtimeUpdates(): void {

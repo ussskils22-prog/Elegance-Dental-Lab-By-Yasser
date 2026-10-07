@@ -103,22 +103,38 @@ setupSocket(server);
 // ════════════════════════════════════════════════
 
 // Health check & Root route
+const demoMode = String(process.env.DEMO_MODE || '').toLowerCase() === 'true';
+
+function healthPayload() {
+  return {
+    success: true,
+    message: demoMode ? 'Demo server is running (fake data only)' : 'Server is running',
+    timestamp: new Date(),
+    billingRevision: 'doctor-charge-2026-09-29',
+    demoMode,
+  };
+}
+
 app.get('/', (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'Elegance Dental Lab API Backend is running',
-    frontend: 'https://dental-system-kappa.vercel.app',
+    message: demoMode
+      ? 'Uni Shop Demo API (isolated fake data)'
+      : 'Elegance Dental Lab API Backend is running',
+    frontend: demoMode
+      ? process.env.DEMO_FRONTEND_URL || 'https://elegance-demo.vercel.app'
+      : 'https://dental-system-kappa.vercel.app',
     billingRevision: 'doctor-charge-2026-09-29',
+    demoMode,
   });
 });
 
 app.get('/health', (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: 'Server is running',
-    timestamp: new Date(),
-    billingRevision: 'doctor-charge-2026-09-29',
-  });
+  res.status(200).json(healthPayload());
+});
+
+app.get('/api/health', (req, res) => {
+  res.status(200).json(healthPayload());
 });
 
 // API routes

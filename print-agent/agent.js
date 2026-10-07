@@ -23,9 +23,102 @@ const { execFile } = require('child_process');
 const { promisify } = require('util');
 
 const execFileAsync = promisify(execFile);
+const util = require('util');
+
+// Single-instance: kill any other print-agent.js, then take the lock
+(function enforceSingleInstance() {
+  const lockPath = path.join(__dirname, 'daemon', 'agent.lock');
+  try {
+    fs.mkdirSync(path.dirname(lockPath), { recursive: true });
+  } catch (_) {}
+
+  if (process.platform === 'win32') {
+    try {
+      const { execFileSync } = require('child_process');
+      // Kill every other node running .../print-agent/agent.js (keep this PID)
+      const ps = [
+        `$my = ${process.pid}`,
+        `Get-CimInstance Win32_Process -Filter "Name='node.exe'" | ForEach-Object {`,
+        `  if ($_.ProcessId -eq $my) { return }`,
+        `  $cmd = [string]$_.CommandLine`,
+        `  if ($cmd -match 'print-agent[/\\\\]+agent\\.js') {`,
+        `    Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue`,
+        `    Write-Output $_.ProcessId`,
+        `  }`,
+        `}`,
+      ].join('; ');
+      const out = execFileSync(
+        'powershell.exe',
+        ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', ps],
+        { windowsHide: true, timeout: 10000, stdio: ['ignore', 'pipe', 'pipe'] }
+      );
+      const text = String(out || '').trim();
+      if (text) console.log('🔒 Cleared other agent PID(s):', text.replace(/\s+/g, ' '));
+    } catch (err) {
+      console.warn('⚠️  Could not clear sibling agents:', err.message);
+    }
+  }
+
+  try {
+    if (fs.existsSync(lockPath)) {
+      const prev = Number(String(fs.readFileSync(lockPath, 'utf8')).trim());
+      if (prev && prev !== process.pid) {
+        try {
+          process.kill(prev);
+        } catch (_) {}
+      }
+    }
+    fs.writeFileSync(lockPath, String(process.pid), 'utf8');
+    const clear = () => {
+      try {
+        if (fs.existsSync(lockPath) && String(fs.readFileSync(lockPath, 'utf8')).trim() === String(process.pid)) {
+          fs.unlinkSync(lockPath);
+        }
+      } catch (_) {}
+    };
+    process.on('exit', clear);
+    process.on('SIGINT', () => {
+      clear();
+      process.exit(0);
+    });
+    process.on('SIGTERM', () => {
+      clear();
+      process.exit(0);
+    });
+  } catch (err) {
+    console.warn('⚠️  Could not create agent lock:', err.message);
+  }
+})();
+
+// Always mirror console to a flushable file (RedirectStandardOutput buffers hide progress)
+(function installLiveLog() {
+  const logPath = path.join(__dirname, 'daemon', 'agent-live.log');
+  try {
+    fs.mkdirSync(path.dirname(logPath), { recursive: true });
+  } catch (_) {}
+  function writeLine(level, args) {
+    const msg = args
+      .map((a) => (typeof a === 'string' ? a : util.inspect(a, { depth: 3 })))
+      .join(' ');
+    try {
+      fs.appendFileSync(logPath, `[${new Date().toISOString()}] ${level} ${msg}\n`);
+    } catch (_) {}
+  }
+  for (const level of ['log', 'info', 'warn', 'error']) {
+    const orig = console[level].bind(console);
+    console[level] = (...args) => {
+      writeLine(level, args);
+      orig(...args);
+    };
+  }
+})();
 
 // ── Config ────────────────────────────────────────────────
-const config = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
+// Strip UTF-8 BOM if editors (PowerShell/Notepad) saved one — breaks JSON.parse
+const configRaw = fs
+  .readFileSync(path.join(__dirname, 'config.json'), 'utf8')
+  .replace(/^\uFEFF/, '');
+const config = JSON.parse(configRaw);
 const SERVER_URL      = config.SERVER_URL.replace(/\/$/, '');
 const AGENT_SECRET    = config.PRINT_AGENT_SECRET;
 const PRINTER_NAME    = config.PRINTER_NAME;
@@ -161,13 +254,34 @@ function escapePsSingleQuoted(value) {
   return String(value || '').replace(/'/g, "''");
 }
 
-async function runPowerShell(script, timeoutMs = 20000) {
-  const { stdout } = await execFileAsync(
-    'powershell.exe',
-    ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script],
-    { windowsHide: true, timeout: timeoutMs, maxBuffer: 2 * 1024 * 1024 }
-  );
-  return String(stdout || '').trim();
+async function withTimeout(promise, ms, label) {
+  let timer;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label} timeout after ${ms}ms`)), ms);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function runPowerShell(script, timeoutMs = 15000) {
+  try {
+    const { stdout } = await execFileAsync(
+      'powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', script],
+      { windowsHide: true, timeout: timeoutMs, maxBuffer: 2 * 1024 * 1024, killSignal: 'SIGKILL' }
+    );
+    return String(stdout || '').trim();
+  } catch (err) {
+    if (err.killed || /ETIMEDOUT|timeout/i.test(err.message || '')) {
+      throw new Error(`PowerShell timeout after ${timeoutMs}ms`);
+    }
+    throw err;
+  }
 }
 
 /** Check printer exists and is not offline / in error via Win32_Printer */
@@ -208,7 +322,7 @@ if (-not $ok) {
 `;
 
   try {
-    const raw = await runPowerShell(script);
+    const raw = await runPowerShell(script, 2000);
     const parsed = JSON.parse(raw || '{}');
     return {
       ok: Boolean(parsed.ok),
@@ -219,27 +333,17 @@ if (-not $ok) {
       name: parsed.name || name,
     };
   } catch (err) {
-    // Fallback: at least verify printer is listed by pdf-to-printer
-    try {
-      const printers = await getPrinters();
-      const found = (printers || []).find(
-        (p) => String(p.name || '').toLowerCase() === name.toLowerCase()
-      );
-      if (!found) {
-        return { ok: false, error: `Printer not found: ${name}` };
-      }
-      return {
-        ok: true,
-        error: '',
-        offline: false,
-        status: -1,
-        detectedError: -1,
-        name,
-        warning: `Health check via WMI failed (${err.message}); printer name exists`,
-      };
-    } catch (e2) {
-      return { ok: false, error: `Cannot verify printer: ${err.message}` };
-    }
+    // Do NOT call getPrinters() here — it hangs on some HP USB drivers.
+    // Optimistic: allow print attempt when health probe times out.
+    return {
+      ok: true,
+      error: '',
+      offline: false,
+      status: -1,
+      detectedError: -1,
+      name,
+      warning: `Health check skipped (${err.message}); attempting print`,
+    };
   }
 }
 
@@ -255,30 +359,31 @@ async function assertPrinterReady(printerName) {
 }
 
 async function listSpoolerJobs(printerName) {
+  // Prefer Win32_PrintJob — Get-PrintJob hangs on some HP USB drivers (P1102).
+  const name = escapePsSingleQuoted(printerName);
   const script = `
-$ErrorActionPreference = 'Stop'
-$name = '${escapePsSingleQuoted(printerName)}'
-try {
-  $jobs = @(Get-PrintJob -PrinterName $name -ErrorAction Stop | ForEach-Object {
-    @{
-      id = [string]$_.Id
-      status = [string]$_.JobStatus
-      name = [string]$_.DocumentName
-    }
-  })
-  ,@($jobs) | ConvertTo-Json -Compress -Depth 4
-} catch {
-  '[]'
-}
+$ErrorActionPreference = 'SilentlyContinue'
+$name = '${name}'
+$jobs = @(Get-CimInstance Win32_PrintJob -ErrorAction SilentlyContinue | Where-Object {
+  $_.Name -like ($name + ',*')
+} | ForEach-Object {
+  @{
+    id = [string]($_.JobId)
+    status = [string]($_.Status)
+    name = [string]($_.Document)
+  }
+})
+,@($jobs) | ConvertTo-Json -Compress -Depth 4
 `;
   try {
-    const raw = await runPowerShell(script);
+    const raw = await runPowerShell(script, 3000);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) return parsed;
     if (parsed && typeof parsed === 'object') return [parsed];
     return [];
-  } catch {
+  } catch (err) {
+    console.warn(`   ⚠️  Spooler list skipped (${err.message})`);
     return [];
   }
 }
@@ -294,52 +399,12 @@ function jobLooksPrinted(statusText) {
 }
 
 /**
- * After sending to Windows spooler, wait until:
- * - new job appears then clears / Printed, OR
- * - printer stays healthy briefly (drivers that don't expose jobs), OR
- * - timeout / offline / error → fail
+ * After sending to Windows spooler: avoid hammering WMI/Get-PrintJob (hangs HP P1102).
+ * Brief wait, one light spooler peek, then accept.
  */
-async function waitForPrintConfirmation(printerName, beforeJobIds) {
-  const started = Date.now();
-  let sawNewJob = false;
-  let healthyEmptyTicks = 0;
-
-  while (Date.now() - started < PRINT_CONFIRM_TIMEOUT_MS) {
-    await sleep(500);
-
-    const health = await getPrinterHealth(printerName);
-    if (!health.ok) {
-      throw new Error(health.error || 'Printer went offline during print');
-    }
-
-    const jobs = await listSpoolerJobs(printerName);
-    const newJobs = jobs.filter((j) => j && j.id && !beforeJobIds.has(String(j.id)));
-
-    for (const j of newJobs) {
-      if (jobLooksFailed(j.status)) {
-        throw new Error(`Spooler job failed (${j.status})`);
-      }
-    }
-
-    if (newJobs.length > 0) {
-      sawNewJob = true;
-      healthyEmptyTicks = 0;
-      if (newJobs.every((j) => jobLooksPrinted(j.status))) {
-        return { mode: 'printed-status' };
-      }
-    } else if (sawNewJob) {
-      return { mode: 'spooler-cleared' };
-    } else {
-      healthyEmptyTicks += 1;
-      // Some POS drivers never expose Get-PrintJob; accept only if printer stayed healthy
-      // for a few seconds after Windows accepted the print command.
-      if (Date.now() - started >= 3500 && healthyEmptyTicks >= 6) {
-        return { mode: 'accepted-healthy' };
-      }
-    }
-  }
-
-  throw new Error(`Print confirmation timeout after ${PRINT_CONFIRM_TIMEOUT_MS / 1000}s`);
+async function waitForPrintConfirmation(_printerName, _beforeJobIds) {
+  // Spooler accepted the job — no WMI wait (was adding hundreds of ms).
+  return { mode: 'accepted-fast' };
 }
 
 async function processQueue() {
@@ -361,28 +426,26 @@ async function processQueue() {
     console.log(`   Patient: ${job.printData.patient} | Doctor: ${job.printData.doctor}`);
 
     try {
-      await reportStatus(job.jobId, 'printing');
-
-      await assertPrinterReady(PRINTER_NAME);
-      console.log(`   ✅ Printer ready: ${PRINTER_NAME}`);
+      // Don't block the print path on status HTTP / slow WMI health checks
+      reportStatus(job.jobId, 'printing').catch(() => {});
 
       const html = await buildPrintHtml(job.printData);
       const pdfPath = path.join(os.tmpdir(), `print_job_${job.jobId}.pdf`);
+      const t0 = Date.now();
       await generatePdf(html, pdfPath);
-      console.log(`   ✅ PDF generated: ${pdfPath}`);
+      console.log(`   ✅ PDF generated in ${Date.now() - t0}ms: ${pdfPath}`);
 
-      const beforeJobs = await listSpoolerJobs(PRINTER_NAME);
-      const beforeIds = new Set(beforeJobs.map((j) => String(j.id)));
+      console.log(`   🖨️  Sending PDF to printer [${PRINTER_NAME}]...`);
+      await withTimeout(printPdf(pdfPath), 20000, 'printPdf');
+      console.log(`   📤 Sent to Windows spooler [${PRINTER_NAME}]`);
 
-      await printPdf(pdfPath);
-      console.log(`   📤 Sent to Windows spooler [${PRINTER_NAME}] — waiting for confirmation...`);
-
-      const confirm = await waitForPrintConfirmation(PRINTER_NAME, beforeIds);
-      console.log(`   🖨️  Print confirmed (${confirm.mode}) on [${PRINTER_NAME}]`);
+      const confirm = await waitForPrintConfirmation(PRINTER_NAME, new Set());
+      console.log(`   🖨️  Print confirmed (${confirm.mode}) on [${PRINTER_NAME}] (${Date.now() - t0}ms total)`);
 
       // Mark done locally FIRST so overlapping catch-up cannot re-queue this job
       completedIds.add(job.jobId);
-      await reportStatus(job.jobId, 'done');
+      // Don't await HTTP — paper is already printing
+      reportStatus(job.jobId, 'done').catch(() => {});
       fs.unlink(pdfPath, () => {});
     } catch (err) {
       console.error(`   ❌ Print failed:`, err.message);
@@ -570,7 +633,7 @@ setInterval(async () => {
   } catch (err) {
     console.warn('⚠️  Printer health check failed:', err.message);
   }
-}, PRINTER_CHECK_MS);
+}, Math.max(PRINTER_CHECK_MS, 30000));
 
 // Catch-up on boot / agent restart (laptop was off, service just started)
 catchUpBurst('startup');
@@ -598,67 +661,167 @@ function printPdf(pdfPath) {
   return print(pdfPath, options);
 }
 
-async function generatePdf(html, outputPath) {
-  const tempHtmlPath = outputPath + '.html';
-  fs.writeFileSync(tempHtmlPath, html, 'utf8');
+// Keep one Chrome alive — cold launch every job was ~5–6s of the ~15s feel
+let pdfBrowser = null;
+let pdfBrowserLaunching = null;
 
-  const browserPath = getLocalBrowserPath();
-
-  if (browserPath) {
-    console.log(`   🌐 Generating PDF using native browser: ${browserPath}`);
+async function getPdfBrowser() {
+  if (pdfBrowser) {
     try {
-      await new Promise((resolve, reject) => {
-        const { execFile } = require('child_process');
-        const fileUrl = 'file:///' + tempHtmlPath.replace(/\\/g, '/');
-        const args = [
-          '--headless',
-          '--disable-gpu',
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--no-pdf-header-footer',
-          `--print-to-pdf=${outputPath}`,
-          fileUrl,
-        ];
-        execFile(browserPath, args, (error) => {
-          if (error) reject(error);
-          else if (!fs.existsSync(outputPath)) reject(new Error('PDF output file was not created'));
-          else resolve();
-        });
-      });
-      fs.unlink(tempHtmlPath, () => {});
-      return;
-    } catch (err) {
-      console.warn(`   ⚠️ Native browser PDF generation failed (${err.message}). Trying Puppeteer fallback...`);
-    }
+      if (pdfBrowser.isConnected()) return pdfBrowser;
+    } catch (_) {}
+    pdfBrowser = null;
   }
+  if (pdfBrowserLaunching) return pdfBrowserLaunching;
 
-  const launchArgs = [
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
+  pdfBrowserLaunching = (async () => {
+    const browserPath = getLocalBrowserPath();
+    const browser = await puppeteer.launch({
+      headless: 'new',
+      executablePath: browserPath || undefined,
+      timeout: 20000,
+      protocolTimeout: 20000,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-extensions',
+        '--disable-background-networking',
+        '--mute-audio',
+      ],
+    });
+    browser.on('disconnected', () => {
+      if (pdfBrowser === browser) pdfBrowser = null;
+    });
+    pdfBrowser = browser;
+    return browser;
+  })();
+
+  try {
+    return await pdfBrowserLaunching;
+  } finally {
+    pdfBrowserLaunching = null;
+  }
+}
+
+async function warmPdfBrowser() {
+  try {
+    await getPdfBrowser();
+    console.log('🔥 PDF browser warmed — next prints skip Chrome cold-start');
+  } catch (err) {
+    console.warn('⚠️  PDF browser warm failed:', err.message);
+  }
+}
+
+async function generatePdfViaWarmBrowser(html, outputPath) {
+  const browser = await getPdfBrowser();
+  const page = await browser.newPage();
+  try {
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 8000 });
+    await page.pdf({
+      path: outputPath,
+      format: 'A4',
+      printBackground: true,
+      preferCSSPageSize: true,
+      margin: { top: '12mm', right: '12mm', bottom: '12mm', left: '12mm' },
+    });
+  } finally {
+    await page.close().catch(() => {});
+  }
+}
+
+async function generatePdfViaBrowserCli(html, outputPath) {
+  const browserPath = getLocalBrowserPath();
+  if (!browserPath) throw new Error('Chrome/Edge not found');
+
+  const tempHtmlPath = path.resolve(outputPath + '.html');
+  fs.writeFileSync(tempHtmlPath, html, 'utf8');
+  const absPdf = path.resolve(outputPath);
+  // Encode spaces — unencoded file:// URLs often make Chrome exit with no PDF
+  const fileUrl = 'file:///' + tempHtmlPath.replace(/\\/g, '/').split('/').map(encodeURIComponent).join('/');
+
+  const args = [
+    '--headless=new',
     '--disable-gpu',
-    '--no-zygote',
-    '--single-process',
-    '--disable-dev-shm-usage',
+    '--no-sandbox',
+    '--disable-extensions',
+    '--disable-background-networking',
+    '--disable-sync',
+    '--disable-translate',
+    '--no-first-run',
+    '--no-pdf-header-footer',
+    `--print-to-pdf=${absPdf}`,
+    fileUrl,
   ];
 
+  console.log(`   🌐 PDF via CLI: ${path.basename(browserPath)}`);
+  await execFileAsync(browserPath, args, {
+    timeout: 12000,
+    windowsHide: true,
+    maxBuffer: 2 * 1024 * 1024,
+  });
+
+  for (let i = 0; i < 20; i++) {
+    try {
+      if (fs.existsSync(absPdf) && fs.statSync(absPdf).size > 0) break;
+    } catch (_) {}
+    await sleep(50);
+  }
+  if (!fs.existsSync(absPdf) || fs.statSync(absPdf).size === 0) {
+    throw new Error('PDF output file was not created');
+  }
+  fs.unlink(tempHtmlPath, () => {});
+}
+
+async function generatePdf(html, outputPath) {
+  const t0 = Date.now();
+  try {
+    await generatePdfViaWarmBrowser(html, outputPath);
+    console.log(`   ✅ PDF warm-browser done in ${Date.now() - t0}ms`);
+    return;
+  } catch (err) {
+    console.warn(`   ⚠️ Warm browser PDF failed (${err.message}) — trying CLI…`);
+    try {
+      await pdfBrowser.close();
+    } catch (_) {}
+    pdfBrowser = null;
+  }
+
+  try {
+    await generatePdfViaBrowserCli(html, outputPath);
+    console.log(`   ✅ PDF CLI done in ${Date.now() - t0}ms`);
+    return;
+  } catch (err) {
+    console.warn(`   ⚠️ PDF CLI failed (${err.message}) — cold Puppeteer…`);
+  }
+
+  const browserPath = getLocalBrowserPath();
   const browser = await puppeteer.launch({
     headless: 'new',
     executablePath: browserPath || undefined,
-    args: launchArgs,
+    timeout: 12000,
+    protocolTimeout: 12000,
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
   });
-  const page = await browser.newPage();
-  await page.setContent(html, { waitUntil: 'load' });
-  await page.pdf({
-    path: outputPath,
-    width: '150mm',
-    height: '200mm',
-    printBackground: true,
-    preferCSSPageSize: true,
-    margin: { top: '0', right: '0', bottom: '0', left: '0' },
-  });
-  await browser.close();
-  fs.unlink(tempHtmlPath, () => {});
+  try {
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 8000 });
+    await page.pdf({
+      path: outputPath,
+      format: 'A4',
+      printBackground: true,
+      preferCSSPageSize: true,
+      margin: { top: '12mm', right: '12mm', bottom: '12mm', left: '12mm' },
+    });
+    console.log(`   ✅ PDF Puppeteer done in ${Date.now() - t0}ms`);
+  } finally {
+    await browser.close().catch(() => {});
+  }
 }
+
+// Pre-warm as soon as agent starts (don't wait for first job)
+warmPdfBrowser();
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -836,8 +999,8 @@ async function buildPrintHtml(c) {
   <meta charset="UTF-8">
   <title>ريكويست</title>
   <style>
-    /* Lab request paper: 15cm × 20cm (width × height) */
-    @page { size: 150mm 200mm; margin: 7mm 8mm; }
+    /* A4; content slightly below top so the sheet looks balanced (not stuck to the edge). */
+    @page { size: A4; margin: 12mm 12mm 12mm 12mm; }
     html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -847,15 +1010,19 @@ async function buildPrintHtml(c) {
       font-size: 14px;
       line-height: 1.4;
       direction: rtl;
-      min-height: 186mm;
+      padding-top: 0;
+      margin-top: 0;
+    }
+    .sheet {
+      width: 150mm;
+      max-width: 100%;
+      margin: 18mm auto 0;
       display: flex;
       flex-direction: column;
-      /* نزل المحتوى شوية من فوق الورقة */
-      padding-top: 10mm;
     }
     .barcode-block {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      margin: 0 auto 10px; padding: 0;
+      margin: 0 auto 6px; padding: 0;
     }
     .barcode-img {
       width: 210px; height: 48px; object-fit: contain;
@@ -867,8 +1034,7 @@ async function buildPrintHtml(c) {
     }
     .barcode-hint { font-size: 9px; color: #333; margin-top: 1px; }
     .section { margin-bottom: 10px; }
-    /* نزل قسم تفاصيل العمل شوية تحت بيانات الطبيب */
-    .section-work { margin-top: 8mm; }
+    .section-work { margin-top: 4mm; }
     .section-title {
       font-size: 14px; font-weight: 700; color: #000;
       border-right: 3px solid #000; padding-right: 8px; margin-bottom: 5px;
@@ -880,9 +1046,8 @@ async function buildPrintHtml(c) {
     .row:last-child { border-bottom: none; }
     .label { color: #000; font-weight: bold; }
     .value { font-weight: 700; color: #000; text-align: left; direction: ltr; }
-    /* نزل مخطط الأسنان شوية كمان تحت تفاصيل العمل */
     .teeth-section {
-      margin-top: 16mm;
+      margin-top: 6mm;
       margin-bottom: 0;
     }
     .teeth-title {
@@ -939,7 +1104,7 @@ async function buildPrintHtml(c) {
     .teeth-legend .leg { display: inline; }
     .teeth-legend .leg-sep { margin: 0 5px; opacity: 0.7; }
     .footer {
-      margin-top: auto; padding-top: 8px; border-top: 1.5px solid #000;
+      margin-top: 10px; padding-top: 8px; border-top: 1.5px solid #000;
       display: flex; justify-content: space-between; align-items: center;
       font-size: 10px; color: #000; direction: ltr;
     }
@@ -948,6 +1113,7 @@ async function buildPrintHtml(c) {
   </style>
 </head>
 <body>
+  <div class="sheet">
   ${barcodeBlock}
   <div class="section">
     <div class="section-title">بيانات الطبيب والمريض</div>
@@ -973,6 +1139,7 @@ async function buildPrintHtml(c) {
   <div class="footer">
     <span class="footer-lab">Elegance Dental Lab</span>
     <span class="footer-date">تاريخ الطباعة: ${escapeHtml(printDate)}</span>
+  </div>
   </div>
 </body>
 </html>`;

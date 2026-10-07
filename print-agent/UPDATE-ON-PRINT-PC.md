@@ -2,30 +2,23 @@
 
 الطباعة الصامتة **لازم** تشتغل من جهاز مربوط بالطابعة. السحابة (Vercel / Railway) بتحط الـ job في الطابور؛ الايجنت هو اللي يطبع.
 
-## التشغيل الدائم (موصى به) — خدمة ويندوز
+## التشغيل الدائم في الخلفية (موصى به) — من غير فتح نافذة
 
-مرة واحدة كـ **Administrator** على جهاز الطباعة:
+طابعات **USB** (مثل HP P1102) **ما بتطبعش** من خدمة `LocalSystem`. الحل: Task Scheduler بحساب المستخدم، يشتغل **مخفي** عند الـ login.
 
-1. حدّث ملفات `print-agent` (خاصة `agent.js` و `config.json`).
-2. تأكد من `config.json`:
-   - `SERVER_URL` = عنوان Railway (مثل `…-da7c.up.railway.app`)
-   - `PRINT_AGENT_SECRET` = نفس قيمة Railway env
-   - `PRINTER_NAME` = اسم الطابعة في ويندوز (مثل `POSPrinter POS80`)
-3. من مجلد `print-agent`:
-   ```bat
-   npm install
-   npm run install-service
-   ```
-   أو شغّل `install-as-service.bat` كـ Administrator.
-4. افتح `services.msc` → ابحث عن **ElegancePrintAgent** → Status = Running، Startup = Automatic.
+مرة واحدة: كليك يمين على **`install-background.bat`** → **Run as administrator**.
 
-بعد كده مفيش فتح ترمينال يوميًا: الخدمة تشتغل مع الجهاز وتعيد التشغيل لو وقعت.
+بعد كده:
+- مفيش نافذة تفتح يوميًا
+- الايجنت يشتغل لوحده بعد ما تسجّل دخول ويندوز
+- اللوجات: `daemon\user-agent.out.log` و `daemon\agent-live.log`
 
-إلغاء التثبيت:
+`config.json` لازم فيه:
+- `SERVER_URL` = Railway
+- `PRINT_AGENT_SECRET` = نفس env السيرفر
+- `PRINTER_NAME` = `HP LaserJet Professional P1102`
 
-```bat
-npm run uninstall-service
-```
+> **متستخدمش** `install-as-service.bat` — ده LocalSystem وبيكسر طباعة الـ USB.
 
 ## تشغيل يدوي (اختبار فقط)
 

@@ -3,6 +3,7 @@ import { RouterOutlet } from '@angular/router';
 import { AuthService } from './core/services/auth.service';
 import { SwUpdateService } from './core/services/sw-update.service';
 import { LanguageService } from './core/i18n/language.service';
+import { DemoModeService } from './core/services/demo-mode.service';
 
 @Component({
   selector: 'app-root',
@@ -17,6 +18,7 @@ export class App {
   /** Eager init so dir/lang apply before first route paint */
   private readonly lang = inject(LanguageService);
   readonly swUpdate = inject(SwUpdateService);
+  readonly demoModeSvc = inject(DemoModeService);
 
   /** Exposed for template: hide router until JWT/session bootstrap finishes. */
   protected readonly authReady = this.auth.bootstrapComplete;

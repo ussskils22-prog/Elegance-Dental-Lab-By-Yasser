@@ -1,6 +1,13 @@
 @echo off
-:: Install ElegancePrintAgent as a Windows service (run as Administrator)
+:: DEPRECATED for USB printers: LocalSystem cannot print to USB (HP P1102).
+:: Prefer: install-as-user-task.bat
 cd /d "%~dp0"
+
+echo WARNING: Windows Service (LocalSystem) often cannot print to USB printers.
+echo Prefer running install-as-user-task.bat instead.
+echo.
+choice /C YN /M "Continue installing LocalSystem service anyway"
+if errorlevel 2 exit /b 0
 
 net session >nul 2>&1
 if %errorLevel% neq 0 (
