@@ -90,13 +90,18 @@ const setupSocket = (server) => {
       );
       broadcastPrintAgentStatus();
 
-      // Fetch and send accumulated pending / failed print jobs for catch-up
+      // Catch-up: only unclaimed / stale jobs (never actively claimed by another agent)
       (async () => {
         try {
           const PrintJob = require('../models/PrintJob');
+          const staleBefore = new Date(Date.now() - 5 * 60 * 1000);
           const pendingJobs = await PrintJob.find({
-            status: { $in: ['pending', 'failed', 'printing'] },
             paperConfirmed: { $ne: 'yes' },
+            $or: [
+              { status: { $in: ['pending', 'failed'] } },
+              { status: 'printing', claimedAt: { $lt: staleBefore } },
+              { status: 'printing', claimedAt: null },
+            ],
           }).sort({ createdAt: 1 });
           if (pendingJobs.length > 0) {
             console.log(`🖨️  Sending ${pendingJobs.length} pending print jobs to connected agent`);

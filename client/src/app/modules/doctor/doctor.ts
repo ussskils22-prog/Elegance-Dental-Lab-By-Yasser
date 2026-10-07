@@ -411,18 +411,27 @@ export class DoctorComponent implements OnInit, OnDestroy {
       })
     );
     this.socketService.connect();
-    const socket = (this.socketService as any).socket;
-    if (socket) {
-      const refresh = () => this.scheduleBackgroundReload();
-      socket.on('case:created', refresh);
-      socket.on('case:updated', refresh);
-      this.socketSubs.push({
-        unsubscribe: () => {
-          socket.off('case:created', refresh);
-          socket.off('case:updated', refresh);
-        },
-      } as Subscription);
-    }
+    const refresh = () => this.scheduleBackgroundReload();
+    this.socketSubs.push(
+      this.socketService.onCaseCreated().subscribe((evt) => {
+        if (evt) refresh();
+      }),
+      this.socketService.onCaseUpdated().subscribe((evt) => {
+        if (evt) refresh();
+      }),
+      this.socketService.onCaseExited().subscribe((evt) => {
+        if (evt) refresh();
+      }),
+      this.socketService.onCaseMovedStage().subscribe((evt) => {
+        if (evt) refresh();
+      }),
+      this.socketService.onCaseCompleted().subscribe((evt) => {
+        if (evt) refresh();
+      }),
+      this.socketService.onCaseDeleted().subscribe((evt) => {
+        if (evt) refresh();
+      })
+    );
     this.labConfig.workTypeLabels().subscribe((labels) => {
       if (labels?.length) this.workTypeOptions = labels;
     });

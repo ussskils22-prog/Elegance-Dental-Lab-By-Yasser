@@ -4,8 +4,8 @@
  * start / stop the print agent with buttons.
  *
  *   GET  /status  → { ok, running, pid, supervisor: true }
- *   POST /start   → spawn agent.js
- *   POST /stop    → kill agent.js
+ *   POST /start   → spawn agent.js (kills orphans first)
+ *   POST /stop    → kill agent.js + clear printer queue
  */
 
 const http = require('http');
@@ -29,6 +29,7 @@ try {
 const PORT = Number(config.CONTROL_PORT) || 17891;
 const HOST = '127.0.0.1';
 const AUTO_START_AGENT = config.AUTO_START_AGENT !== false;
+const PRINTER_NAME = String(config.PRINTER_NAME || '').trim();
 
 function log(...args) {
   const line = `[${new Date().toISOString()}] ${args.join(' ')}\n`;
@@ -70,8 +71,46 @@ function isPidAlive(pid) {
   }
 }
 
+function listAgentPidsViaCim() {
+  if (process.platform !== 'win32') {
+    const lock = readLockPid();
+    return lock && isPidAlive(lock) ? [lock] : [];
+  }
+  const rootEsc = ROOT.replace(/'/g, "''").replace(/\\/g, '\\\\');
+  try {
+    const out = execFileSync(
+      'powershell.exe',
+      [
+        '-NoProfile',
+        '-NonInteractive',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-Command',
+        [
+          `$root = '${rootEsc}'`,
+          `Get-CimInstance Win32_Process -Filter "Name='node.exe'" | ForEach-Object {`,
+          `  $cmd = [string]$_.CommandLine`,
+          `  if (-not $cmd) { return }`,
+          `  $hit = ($cmd -match 'print-agent[/\\\\]+agent\\.js') -or ($cmd -match [regex]::Escape($root) -and $cmd -match 'agent\\.js')`,
+          `  if ($hit) { $_.ProcessId }`,
+          `}`,
+        ].join('; '),
+      ],
+      { windowsHide: true, timeout: 6000, encoding: 'utf8' }
+    );
+    return String(out || '')
+      .split(/\r?\n/)
+      .map((s) => Number(String(s).trim()))
+      .filter((n) => Number.isFinite(n) && n > 0);
+  } catch (_) {
+    const lock = readLockPid();
+    return lock && isPidAlive(lock) ? [lock] : [];
+  }
+}
+
 function listAgentPids() {
-  // Fast path only — never block HTTP on PowerShell/WMI
+  const viaCim = listAgentPidsViaCim();
+  if (viaCim.length) return [...new Set(viaCim)];
   const lock = readLockPid();
   if (lock && isPidAlive(lock)) return [lock];
   return [];
@@ -87,6 +126,7 @@ function killAllAgentsHard() {
     }
     return;
   }
+  const rootEsc = ROOT.replace(/'/g, "''").replace(/\\/g, '\\\\');
   try {
     execFileSync(
       'powershell.exe',
@@ -96,11 +136,42 @@ function killAllAgentsHard() {
         '-ExecutionPolicy',
         'Bypass',
         '-Command',
-        `Get-CimInstance Win32_Process -Filter "Name='node.exe'" | ForEach-Object { if ([string]$_.CommandLine -match 'print-agent[/\\\\]+agent\\.js') { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue } }`,
+        [
+          `$root = '${rootEsc}'`,
+          `Get-CimInstance Win32_Process -Filter "Name='node.exe'" | ForEach-Object {`,
+          `  $cmd = [string]$_.CommandLine`,
+          `  if (-not $cmd) { return }`,
+          `  $hit = ($cmd -match 'print-agent[/\\\\]+agent\\.js') -or ($cmd -match [regex]::Escape($root) -and $cmd -match 'agent\\.js')`,
+          `  if ($hit) { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`,
+          `}`,
+        ].join('; '),
       ],
-      { windowsHide: true, timeout: 6000 }
+      { windowsHide: true, timeout: 8000 }
     );
   } catch (_) {}
+}
+
+/** Cancel anything already sitting in the Windows spooler for this printer */
+function clearPrinterQueue() {
+  if (process.platform !== 'win32' || !PRINTER_NAME) return;
+  const name = PRINTER_NAME.replace(/'/g, "''");
+  try {
+    execFileSync(
+      'powershell.exe',
+      [
+        '-NoProfile',
+        '-NonInteractive',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-Command',
+        `Get-PrintJob -PrinterName '${name}' -ErrorAction SilentlyContinue | Remove-PrintJob -Confirm:$false -ErrorAction SilentlyContinue`,
+      ],
+      { windowsHide: true, timeout: 8000 }
+    );
+    log('Cleared printer queue for', PRINTER_NAME);
+  } catch (err) {
+    log('Clear printer queue skipped:', err.message || String(err));
+  }
 }
 
 function getStatus() {
@@ -126,8 +197,8 @@ function stopAgent() {
       log('Kill soft failed', String(pid), err.message);
     }
   }
-  // Sweep any orphan agent.js (may briefly block — only on /stop)
   killAllAgentsHard();
+  clearPrinterQueue();
   try {
     if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
   } catch (_) {}
@@ -136,9 +207,16 @@ function stopAgent() {
 
 function startAgent() {
   const current = getStatus();
-  if (current.running) {
+  // Exactly one healthy agent — keep it
+  if (current.running && current.pids.length === 1 && isPidAlive(current.pid)) {
     return { ...current, alreadyRunning: true };
   }
+
+  // 0 or multiple agents: wipe then spawn one
+  killAllAgentsHard();
+  try {
+    if (fs.existsSync(LOCK_PATH)) fs.unlinkSync(LOCK_PATH);
+  } catch (_) {}
 
   fs.mkdirSync(path.join(ROOT, 'daemon'), { recursive: true });
   const outFd = fs.openSync(OUT_LOG, 'a');
@@ -156,7 +234,6 @@ function startAgent() {
   } catch (_) {}
 
   log('Started agent spawn PID', String(child.pid));
-  // Don't block the HTTP event loop waiting — client polls /status
   return {
     ok: true,
     supervisor: true,
@@ -219,7 +296,7 @@ const server = http.createServer((req, res) => {
   if (method === 'POST' && url === '/stop') {
     try {
       const st = stopAgent();
-      setTimeout(() => sendJson(res, 200, st), 50);
+      setTimeout(() => sendJson(res, 200, getStatus().running ? st : { ...st, running: false }), 200);
     } catch (err) {
       sendJson(res, 500, { ok: false, error: err.message });
     }
@@ -253,4 +330,3 @@ server.on('error', (err) => {
   console.error('❌ Supervisor error:', err.message);
   process.exit(1);
 });
-

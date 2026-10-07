@@ -34,6 +34,9 @@ const printJobSchema = new mongoose.Schema(
       enum: ['pending', 'yes', 'no'],
       default: 'pending',
     },
+    /** Atomic single-agent claim — prevents two agents printing the same job */
+    claimedBy: { type: String, default: '' },
+    claimedAt: { type: Date, default: null },
     errorMessage: { type: String, default: '' },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },

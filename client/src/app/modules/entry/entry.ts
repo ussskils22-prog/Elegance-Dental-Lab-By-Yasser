@@ -506,59 +506,52 @@ export class EntryComponent implements OnInit, OnDestroy {
     };
     document.addEventListener('visibilitychange', this.onVisibilityChange);
 
-    // Real-time: listen for new jobs
+    // Real-time print jobs (via SocketService — never bind to a discarded socket)
     this.socketService.connect();
-    const socket = (this.socketService as any).socket;
-    if (socket) {
-      const onNew = (job: PrintJobCard & { jobId?: string }) => {
+    this.socketSubs.push(
+      this.socketService.onPrintJobCreated().subscribe((job: PrintJobCard & { jobId?: string }) => {
         const normalized: PrintJobCard = {
           ...job,
           _id: job._id || job.jobId || '',
         };
         if (!normalized._id) return;
-        this.printJobs.update(jobs => {
-          if (jobs.some(j => j._id === normalized._id)) return jobs;
+        this.printJobs.update((jobs) => {
+          if (jobs.some((j) => j._id === normalized._id)) return jobs;
           return this.sortJobs([...jobs, normalized]);
         });
-      };
-      const onUpdate = (data: {
-        jobId: string;
-        status: string;
-        paperConfirmed?: PrintJobCard['paperConfirmed'];
-        errorMessage?: string;
-      }) => {
-        this.printJobs.update(jobs =>
-          this.sortJobs(
-            jobs.map(j =>
-              j._id === data.jobId
-                ? {
-                    ...j,
-                    status: data.status as PrintJobCard['status'],
-                    paperConfirmed: data.paperConfirmed ?? j.paperConfirmed,
-                    errorMessage: data.errorMessage ?? j.errorMessage,
-                  }
-                : j
+      }),
+      this.socketService.onPrintJobStatusUpdated().subscribe(
+        (data: {
+          jobId: string;
+          status: string;
+          paperConfirmed?: PrintJobCard['paperConfirmed'];
+          errorMessage?: string;
+        }) => {
+          if (!data?.jobId) return;
+          this.printJobs.update((jobs) =>
+            this.sortJobs(
+              jobs.map((j) =>
+                j._id === data.jobId
+                  ? {
+                      ...j,
+                      status: data.status as PrintJobCard['status'],
+                      paperConfirmed: data.paperConfirmed ?? j.paperConfirmed,
+                      errorMessage: data.errorMessage ?? j.errorMessage,
+                    }
+                  : j
+              )
             )
-          )
-        );
-      };
-      const onDelete = (data: { jobId: string }) => {
-        this.printJobs.update(jobs => jobs.filter(j => j._id !== data.jobId));
-      };
-      const onClearAll = () => {
+          );
+        }
+      ),
+      this.socketService.onPrintJobDeleted().subscribe((data: { jobId: string }) => {
+        if (!data?.jobId) return;
+        this.printJobs.update((jobs) => jobs.filter((j) => j._id !== data.jobId));
+      }),
+      this.socketService.onPrintAllJobsCleared().subscribe(() => {
         this.printJobs.set([]);
-      };
-      socket.on('print:job-created', onNew);
-      socket.on('print:job-status-updated', onUpdate);
-      socket.on('print:job-deleted', onDelete);
-      socket.on('print:all-jobs-cleared', onClearAll);
-      this.socketSubs.push({ unsubscribe: () => {
-        socket.off('print:job-created', onNew);
-        socket.off('print:job-status-updated', onUpdate);
-        socket.off('print:job-deleted', onDelete);
-        socket.off('print:all-jobs-cleared', onClearAll);
-      }} as Subscription);
-    }
+      })
+    );
   }
 
   ngOnDestroy(): void {

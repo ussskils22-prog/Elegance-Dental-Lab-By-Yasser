@@ -113,6 +113,65 @@ exports.createPrintJob = async (req, res) => {
   }
 };
 
+const CLAIM_STALE_MS = 5 * 60 * 1000;
+
+function unfinishedPrintJobFilter() {
+  const staleBefore = new Date(Date.now() - CLAIM_STALE_MS);
+  return {
+    paperConfirmed: { $ne: 'yes' },
+    $or: [
+      { status: { $in: ['pending', 'failed'] } },
+      { status: 'printing', claimedAt: { $lt: staleBefore } },
+      { status: 'printing', claimedAt: null },
+    ],
+  };
+}
+
+/**
+ * Atomic claim — only one agent may print a given job.
+ * POST /api/print/job/:id/claim  (agent secret)
+ */
+exports.claimPrintJob = async (req, res) => {
+  try {
+    const agentId = String(req.headers['x-agent-id'] || req.body?.agentId || 'print-agent').slice(0, 120);
+    const job = await PrintJob.findOneAndUpdate(
+      { _id: req.params.id, ...unfinishedPrintJobFilter() },
+      {
+        $set: {
+          status: 'printing',
+          claimedBy: agentId,
+          claimedAt: new Date(),
+          errorMessage: '',
+        },
+      },
+      { new: true }
+    );
+
+    if (!job) {
+      return res.status(409).json({
+        success: false,
+        claimed: false,
+        message: 'الجوب محجوز أو خلص',
+      });
+    }
+
+    const io = getIO();
+    if (io) {
+      io.emit('print:job-status-updated', {
+        jobId: job._id,
+        status: job.status,
+        paperConfirmed: job.paperConfirmed,
+        errorMessage: job.errorMessage,
+      });
+    }
+
+    return res.json({ success: true, claimed: true, job });
+  } catch (err) {
+    console.error('claimPrintJob error:', err);
+    return res.status(500).json({ success: false, claimed: false, message: 'خطأ في السيرفر' });
+  }
+};
+
 /** Apply agent status update with anti-downgrade / anti-double-print guards */
 async function applyAgentJobStatus(jobId, status, errorMessage = '') {
   const validStatuses = ['pending', 'printing', 'done', 'failed'];
@@ -141,10 +200,18 @@ async function applyAgentJobStatus(jobId, status, errorMessage = '') {
   if (status === 'done') {
     // Keep human confirmation if already yes; otherwise await confirmation
     if (job.paperConfirmed !== 'yes') job.paperConfirmed = 'pending';
+    job.claimedBy = job.claimedBy || 'done';
+    job.claimedAt = job.claimedAt || new Date();
   } else if (status === 'failed') {
     job.paperConfirmed = 'no';
+    job.claimedBy = '';
+    job.claimedAt = null;
   } else if (status === 'printing' || status === 'pending') {
     if (job.paperConfirmed !== 'yes') job.paperConfirmed = 'pending';
+    if (status === 'pending') {
+      job.claimedBy = '';
+      job.claimedAt = null;
+    }
   }
 
   await job.save();
@@ -253,12 +320,8 @@ exports.listJobs = async (req, res) => {
 // GET /api/print/jobs/pending — Print Agent catch-up (agent secret required)
 exports.listPendingJobs = async (req, res) => {
   try {
-    // Include failed + stuck "printing" so catch-up works after sleep / kill.
-    // Never include human-confirmed prints (prevents accidental reprints).
-    const jobs = await PrintJob.find({
-      status: { $in: ['pending', 'failed', 'printing'] },
-      paperConfirmed: { $ne: 'yes' },
-    })
+    // Pending/failed + stale printing only — actively claimed jobs stay with one agent.
+    const jobs = await PrintJob.find(unfinishedPrintJobFilter())
       .sort({ createdAt: 1 })
       .limit(100);
 

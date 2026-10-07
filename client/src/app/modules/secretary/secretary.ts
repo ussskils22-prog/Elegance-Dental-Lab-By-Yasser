@@ -1662,7 +1662,12 @@ export class Secretary implements OnInit, OnDestroy {
       this.socketService.onCaseReleased().subscribe((evt) => {
         if (evt) scheduleReload();
       }),
-      // Ignore case:updated for list reload — moved-stage / completed cover stage changes
+      this.socketService.onCaseUpdated().subscribe((evt) => {
+        if (evt) scheduleReload();
+      }),
+      this.socketService.onCaseExited().subscribe((evt) => {
+        if (evt) scheduleReload();
+      }),
       this.socketService.onCaseDeleted().subscribe((evt) => {
         if (evt) scheduleReload();
       })

@@ -33,6 +33,9 @@ router.post('/job', optionalAuth, printController.createPrintJob);
 // Print Agent updates job status (AGENT_SECRET)
 router.patch('/job/:id/status', agentSecret, printController.updateJobStatus);
 
+// Atomic claim — prevents two agents printing the same job
+router.post('/job/:id/claim', agentSecret, printController.claimPrintJob);
+
 // Entry screen: confirm paper printed — must be logged in
 router.patch(
   '/job/:id/confirm',

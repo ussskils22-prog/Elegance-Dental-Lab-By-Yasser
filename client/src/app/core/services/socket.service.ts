@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, Observable, filter } from 'rxjs';
 import { AuthService } from './auth.service';
 import { socketBaseUrl } from '../api/api.config';
 
@@ -9,6 +9,7 @@ import { socketBaseUrl } from '../api/api.config';
 })
 export class SocketService {
   private socket: Socket | null = null;
+  private listenersBound = false;
   private isConnected$ = new BehaviorSubject<boolean>(false);
 
   // Case Events
@@ -20,6 +21,7 @@ export class SocketService {
   private caseReleased$ = new BehaviorSubject<any>(null);
   private caseUpdated$ = new BehaviorSubject<any>(null);
   private caseDeleted$ = new BehaviorSubject<any>(null);
+  private caseExited$ = new BehaviorSubject<any>(null);
 
   // User Events
   private userStatusChanged$ = new BehaviorSubject<any>(null);
@@ -34,15 +36,27 @@ export class SocketService {
     connectedAt?: string | null;
   } | null>(null);
 
+  // Print jobs (entry screen)
+  private printJobCreated$ = new BehaviorSubject<any>(null);
+  private printJobStatusUpdated$ = new BehaviorSubject<any>(null);
+  private printJobDeleted$ = new BehaviorSubject<any>(null);
+  private printAllJobsCleared$ = new BehaviorSubject<any>(null);
+
   constructor(private authService: AuthService) {}
 
   connect(): void {
-    if (this.socket?.connected) return;
-
     const token = this.authService.getToken();
-
     if (!token) {
       console.warn('No token available for Socket.io connection');
+      return;
+    }
+
+    // Reuse existing socket — never orphan listeners by creating a second io()
+    if (this.socket) {
+      if (!this.socket.connected) {
+        this.socket.auth = { token };
+        this.socket.connect();
+      }
       return;
     }
 
@@ -53,87 +67,75 @@ export class SocketService {
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity,
     });
 
-    // Connection events
-    this.socket.on('connect', () => {
+    this.bindSocketListeners(this.socket);
+  }
+
+  private bindSocketListeners(socket: Socket): void {
+    if (this.listenersBound) return;
+    this.listenersBound = true;
+
+    socket.on('connect', () => {
       console.log('Socket.io connected');
       this.isConnected$.next(true);
     });
 
-    this.socket.on('disconnect', () => {
+    socket.on('disconnect', () => {
       console.log('Socket.io disconnected');
       this.isConnected$.next(false);
     });
 
-    this.socket.on('error', (error: unknown) => {
+    socket.on('error', (error: unknown) => {
       console.error('Socket.io error:', error);
     });
 
-    // ════════════════════════════════════════════════
-    // CASE EVENTS
-    // ════════════════════════════════════════════════
-
-    this.socket.on('case:created', (data: unknown) => {
-      console.log('Case created:', data);
+    socket.on('case:created', (data: unknown) => {
       this.caseCreated$.next(data);
     });
 
-    this.socket.on('case:assigned', (data: unknown) => {
-      console.log('Case assigned:', data);
+    socket.on('case:assigned', (data: unknown) => {
       this.caseAssigned$.next(data);
     });
 
-    this.socket.on('case:reassigned', (data: unknown) => {
-      console.log('Case reassigned:', data);
+    socket.on('case:reassigned', (data: unknown) => {
       this.caseReassigned$.next(data);
     });
 
-    this.socket.on('case:moved-stage', (data: unknown) => {
-      console.log('Case moved to stage:', data);
+    socket.on('case:moved-stage', (data: unknown) => {
       this.caseMovedStage$.next(data);
     });
 
-    this.socket.on('case:completed', (data: unknown) => {
-      console.log('Case completed:', data);
+    socket.on('case:completed', (data: unknown) => {
       this.caseCompleted$.next(data);
     });
 
-    this.socket.on('case:released', (data: unknown) => {
-      console.log('Case released:', data);
+    socket.on('case:released', (data: unknown) => {
       this.caseReleased$.next(data);
     });
 
-    this.socket.on('case:updated', (data: unknown) => {
-      console.log('Case updated:', data);
+    socket.on('case:updated', (data: unknown) => {
       this.caseUpdated$.next(data);
     });
 
-    this.socket.on('case:deleted', (data: unknown) => {
-      console.log('Case deleted:', data);
+    socket.on('case:deleted', (data: unknown) => {
       this.caseDeleted$.next(data);
     });
 
-    // ════════════════════════════════════════════════
-    // USER EVENTS
-    // ════════════════════════════════════════════════
+    socket.on('case:exited', (data: unknown) => {
+      this.caseExited$.next(data);
+    });
 
-    this.socket.on('user:status-changed', (data: unknown) => {
-      console.log('User status changed:', data);
+    socket.on('user:status-changed', (data: unknown) => {
       this.userStatusChanged$.next(data);
     });
 
-    // ════════════════════════════════════════════════
-    // NOTIFICATION EVENTS
-    // ════════════════════════════════════════════════
-
-    this.socket.on('notification:new', (data: unknown) => {
-      console.log('New notification:', data);
+    socket.on('notification:new', (data: unknown) => {
       this.notificationReceived$.next(data);
     });
 
-    this.socket.on('print:agent-status', (data: unknown) => {
+    socket.on('print:agent-status', (data: unknown) => {
       const row = data as { online?: boolean; agentCount?: number; connectedAt?: string | null };
       this.printAgentStatus$.next({
         online: Boolean(row?.online),
@@ -141,19 +143,32 @@ export class SocketService {
         connectedAt: row?.connectedAt ?? null,
       });
     });
+
+    socket.on('print:job-created', (data: unknown) => {
+      this.printJobCreated$.next(data);
+    });
+
+    socket.on('print:job-status-updated', (data: unknown) => {
+      this.printJobStatusUpdated$.next(data);
+    });
+
+    socket.on('print:job-deleted', (data: unknown) => {
+      this.printJobDeleted$.next(data);
+    });
+
+    socket.on('print:all-jobs-cleared', (data: unknown) => {
+      this.printAllJobsCleared$.next(data ?? true);
+    });
   }
 
   disconnect(): void {
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
+      this.listenersBound = false;
       this.isConnected$.next(false);
     }
   }
-
-  // ════════════════════════════════════════════════
-  // EMIT METHODS
-  // ════════════════════════════════════════════════
 
   emitCaseCreated(data: any): void {
     this.socket?.emit('case:created', data);
@@ -174,10 +189,6 @@ export class SocketService {
   emitUserStatusChange(status: 'online' | 'offline' | 'idle'): void {
     this.socket?.emit('user:status-change', { status });
   }
-
-  // ════════════════════════════════════════════════
-  // OBSERVABLE METHODS
-  // ════════════════════════════════════════════════
 
   isConnected(): Observable<boolean> {
     return this.isConnected$.asObservable();
@@ -215,6 +226,10 @@ export class SocketService {
     return this.caseDeleted$.asObservable();
   }
 
+  onCaseExited(): Observable<any> {
+    return this.caseExited$.asObservable();
+  }
+
   onUserStatusChanged(): Observable<any> {
     return this.userStatusChanged$.asObservable();
   }
@@ -229,5 +244,21 @@ export class SocketService {
     connectedAt?: string | null;
   } | null> {
     return this.printAgentStatus$.asObservable();
+  }
+
+  onPrintJobCreated(): Observable<any> {
+    return this.printJobCreated$.pipe(filter((v) => v != null));
+  }
+
+  onPrintJobStatusUpdated(): Observable<any> {
+    return this.printJobStatusUpdated$.pipe(filter((v) => v != null));
+  }
+
+  onPrintJobDeleted(): Observable<any> {
+    return this.printJobDeleted$.pipe(filter((v) => v != null));
+  }
+
+  onPrintAllJobsCleared(): Observable<any> {
+    return this.printAllJobsCleared$.pipe(filter((v) => v != null));
   }
 }

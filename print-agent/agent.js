@@ -35,13 +35,17 @@ const util = require('util');
   if (process.platform === 'win32') {
     try {
       const { execFileSync } = require('child_process');
-      // Kill every other node running .../print-agent/agent.js (keep this PID)
+      // Kill every other node running this agent.js (keep this PID)
+      const rootEsc = __dirname.replace(/'/g, "''").replace(/\\/g, '\\\\');
       const ps = [
         `$my = ${process.pid}`,
+        `$root = '${rootEsc}'`,
         `Get-CimInstance Win32_Process -Filter "Name='node.exe'" | ForEach-Object {`,
         `  if ($_.ProcessId -eq $my) { return }`,
         `  $cmd = [string]$_.CommandLine`,
-        `  if ($cmd -match 'print-agent[/\\\\]+agent\\.js') {`,
+        `  if (-not $cmd) { return }`,
+        `  $hit = ($cmd -match 'print-agent[/\\\\]+agent\\.js') -or ($cmd -match [regex]::Escape($root) -and $cmd -match 'agent\\.js')`,
+        `  if ($hit) {`,
         `    Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue`,
         `    Write-Output $_.ProcessId`,
         `  }`,
@@ -426,8 +430,13 @@ async function processQueue() {
     console.log(`   Patient: ${job.printData.patient} | Doctor: ${job.printData.doctor}`);
 
     try {
-      // Don't block the print path on status HTTP / slow WMI health checks
-      reportStatus(job.jobId, 'printing').catch(() => {});
+      // Atomic server claim — if another agent already owns this job, skip (no second sheet)
+      const claimed = await claimJob(job.jobId);
+      if (!claimed) {
+        console.log(`⏭️  Skip ${job.jobId} — another agent already claimed it`);
+        currentJobId = null;
+        continue;
+      }
 
       const html = await buildPrintHtml(job.printData);
       const pdfPath = path.join(os.tmpdir(), `print_job_${job.jobId}.pdf`);
@@ -465,6 +474,21 @@ async function processQueue() {
   }
 
   isProcessingQueue = false;
+}
+
+async function claimJob(jobId) {
+  const url = `${SERVER_URL}/api/print/job/${encodeURIComponent(jobId)}/claim`;
+  try {
+    const res = await httpJson('POST', url, { agentId: `pid-${process.pid}` });
+    return Boolean(res && (res.claimed === true || res.success === true));
+  } catch (err) {
+    const msg = String(err.message || '');
+    // Another agent already owns it
+    if (/HTTP 409/.test(msg)) return false;
+    // Backend not upgraded yet / transient network — print once; supervisor keeps a single agent
+    console.warn(`   ⚠️  Claim unavailable for ${jobId} (${err.message}) — printing anyway`);
+    return true;
+  }
 }
 
 async function reportStatus(jobId, status, error) {
@@ -512,6 +536,7 @@ function httpJson(method, url, body) {
         headers: {
           'Content-Type': 'application/json',
           'x-agent-secret': AGENT_SECRET,
+          'x-agent-id': `pid-${process.pid}`,
           ...(payload ? { 'Content-Length': Buffer.byteLength(payload) } : {}),
         },
         timeout: 15000,
