@@ -330,10 +330,30 @@ const emitToAll = (event, data) => {
   }
 };
 
+/** Send a print job to exactly one agent (newest connection) — prevents double sheets */
+const emitToOnePrintAgent = (event, data) => {
+  if (!io) return;
+  let targetId = null;
+  let newest = null;
+  for (const [sid, row] of printAgentConnections.entries()) {
+    if (!newest || (row.connectedAt && row.connectedAt > newest)) {
+      newest = row.connectedAt;
+      targetId = sid;
+    }
+  }
+  if (targetId) {
+    io.to(targetId).emit(event, data);
+    return;
+  }
+  // Fallback if map empty but room has members
+  io.to('print-agents').emit(event, data);
+};
+
 module.exports = {
   setupSocket,
   getIO,
   emitToUser,
   emitToAll,
+  emitToOnePrintAgent,
   getPrintAgentStatus,
 };

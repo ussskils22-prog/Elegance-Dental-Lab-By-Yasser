@@ -108,12 +108,18 @@ function listAgentPidsViaCim() {
   }
 }
 
-function listAgentPids() {
-  const viaCim = listAgentPidsViaCim();
-  if (viaCim.length) return [...new Set(viaCim)];
+/** Fast path for /status — never block the HTTP server on PowerShell/WMI */
+function listAgentPidsFast() {
   const lock = readLockPid();
   if (lock && isPidAlive(lock)) return [lock];
   return [];
+}
+
+/** Thorough scan — only for start/stop */
+function listAgentPids() {
+  const viaCim = listAgentPidsViaCim();
+  if (viaCim.length) return [...new Set(viaCim)];
+  return listAgentPidsFast();
 }
 
 function killAllAgentsHard() {
@@ -175,7 +181,7 @@ function clearPrinterQueue() {
 }
 
 function getStatus() {
-  const pids = listAgentPids();
+  const pids = listAgentPidsFast();
   const pid = pids[0] || null;
   return {
     ok: true,

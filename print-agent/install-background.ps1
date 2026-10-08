@@ -78,4 +78,4 @@ Write-Host ('  Control API: http://127.0.0.1:17891/status')
 Write-Host ('  Logs: ' + (Join-Path $daemon 'supervisor.log'))
 Write-Host ''
 Write-Host 'Do NOT use install-as-service.bat (LocalSystem breaks USB print).'
-
+

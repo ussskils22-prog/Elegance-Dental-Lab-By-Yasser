@@ -4,13 +4,13 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "https://elegance-dental-lab-by-yasser-production-da7c.up.railway.app/api/$1"
+      "dest": "https://elegance-dental-lab-by-yasser-production-5940.up.railway.app/api/$1"
     }
   ],
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://elegance-dental-lab-by-yasser-production-da7c.up.railway.app/api/:path*"
+      "destination": "https://elegance-dental-lab-by-yasser-production-5940.up.railway.app/api/:path*"
     },
     {
       "source": "/((?!.*\\.).*)",

@@ -1,5 +1,5 @@
 {
-  "SERVER_URL": "https://elegance-dental-lab-by-yasser-production-da7c.up.railway.app",
+  "SERVER_URL": "https://elegance-dental-lab-by-yasser-production-5940.up.railway.app",
   "EXOCAD_AGENT_SECRET": "elegance-print-secret-2024",
   "CAD_DATA_ROOT": "C:\\exocad-DentalCAD3.2-FR-2024-09-27\\CAD-Data",
   "POLL_INTERVAL_MS": 30000

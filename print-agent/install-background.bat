@@ -13,4 +13,4 @@ if %errorLevel% neq 0 (
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0install-background.ps1"
 echo.
 pause
-
+

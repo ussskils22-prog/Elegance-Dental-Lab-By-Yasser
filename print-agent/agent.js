@@ -25,36 +25,59 @@ const { promisify } = require('util');
 const execFileAsync = promisify(execFile);
 const util = require('util');
 
-// Single-instance: kill any other print-agent.js, then take the lock
+// Single-instance: exclusive local port + kill siblings, then take the lock.
+// A second agent (service/task) was printing every job twice.
 (function enforceSingleInstance() {
+  const net = require('net');
   const lockPath = path.join(__dirname, 'daemon', 'agent.lock');
+  const MUTEX_PORT = 17892;
   try {
     fs.mkdirSync(path.dirname(lockPath), { recursive: true });
   } catch (_) {}
 
+  // Exclusive TCP bind — works even when the other process hides its command line
+  const mutex = net.createServer();
+  mutex.on('error', (err) => {
+    console.error(`❌ Another print agent already owns port ${MUTEX_PORT} (${err.code || err.message}). Exiting.`);
+    process.exit(1);
+  });
+  mutex.listen(MUTEX_PORT, '127.0.0.1', () => {
+    console.log(`🔒 Single-instance port ${MUTEX_PORT} acquired (pid ${process.pid})`);
+  });
+  process.on('exit', () => {
+    try {
+      mutex.close();
+    } catch (_) {}
+  });
+
   if (process.platform === 'win32') {
     try {
       const { execFileSync } = require('child_process');
-      // Kill every other node running this agent.js (keep this PID)
       const rootEsc = __dirname.replace(/'/g, "''").replace(/\\/g, '\\\\');
+      // Kill other agent.js + any node with empty cmdline that hosts puppeteer chrome (hidden service agents)
       const ps = [
         `$my = ${process.pid}`,
         `$root = '${rootEsc}'`,
         `Get-CimInstance Win32_Process -Filter "Name='node.exe'" | ForEach-Object {`,
-        `  if ($_.ProcessId -eq $my) { return }`,
+        `  $pidN = $_.ProcessId`,
+        `  if ($pidN -eq $my) { return }`,
         `  $cmd = [string]$_.CommandLine`,
-        `  if (-not $cmd) { return }`,
-        `  $hit = ($cmd -match 'print-agent[/\\\\]+agent\\.js') -or ($cmd -match [regex]::Escape($root) -and $cmd -match 'agent\\.js')`,
+        `  $hit = $false`,
+        `  if ($cmd -and (($cmd -match 'print-agent[/\\\\]+agent\\.js') -or ($cmd -match [regex]::Escape($root) -and $cmd -match 'agent\\.js'))) { $hit = $true }`,
+        `  if (-not $hit -and [string]::IsNullOrWhiteSpace($cmd)) {`,
+        `    $n = @(Get-CimInstance Win32_Process -Filter "Name='chrome.exe' and ParentProcessId=$pidN").Count`,
+        `    if ($n -gt 0) { $hit = $true }`,
+        `  }`,
         `  if ($hit) {`,
-        `    Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue`,
-        `    Write-Output $_.ProcessId`,
+        `    Stop-Process -Id $pidN -Force -ErrorAction SilentlyContinue`,
+        `    Write-Output $pidN`,
         `  }`,
         `}`,
       ].join('; ');
       const out = execFileSync(
         'powershell.exe',
         ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', ps],
-        { windowsHide: true, timeout: 10000, stdio: ['ignore', 'pipe', 'pipe'] }
+        { windowsHide: true, timeout: 15000, stdio: ['ignore', 'pipe', 'pipe'] }
       );
       const text = String(out || '').trim();
       if (text) console.log('🔒 Cleared other agent PID(s):', text.replace(/\s+/g, ' '));
@@ -216,8 +239,35 @@ function isPrinterIssueError(message) {
   return /printer|offline|not ready|not found|spooler/i.test(String(message || ''));
 }
 
+/** Jobs we already decided to print this process (set BEFORE any await) */
+const startedIds = new Set();
+/** Serialize SumatraPDF — concurrent prints jam the HP P1102 spooler */
+let printPdfChain = Promise.resolve();
+const JOB_LOCK_DIR = path.join(__dirname, 'daemon', 'job-locks');
+
+/**
+ * Cross-process exclusive lock — only one agent (or one handler) may own a jobId.
+ * Uses O_EXCL file create so two processes cannot both win.
+ */
+function tryAcquireJobLock(id) {
+  try {
+    fs.mkdirSync(JOB_LOCK_DIR, { recursive: true });
+  } catch (_) {}
+  const lockPath = path.join(JOB_LOCK_DIR, `${id}.lock`);
+  try {
+    const fd = fs.openSync(lockPath, 'wx');
+    fs.writeFileSync(fd, `${process.pid}\n${new Date().toISOString()}\n`);
+    fs.closeSync(fd);
+    return true;
+  } catch (err) {
+    if (err && err.code === 'EEXIST') return false;
+    console.warn('⚠️  Job lock error:', err.message);
+    return false;
+  }
+}
+
 function isInPipeline(id) {
-  return queuedIds.has(id) || currentJobId === id;
+  return queuedIds.has(id) || currentJobId === id || startedIds.has(id);
 }
 
 /**
@@ -232,20 +282,27 @@ function enqueueJob(job, source, opts = {}) {
     return false;
   }
 
+  // Critical: once printed successfully this session, NEVER reprint —
+  // even if a catch-up poll still sees the job as pending/printing (race before done sync).
+  if (completedIds.has(id) || startedIds.has(id)) {
+    console.log(`⏭️  Skip ${id} (already printed/started this session, via ${source})`);
+    return false;
+  }
+
   if (isInPipeline(id)) {
     return false;
   }
 
-  // Critical: once printed successfully this session, NEVER reprint —
-  // even if a catch-up poll still sees the job as pending/printing (race before done sync).
-  if (completedIds.has(id)) {
-    console.log(`⏭️  Skip ${id} (already printed this session, via ${source})`);
+  // Win or lose BEFORE queue — stops double socket delivery / second agent
+  if (!tryAcquireJobLock(id)) {
+    console.log(`⏭️  Skip ${id} (lock held by another agent/handler, via ${source})`);
     return false;
   }
 
   queuedIds.add(id);
+  startedIds.add(id);
   jobQueue.push({ jobId: id, printData: job.printData || {} });
-  console.log(`📥 Queued job ${id} (via ${source})`);
+  console.log(`📥 Queued job ${id} (via ${source}, pid ${process.pid})`);
   processQueue();
   return true;
 }
@@ -434,6 +491,8 @@ async function processQueue() {
       const claimed = await claimJob(job.jobId);
       if (!claimed) {
         console.log(`⏭️  Skip ${job.jobId} — another agent already claimed it`);
+        startedIds.delete(job.jobId);
+        releaseJobLock(job.jobId);
         currentJobId = null;
         continue;
       }
@@ -445,7 +504,12 @@ async function processQueue() {
       console.log(`   ✅ PDF generated in ${Date.now() - t0}ms: ${pdfPath}`);
 
       console.log(`   🖨️  Sending PDF to printer [${PRINTER_NAME}]...`);
-      await withTimeout(printPdf(pdfPath), 20000, 'printPdf');
+      // One Sumatra at a time — parallel prints jam the P1102 and nothing comes out
+      await new Promise((resolve, reject) => {
+        printPdfChain = printPdfChain
+          .then(() => withTimeout(printPdf(pdfPath), 20000, 'printPdf'))
+          .then(resolve, reject);
+      });
       console.log(`   📤 Sent to Windows spooler [${PRINTER_NAME}]`);
 
       const confirm = await waitForPrintConfirmation(PRINTER_NAME, new Set());
@@ -463,6 +527,8 @@ async function processQueue() {
         console.warn('   ⚠️  Ignoring failure after local completion');
       } else if (isPrinterIssueError(err.message)) {
         printerDown = true;
+        // Allow a later retry after printer recovers
+        startedIds.delete(job.jobId);
         await reportStatus(job.jobId, 'pending', `Waiting for printer: ${err.message}`);
         console.log('   ⏳ Job held as pending — will print when printer/agent is back');
       } else {
@@ -476,6 +542,12 @@ async function processQueue() {
   isProcessingQueue = false;
 }
 
+function releaseJobLock(id) {
+  try {
+    fs.unlinkSync(path.join(JOB_LOCK_DIR, `${id}.lock`));
+  } catch (_) {}
+}
+
 async function claimJob(jobId) {
   const url = `${SERVER_URL}/api/print/job/${encodeURIComponent(jobId)}/claim`;
   try {
@@ -483,10 +555,10 @@ async function claimJob(jobId) {
     return Boolean(res && (res.claimed === true || res.success === true));
   } catch (err) {
     const msg = String(err.message || '');
-    // Another agent already owns it
-    if (/HTTP 409/.test(msg)) return false;
-    // Backend not upgraded yet / transient network — print once; supervisor keeps a single agent
-    console.warn(`   ⚠️  Claim unavailable for ${jobId} (${err.message}) — printing anyway`);
+    // Another agent / already done
+    if (/HTTP 409/.test(msg) || /HTTP 404/.test(msg)) return false;
+    // Network blip: local file lock already makes us the only printer on this PC
+    console.warn(`   ⚠️  Claim unavailable for ${jobId} (${err.message}) — printing with local lock`);
     return true;
   }
 }

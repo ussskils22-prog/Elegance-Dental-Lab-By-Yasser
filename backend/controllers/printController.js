@@ -1,6 +1,6 @@
 const PrintJob = require('../models/PrintJob');
 const DentalCase = require('../models/DentalCase');
-const { getIO, getPrintAgentStatus } = require('../services/socketService');
+const { getIO, getPrintAgentStatus, emitToOnePrintAgent } = require('../services/socketService');
 
 const META_PREFIX = '__META__\n';
 
@@ -85,10 +85,10 @@ exports.createPrintJob = async (req, res) => {
       createdBy: req.user?.userId || req.user?.id || null,
     });
 
-    // Emit to the Print Agent via Socket.IO room 'print-agents'
+    // Emit to exactly ONE print agent (room broadcast caused duplicate sheets)
     const io = getIO();
     if (io) {
-      io.to('print-agents').emit('print:new-job', {
+      emitToOnePrintAgent('print:new-job', {
         jobId: job._id,
         printData: job.printData,
       });
