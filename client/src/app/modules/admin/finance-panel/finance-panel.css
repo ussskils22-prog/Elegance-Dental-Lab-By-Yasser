@@ -12,9 +12,9 @@
 
 .fp-tabs button,
 .fp-mode button {
-  border: 1px solid #cbd5e1;
+  border: 1px solid #d4d4d8;
   background: #fff;
-  color: #0f172a;
+  color: #0a0a0b;
   padding: 8px 14px;
   border-radius: 8px;
   cursor: pointer;
@@ -24,14 +24,14 @@
 
 .fp-tabs button.active,
 .fp-mode button.active {
-  background: #0f172a;
+  background: #0a0a0b;
   color: #fff;
-  border-color: #0f172a;
+  border-color: #0a0a0b;
 }
 
 .fp-hint {
   font-size: 13px;
-  color: #64748b;
+  color: #71717a;
   margin: 0 0 12px;
 }
 
@@ -54,7 +54,7 @@
 }
 
 .fp-loading {
-  color: #64748b;
+  color: #71717a;
   margin-bottom: 8px;
 }
 
@@ -74,15 +74,15 @@
 }
 
 .fp-card {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: #fafafa;
+  border: 1px solid #e4e4e7;
   border-radius: 12px;
   padding: 14px;
 }
 
 .fp-card .lbl {
   font-size: 12px;
-  color: #64748b;
+  color: #71717a;
   font-weight: 600;
 }
 
@@ -90,12 +90,12 @@
   font-size: 22px;
   font-weight: 800;
   margin-top: 6px;
-  color: #0f172a;
+  color: #0a0a0b;
 }
 
 .fp-card .sub {
   font-size: 11px;
-  color: #64748b;
+  color: #71717a;
   margin-top: 4px;
 }
 
@@ -110,7 +110,7 @@
 
 .fp-breakdown {
   background: #fff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e4e4e7;
   border-radius: 12px;
   padding: 14px;
 }
@@ -122,7 +122,7 @@
 
 .fp-breakdown td {
   padding: 8px 4px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid #f4f4f5;
   font-size: 14px;
 }
 
@@ -135,8 +135,8 @@
 .fp-explain {
   margin: 12px 0 0;
   font-size: 13px;
-  color: #475569;
-  background: #f1f5f9;
+  color: #3a3a40;
+  background: #f4f4f5;
   padding: 10px;
   border-radius: 8px;
 }
@@ -149,7 +149,7 @@
 
 .fp-box {
   background: #fff;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #e4e4e7;
   border-radius: 12px;
   padding: 14px;
 }
@@ -163,7 +163,7 @@
   display: block;
   font-size: 12px;
   font-weight: 600;
-  color: #475569;
+  color: #3a3a40;
   margin: 8px 0 4px;
 }
 
@@ -171,7 +171,7 @@
 .fp-box select {
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #d4d4d8;
   border-radius: 8px;
   font-size: 13px;
   box-sizing: border-box;
@@ -185,8 +185,8 @@
 
 .fp-btn {
   margin-top: 12px;
-  border: 1px solid #cbd5e1;
-  background: #f8fafc;
+  border: 1px solid #d4d4d8;
+  background: #fafafa;
   padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
@@ -195,9 +195,9 @@
 }
 
 .fp-btn.primary {
-  background: #2563eb;
+  background: #0f766e;
   color: #fff;
-  border-color: #2563eb;
+  border-color: #0f766e;
 }
 
 .fp-btn.danger {
@@ -221,15 +221,15 @@
 .fp-table th,
 .fp-table td {
   padding: 8px 6px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e4e4e7;
   text-align: right;
   vertical-align: middle;
 }
 
 .fp-table th {
   font-size: 12px;
-  color: #64748b;
-  background: #f8fafc;
+  color: #71717a;
+  background: #fafafa;
 }
 
 .fp-table tr.low {
@@ -238,7 +238,7 @@
 
 .fp-table .empty {
   text-align: center;
-  color: #94a3b8;
+  color: #a1a1aa;
   padding: 16px;
 }
 
@@ -246,7 +246,7 @@
 .fp-table select {
   width: 90px;
   padding: 4px 6px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid #d4d4d8;
   border-radius: 6px;
 }
 
@@ -269,13 +269,13 @@
 
 .fp-mini {
   font-size: 12px;
-  color: #64748b;
+  color: #71717a;
   margin: 0 0 8px;
 }
 
 /* Dark theme */
 :host-context(body.dark-theme) .fp-root {
-  color: #e2e8f0;
+  color: #e4e4e7;
 }
 
 :host-context(body.dark-theme) .fp-hint,
@@ -285,63 +285,63 @@
 :host-context(body.dark-theme) .fp-card .sub,
 :host-context(body.dark-theme) .fp-box label,
 :host-context(body.dark-theme) .fp-table th {
-  color: #94a3b8;
+  color: #a1a1aa;
 }
 
 :host-context(body.dark-theme) .fp-tabs button,
 :host-context(body.dark-theme) .fp-mode button {
-  background: #1e293b;
-  border-color: #334155;
-  color: #e2e8f0;
+  background: #161618;
+  border-color: #2a2a2e;
+  color: #e4e4e7;
 }
 
 :host-context(body.dark-theme) .fp-tabs button.active,
 :host-context(body.dark-theme) .fp-mode button.active {
-  background: #3b82f6;
-  border-color: #3b82f6;
+  background: #14b8a6;
+  border-color: #14b8a6;
   color: #fff;
 }
 
 :host-context(body.dark-theme) .fp-card,
 :host-context(body.dark-theme) .fp-box,
 :host-context(body.dark-theme) .fp-breakdown {
-  background: #0f172a;
-  border-color: #334155;
+  background: #0a0a0b;
+  border-color: #2a2a2e;
 }
 
 :host-context(body.dark-theme) .fp-card .val,
 :host-context(body.dark-theme) .fp-box h3,
 :host-context(body.dark-theme) .fp-toolbar h3,
 :host-context(body.dark-theme) .fp-breakdown td {
-  color: #f1f5f9;
+  color: #f4f4f5;
 }
 
 :host-context(body.dark-theme) .fp-breakdown td {
-  border-bottom-color: #1e293b;
+  border-bottom-color: #161618;
 }
 
 :host-context(body.dark-theme) .fp-explain {
-  background: #1e293b;
-  color: #cbd5e1;
+  background: #161618;
+  color: #d4d4d8;
 }
 
 :host-context(body.dark-theme) .fp-box input,
 :host-context(body.dark-theme) .fp-box select,
 :host-context(body.dark-theme) .fp-table input,
 :host-context(body.dark-theme) .fp-table select {
-  background: #1e293b;
-  border-color: #475569;
-  color: #f1f5f9;
+  background: #161618;
+  border-color: #3a3a40;
+  color: #f4f4f5;
 }
 
 :host-context(body.dark-theme) .fp-table th {
-  background: #1e293b;
+  background: #161618;
 }
 
 :host-context(body.dark-theme) .fp-table th,
 :host-context(body.dark-theme) .fp-table td {
-  border-bottom-color: #334155;
-  color: #e2e8f0;
+  border-bottom-color: #2a2a2e;
+  color: #e4e4e7;
 }
 
 :host-context(body.dark-theme) .fp-table tr.low {
@@ -349,18 +349,18 @@
 }
 
 :host-context(body.dark-theme) .fp-table .empty {
-  color: #64748b;
+  color: #71717a;
 }
 
 :host-context(body.dark-theme) .fp-btn {
-  background: #1e293b;
-  border-color: #475569;
-  color: #e2e8f0;
+  background: #161618;
+  border-color: #3a3a40;
+  color: #e4e4e7;
 }
 
 :host-context(body.dark-theme) .fp-btn.primary {
-  background: #2563eb;
-  border-color: #2563eb;
+  background: #0f766e;
+  border-color: #0f766e;
   color: #fff;
 }
 

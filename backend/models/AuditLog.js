@@ -30,6 +30,8 @@ const auditLogSchema = new mongoose.Schema(
         'doctor_charge_added',
         'backup_exported',
         'scan_uploaded',
+        'updated',
+        'deleted',
       ],
       required: true,
       index: true,

@@ -37,6 +37,17 @@ const errorHandler = require('./middleware/errorHandler');
 const app = express();
 const server = http.createServer(app);
 
+// On Vercel the module is imported per cold start and must not call listen().
+let dbReady = Promise.resolve();
+app.use((req, res, next) => {
+  dbReady.then(() => next()).catch((err) => {
+    const raw = err && err.message ? String(err.message) : 'Demo API is starting';
+    const message = raw.replace(/\/\/[^@\s]+@/g, '//***@');
+    console.error('Demo API not ready:', message);
+    res.status(503).json({ success: false, message });
+  });
+});
+
 // ════════════════════════════════════════════════
 // MIDDLEWARE
 // ════════════════════════════════════════════════
@@ -82,7 +93,7 @@ app.use(morgan('combined'));
 const isProduction = process.env.NODE_ENV === 'production';
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: isProduction ? 800 : 3000,
+  max: isProduction ? 8000 : 3000,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -196,7 +207,7 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-const startServer = async () => {
+const startServer = async ({ listen = true } = {}) => {
   try {
     // Connect to MongoDB
     await connectDB();
@@ -218,6 +229,11 @@ const startServer = async () => {
       console.log('[lab-config] branding:', lab.branding?.labName || lab.whatsapp?.labName || 'Elegance');
     } catch (e) {
       console.warn('[lab-config] init skipped:', e.message);
+    }
+
+    if (!listen) {
+      console.log('[vercel] API ready (no listen)');
+      return;
     }
 
     // Start server
@@ -255,17 +271,25 @@ const startServer = async () => {
     });
   } catch (error) {
     console.error('Failed to start server:', error);
+    const serverless = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+    if (serverless) throw error;
     process.exit(1);
   }
 };
 
+const serverless = Boolean(process.env.VERCEL || process.env.VERCEL_ENV);
+
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (error) => {
   console.error('Unhandled Rejection:', error);
-  process.exit(1);
+  if (!serverless) process.exit(1);
 });
 
-// Start the server
-startServer();
+// Start the server. Vercel imports this module and serves `app` itself.
+if (serverless) {
+  dbReady = startServer({ listen: false });
+} else {
+  startServer({ listen: true });
+}
 
 module.exports = app;

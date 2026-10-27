@@ -2,7 +2,7 @@
 :host {
   --primary: var(--accent-primary);
   --primary-mid: var(--accent-blue);
-  --primary-dark: #082a5c;
+  --primary-dark: #134e4a;
   --accent: var(--accent-primary);
   --page-bg: var(--bg-primary);
   --card: var(--bg-card);
@@ -15,8 +15,8 @@
   display: block;
   min-height: 100vh;
   font-family:
-    'Tajawal',
     'IBM Plex Sans Arabic',
+    'Tajawal',
     'Segoe UI',
     system-ui,
     sans-serif;
@@ -64,42 +64,42 @@
 
 @media (prefers-color-scheme: dark) {
   body.dark-theme .login-card {
-    background: #1e293b !important;
+    background: #161618 !important;
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
   }
 }
 
 body.dark-theme .login-card,
 .dark-theme .login-card {
-  background: #1e293b !important;
+  background: #161618 !important;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
 }
 
 body.dark-theme .title,
 .dark-theme .title {
-  color: #f8fafc !important;
+  color: #fafafa !important;
 }
 
 body.dark-theme .subtitle,
 .dark-theme .subtitle {
-  color: #94a3b8 !important;
+  color: #a1a1aa !important;
 }
 
 body.dark-theme .field label,
 .dark-theme .field label {
-  color: #e2e8f0 !important;
+  color: #e4e4e7 !important;
 }
 
 body.dark-theme .input-wrap input,
 .dark-theme .input-wrap input {
-  background: #0f172a !important;
-  color: #f8fafc !important;
-  border-color: #334155 !important;
+  background: #0a0a0b !important;
+  color: #fafafa !important;
+  border-color: #2a2a2e !important;
 }
 
 body.dark-theme .input-wrap input::placeholder,
 .dark-theme .input-wrap input::placeholder {
-  color: #64748b !important;
+  color: #71717a !important;
 }
 
 .form-panel {
@@ -354,6 +354,16 @@ body.dark-theme .input-wrap input::placeholder,
   background-repeat: no-repeat;
 }
 
+.hero-brand {
+  position: absolute;
+  z-index: 1;
+  top: 9%;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+}
+
 .hero-content {
   position: relative;
   z-index: 1;
@@ -427,10 +437,10 @@ body.dark-theme .input-wrap input::placeholder,
   justify-content: space-between;
   padding: 12px 14px;
   border-radius: 14px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
   color: #1e3a8a;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 8px 24px rgba(10, 10, 11, 0.12);
 }
 
 .access-banner--warn {
@@ -476,8 +486,8 @@ body.dark-theme .input-wrap input::placeholder,
 }
 
 .access-btn--primary {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
+  background: #115e59;
+  border-color: #115e59;
   color: #fff;
 }
 
@@ -508,7 +518,7 @@ body.dark-theme .input-wrap input::placeholder,
   position: fixed;
   inset: 0;
   z-index: 400;
-  background: rgba(15, 23, 42, 0.55);
+  background: rgba(10, 10, 11, 0.55);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -519,7 +529,7 @@ body.dark-theme .input-wrap input::placeholder,
   width: 100%;
   max-width: 420px;
   background: #fff;
-  color: #0f172a;
+  color: #0a0a0b;
   border-radius: 18px 18px 14px 14px;
   padding: 20px 18px 16px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
@@ -534,7 +544,7 @@ body.dark-theme .input-wrap input::placeholder,
 .ios-install-note {
   margin: 0 0 14px;
   font-size: 0.9rem;
-  color: #475569;
+  color: #3a3a40;
   line-height: 1.5;
 }
 
@@ -574,7 +584,7 @@ body.dark-theme .input-wrap input::placeholder,
   height: 18px;
   vertical-align: -3px;
   margin-inline-start: 4px;
-  color: #2563eb;
+  color: #0f766e;
 }
 
 .ios-install-sheet .access-btn--install {
@@ -583,13 +593,13 @@ body.dark-theme .input-wrap input::placeholder,
 
 body.dark-theme .ios-install-sheet,
 .dark-theme .ios-install-sheet {
-  background: #0f172a;
-  color: #e2e8f0;
+  background: #0a0a0b;
+  color: #e4e4e7;
 }
 
 body.dark-theme .ios-install-note,
 .dark-theme .ios-install-note {
-  color: #94a3b8;
+  color: #a1a1aa;
 }
 
 .remember-row {

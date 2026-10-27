@@ -1,0 +1,8 @@
+node_modules
+uploads
+.env
+.env.*
+*.log
+scripts
+test_db.js
+test_update.js

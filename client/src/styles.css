@@ -1,33 +1,33 @@
 /* You can add global styles to this file, and also import other style files */
 :root {
   /* LIGHT THEME TOKENS */
-  --bg-primary: #f5f7fa;
-  --bg-secondary: #eef1f6;
-  --bg-card: #ffffff;
-  --card-bg: #ffffff;
-  --card: #ffffff;
-  --bg: #f5f7fa;
+  --bg-primary: #f3efe6;
+  --bg-secondary: #e7e1d4;
+  --bg-card: #fffdf8;
+  --card-bg: #fffdf8;
+  --card: #fffdf8;
+  --bg: #f3efe6;
 
-  --text-primary: #0f172a;
-  --text-secondary: #64748b;
-  --text-muted: #64748b;
-  --text: #0f172a;
+  --text-primary: #1c1917;
+  --text-secondary: #57534e;
+  --text-muted: #78716c;
+  --text: #1c1917;
 
-  --border-primary: #e2e8f0;
-  --border-secondary: #cbd5e1;
-  --border-tertiary: #d4dce6;
-  --border: #e2e8f0;
-  --input-bg: #ffffff;
-  --input-border: #cbd5e1;
-  --tag-bg: #f1f5f9;
+  --border-primary: #e4dccb;
+  --border-secondary: #d6cbb8;
+  --border-tertiary: #efe8da;
+  --border: #e4dccb;
+  --input-bg: #fffdf8;
+  --input-border: #d6cbb8;
+  --tag-bg: #efe8da;
 
-  /* Accent Colors (Light) */
-  --accent-primary: #185FA5;
-  --accent-secondary: #E6F1FB;
-  --accent-blue: #2563eb;
-  --accent-green: #16a34a;
-  --accent-red: #dc2626;
-  --accent-amber: #d97706;
+  /* Accent — warm paper, deep teal */
+  --accent-primary: #0f6e62;
+  --accent-secondary: #e5f4f1;
+  --accent-blue: #0f6e62;
+  --accent-green: #3f7d4e;
+  --accent-red: #b42318;
+  --accent-amber: #b45309;
 
   --badge-green-bg: #EAF3DE;
   --badge-green-text: #3B6D11;
@@ -39,30 +39,30 @@
 
 body.dark-theme {
   /* DARK THEME TOKENS */
-  --bg-primary: #0f172a;       /* Darkest background (page body) */
-  --bg-secondary: #1e293b;     /* Slightly lighter for panels/sidebars */
-  --bg-card: #1e293b;          /* Dark card background */
-  --card-bg: #1e293b;
-  --card: #1e293b;
-  --bg: #0f172a;
+  --bg-primary: #0a0a0b;       /* Darkest background (page body) */
+  --bg-secondary: #161618;     /* Slightly lighter for panels/sidebars */
+  --bg-card: #161618;          /* Dark card background */
+  --card-bg: #161618;
+  --card: #161618;
+  --bg: #0a0a0b;
 
-  --text-primary: #f8fafc;     /* White/Off-white for main text */
-  --text-secondary: #cbd5e1;   /* Light gray for secondary text */
-  --text-muted: #94a3b8;       /* Muted text */
-  --text: #f8fafc;
+  --text-primary: #fafafa;     /* White/Off-white for main text */
+  --text-secondary: #d4d4d8;   /* Light gray for secondary text */
+  --text-muted: #a1a1aa;       /* Muted text */
+  --text: #fafafa;
 
-  --border-primary: #334155;
-  --border-secondary: #475569;
-  --border-tertiary: #334155;
-  --border: #334155;
-  --input-bg: #0f172a;
-  --input-border: #334155;
-  --tag-bg: #334155;
+  --border-primary: #2a2a2e;
+  --border-secondary: #3a3a40;
+  --border-tertiary: #2a2a2e;
+  --border: #2a2a2e;
+  --input-bg: #0a0a0b;
+  --input-border: #2a2a2e;
+  --tag-bg: #2a2a2e;
 
   /* Accent Colors (Dark) */
-  --accent-primary: #3b82f6;   /* Brighter blue for dark mode visibility */
-  --accent-secondary: #1e3a8a; /* Darker blue background for accent chips */
-  --accent-blue: #60a5fa;
+  --accent-primary: #2dd4bf;
+  --accent-secondary: #134e4a;
+  --accent-blue: #5eead4;
   --accent-green: #4ade80;
   --accent-red: #f87171;
   --accent-amber: #fbbf24;
@@ -78,25 +78,25 @@ body.dark-theme {
 /* Only apply OS dark preference when the user has not forced light theme */
 @media (prefers-color-scheme: dark) {
   body:not(.light-theme):not(.dark-theme) {
-    --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
-    --bg-card: #1e293b;
-    --card-bg: #1e293b;
-    --card: #1e293b;
-    --bg: #0f172a;
+    --bg-primary: #0a0a0b;
+    --bg-secondary: #161618;
+    --bg-card: #161618;
+    --card-bg: #161618;
+    --card: #161618;
+    --bg: #0a0a0b;
 
-    --text-primary: #f8fafc;
-    --text-secondary: #cbd5e1;
-    --text-muted: #94a3b8;
-    --text: #f8fafc;
+    --text-primary: #fafafa;
+    --text-secondary: #d4d4d8;
+    --text-muted: #a1a1aa;
+    --text: #fafafa;
 
-    --border-primary: #334155;
-    --border-secondary: #475569;
-    --border-tertiary: #334155;
-    --border: #334155;
-    --input-bg: #0f172a;
-    --input-border: #334155;
-    --tag-bg: #334155;
+    --border-primary: #2a2a2e;
+    --border-secondary: #3a3a40;
+    --border-tertiary: #2a2a2e;
+    --border: #2a2a2e;
+    --input-bg: #0a0a0b;
+    --input-border: #2a2a2e;
+    --tag-bg: #2a2a2e;
   }
 }
 
@@ -115,6 +115,7 @@ body {
   overflow-y: auto;
   background-color: var(--bg-primary);
   color: var(--text-primary);
+  font-family: 'IBM Plex Sans Arabic', 'Tajawal', 'Segoe UI', system-ui, sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
@@ -221,25 +222,25 @@ body.dark-theme .entry-summary-row span,
 .dark-theme .entry-summary-label,
 .dark-theme .entry-summary-detail,
 .dark-theme .entry-summary-row span {
-  color: #94a3b8 !important;
+  color: #a1a1aa !important;
 }
 
 body.dark-theme .entry-summary-row strong,
 .dark-theme .entry-summary-row strong {
-  color: #f8fafc !important;
+  color: #fafafa !important;
 }
 
 /* Language menu — force readable labels in both themes */
 body.dark-theme .app-menu-panel {
-  background: #0f172a !important;
-  border-color: #475569 !important;
-  color: #f8fafc !important;
+  background: #0a0a0b !important;
+  border-color: #3a3a40 !important;
+  color: #fafafa !important;
 }
 
 body.dark-theme .app-menu-item,
 body.dark-theme .app-menu-lang-label,
 body.dark-theme .app-menu-section {
-  color: #f8fafc !important;
+  color: #fafafa !important;
 }
 
 body.dark-theme .app-menu-item.active {
@@ -249,10 +250,10 @@ body.dark-theme .app-menu-item.active {
 
 body:not(.dark-theme) .app-menu-panel {
   background: #ffffff !important;
-  color: #0f172a !important;
+  color: #0a0a0b !important;
 }
 
 body:not(.dark-theme) .app-menu-item,
 body:not(.dark-theme) .app-menu-lang-label {
-  color: #0f172a !important;
+  color: #0a0a0b !important;
 }

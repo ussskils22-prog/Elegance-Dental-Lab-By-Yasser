@@ -49,6 +49,13 @@ const notificationSchema = new mongoose.Schema(
       default: false,
       index: true,
     },
+    /** Per-user read. A shared `read` flag used to clear the bell for the whole lab. */
+    readBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
     targetAudience: {
       type: [mongoose.Schema.Types.Mixed],
       default: ['all'],

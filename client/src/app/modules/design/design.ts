@@ -19,6 +19,7 @@ import { LanguageService } from '../../core/i18n/language.service';
 import { TPipe } from '../../core/i18n/t.pipe';
 import { CaseBarcodeComponent } from '../../shared/case-barcode/case-barcode';
 import { AppOverflowMenuComponent } from '../../shared/app-overflow-menu/app-overflow-menu';
+import { BrandLockupComponent } from '../../shared/brand-lockup/brand-lockup';
 import { formatCaseWorkflowError } from '../../core/utils/api-error';
 import { ExocadApiService, ExocadCaseStatus } from '../../core/services/exocad-api.service';
 
@@ -41,7 +42,7 @@ export interface WorkStage {
 @Component({
   selector: 'app-case-details',
   standalone: true,
-  imports: [CommonModule, FormsModule, CaseBarcodeComponent, AppOverflowMenuComponent, TPipe],
+  imports: [CommonModule, FormsModule, CaseBarcodeComponent, AppOverflowMenuComponent, BrandLockupComponent, TPipe],
   templateUrl: './design.html',
   styleUrls: ['./design.css']
 })
@@ -869,7 +870,7 @@ export class CaseDetailsComponent implements OnInit, OnDestroy {
 
     return {
       patientName: dentalCase.patient,
-      patientEmail: dentalCase.patientEmail || `case+${Date.now()}@mylab.com`,
+      patientEmail: dentalCase.patientEmail || undefined,
       patientPhone: dentalCase.patientPhone || '0000000000',
       requesterType: dentalCase.requesterType === 'student' ? 'student' : 'doctor',
       caseType: dentalCase.workType || 'General',

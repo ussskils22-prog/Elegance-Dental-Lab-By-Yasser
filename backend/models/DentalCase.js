@@ -15,12 +15,12 @@ const dentalCaseSchema = new mongoose.Schema(
     },
     patientEmail: {
       type: String,
-      required: [true, 'Patient email is required'],
+      default: '',
       lowercase: true,
     },
     patientPhone: {
       type: String,
-      required: [true, 'Patient phone is required'],
+      default: '',
     },
     requesterType: {
       type: String,
@@ -242,12 +242,6 @@ dentalCaseSchema.pre('validate', async function (next) {
 dentalCaseSchema.pre('save', function (next) {
   if (!this.caseNumber || String(this.caseNumber).trim() === '') {
     return next(new Error('caseNumber was not generated'));
-  }
-  if (this.requesterType === 'student') {
-    this.paymentStatus = 'paid';
-    if (!this.paidAt) {
-      this.paidAt = new Date();
-    }
   }
   next();
 });

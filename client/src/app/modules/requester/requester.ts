@@ -19,6 +19,7 @@ import { LanguageService } from '../../core/i18n/language.service';
 import { TPipe } from '../../core/i18n/t.pipe';
 import { environment } from '../../../environments/environment';
 import { AppOverflowMenuComponent } from '../../shared/app-overflow-menu/app-overflow-menu';
+import { BrandLockupComponent } from '../../shared/brand-lockup/brand-lockup';
 
 function todayYmd(): string {
   const d = new Date();
@@ -46,7 +47,7 @@ function emptyDraft() {
 @Component({
   selector: 'app-requester',
   standalone: true,
-  imports: [CommonModule, FormsModule, AppOverflowMenuComponent, TPipe],
+  imports: [CommonModule, FormsModule, AppOverflowMenuComponent, BrandLockupComponent, TPipe],
   templateUrl: './requester.html',
   styleUrl: './requester.css',
 })

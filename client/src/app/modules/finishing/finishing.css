@@ -9,7 +9,7 @@
   display: block;
   min-height: 100vh;
   background: var(--surface);
-  font-family: 'Tajawal', 'IBM Plex Sans Arabic', 'Segoe UI', system-ui, sans-serif;
+  font-family: 'IBM Plex Sans Arabic', 'Tajawal', 'Segoe UI', system-ui, sans-serif;
   color: var(--text);
 }
 
@@ -302,7 +302,7 @@
 
 .case-id {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: #a1a1aa;
   font-weight: 600;
   margin-bottom: 4px;
 }
@@ -410,7 +410,7 @@
   display: block;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #64748b;
+  color: #71717a;
   margin-top: 2px;
 }
 
@@ -475,8 +475,8 @@
 /* Empty */
 .empty-list {
   text-align: center;
-  color: #94a3b8;
-  border: 1px dashed #cbd5e1;
+  color: #a1a1aa;
+  border: 1px dashed #d4d4d8;
   border-radius: 12px;
   padding: 2.5rem;
   font-size: 0.95rem;
@@ -488,7 +488,7 @@
   bottom: 1.5rem;
   left: 50%;
   transform: translateX(-50%);
-  background: #1e293b;
+  background: #161618;
   color: #fff;
   padding: 0.75rem 1.5rem;
   border-radius: 12px;
@@ -505,7 +505,7 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(10, 10, 11, 0.5);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;

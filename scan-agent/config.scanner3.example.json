@@ -1,7 +1,9 @@
 {
   "SERVER_URL": "https://elegance-dental-lab-by-yasser-production-5940.up.railway.app",
-  "EMAIL": "scanner3@example.com",
+  "EMAIL": "scan3@dental.com",
   "PASSWORD": "change-me",
   "LABEL": "سكان 3 — فينيش",
-  "TARGET": "finishing"
+  "TARGET": "finishing",
+  "BACKGROUND_SCAN": true,
+  "HIDE_CONSOLE": true
 }

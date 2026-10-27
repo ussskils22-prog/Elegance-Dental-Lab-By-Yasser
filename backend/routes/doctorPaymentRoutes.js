@@ -4,10 +4,10 @@ const doctorPaymentController = require('../controllers/doctorPaymentController'
 const { authenticate, authorize } = require('../middleware/auth');
 
 router.use(authenticate);
-router.use(authorize('admin')); // Only admin can record or view payments
+router.use(authorize('admin', 'secretary'));
 
-router.get('/', doctorPaymentController.getAllPayments);
+router.get('/', authorize('admin'), doctorPaymentController.getAllPayments);
 router.post('/', doctorPaymentController.addPayment);
-router.delete('/:id', doctorPaymentController.deletePayment);
+router.delete('/:id', authorize('admin'), doctorPaymentController.deletePayment);
 
 module.exports = router;

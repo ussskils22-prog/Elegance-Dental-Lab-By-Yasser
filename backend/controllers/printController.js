@@ -4,6 +4,50 @@ const { getIO, getPrintAgentStatus, emitToOnePrintAgent } = require('../services
 
 const META_PREFIX = '__META__\n';
 
+// ───────── Lab-wide printing pause (works for every agent, old or new, on any PC) ─────────
+const mongoose = require('mongoose');
+const PrintSetting =
+  mongoose.models.PrintSetting ||
+  mongoose.model(
+    'PrintSetting',
+    new mongoose.Schema(
+      { key: { type: String, unique: true }, paused: { type: Boolean, default: false }, updatedBy: String },
+      { timestamps: true }
+    )
+  );
+let pausedCache = { value: false, at: 0 };
+async function isPrintingPaused() {
+  if (Date.now() - pausedCache.at < 3000) return pausedCache.value;
+  try {
+    const doc = await PrintSetting.findOne({ key: 'global' }).lean();
+    pausedCache = { value: Boolean(doc && doc.paused), at: Date.now() };
+  } catch (_) {}
+  return pausedCache.value;
+}
+
+// GET /api/print/paused — staff
+exports.getPaused = async (req, res) => {
+  res.json({ success: true, paused: await isPrintingPaused() });
+};
+
+// PUT /api/print/paused { paused: true|false } — admin / secretary
+exports.setPaused = async (req, res) => {
+  try {
+    const paused = req.body?.paused === true || String(req.body?.paused) === 'true';
+    await PrintSetting.findOneAndUpdate(
+      { key: 'global' },
+      { $set: { paused, updatedBy: req.user?.fullName || req.user?.userId || '' } },
+      { upsert: true, new: true }
+    );
+    pausedCache = { value: paused, at: Date.now() };
+    const io = getIO();
+    if (io) io.emit('print:paused', { paused });
+    res.json({ success: true, paused });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 function buildNotesFromPrintData(printData) {
   const meta = {
     requesterType: 'doctor',
@@ -77,8 +121,6 @@ exports.createPrintJob = async (req, res) => {
       }
     }
 
-    data = await ensureCaseNumberForPrint(data, req.user);
-
     const job = await PrintJob.create({
       printData: data,
       status: 'pending',
@@ -113,6 +155,40 @@ exports.createPrintJob = async (req, res) => {
   }
 };
 
+/** 80mm cash receipt for the reception thermal printer. Does not create a case. */
+exports.queueCashReceipt = async function queueCashReceipt(payload, userId) {
+  const doctor = String(payload?.doctorName || '').trim();
+  const amount = Number(payload?.amount) || 0;
+  if (!doctor || !(amount > 0)) return null;
+
+  const when = payload?.paymentDate ? new Date(payload.paymentDate) : new Date();
+  const printDate = when.toLocaleString('ar-EG', { timeZone: 'Africa/Cairo' });
+  const job = await PrintJob.create({
+    printData: {
+      doctor,
+      patient: 'إيصال تحصيل',
+      workType: 'تحصيل',
+      workDetail: String(payload?.notes || '').trim(),
+      caseNumber: String(payload?.receiptNo || '').trim(),
+      printDate,
+      jobKind: 'receipt',
+      amount,
+      receiptNote: String(payload?.notes || '').trim(),
+    },
+    status: 'pending',
+    createdBy: userId || null,
+  });
+
+  const io = getIO();
+  if (io) {
+    emitToOnePrintAgent('print:new-job', {
+      jobId: job._id,
+      printData: job.printData,
+    });
+  }
+  return job;
+};
+
 const CLAIM_STALE_MS = 5 * 60 * 1000;
 
 function unfinishedPrintJobFilter() {
@@ -131,11 +207,28 @@ function unfinishedPrintJobFilter() {
  * Atomic claim — only one agent may print a given job.
  * POST /api/print/job/:id/claim  (agent secret)
  */
+/** Agents declare what they can print via x-agent-caps (e.g. "receipt"). Old agents send nothing. */
+function agentCaps(req) {
+  return String(req.headers['x-agent-caps'] || '')
+    .toLowerCase()
+    .split(/[,\s]+/)
+    .filter(Boolean);
+}
+
+/** Receipt jobs only go to agents that have a receipt printer; sheets go to everyone. */
+function jobKindFilterForAgent(req) {
+  if (agentCaps(req).includes('receipt')) return {};
+  return { 'printData.jobKind': { $ne: 'receipt' } };
+}
+
 exports.claimPrintJob = async (req, res) => {
   try {
+    if (await isPrintingPaused()) {
+      return res.status(409).json({ success: false, claimed: false, paused: true, message: 'الطباعة موقوفة من السيستم' });
+    }
     const agentId = String(req.headers['x-agent-id'] || req.body?.agentId || 'print-agent').slice(0, 120);
     const job = await PrintJob.findOneAndUpdate(
-      { _id: req.params.id, ...unfinishedPrintJobFilter() },
+      { _id: req.params.id, ...unfinishedPrintJobFilter(), ...jobKindFilterForAgent(req) },
       {
         $set: {
           status: 'printing',
@@ -320,8 +413,11 @@ exports.listJobs = async (req, res) => {
 // GET /api/print/jobs/pending — Print Agent catch-up (agent secret required)
 exports.listPendingJobs = async (req, res) => {
   try {
+    if (await isPrintingPaused()) {
+      return res.json({ success: true, paused: true, jobs: [] });
+    }
     // Pending/failed + stale printing only — actively claimed jobs stay with one agent.
-    const jobs = await PrintJob.find(unfinishedPrintJobFilter())
+    const jobs = await PrintJob.find({ ...unfinishedPrintJobFilter(), ...jobKindFilterForAgent(req) })
       .sort({ createdAt: 1 })
       .limit(100);
 

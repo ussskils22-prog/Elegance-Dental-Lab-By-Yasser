@@ -1,0 +1,5 @@
+@echo off
+:: Install scanner 2 (design) — hidden at Windows login
+:: Right-click → Run as administrator
+cd /d "%~dp0"
+call "%~dp0install-background.bat" 2

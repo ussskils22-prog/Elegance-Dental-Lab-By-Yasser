@@ -55,7 +55,7 @@
 .welcome-subtitle {
   margin: 0;
   font-size: 0.95rem;
-  color: var(--text-muted, #64748b);
+  color: var(--text-muted, #71717a);
   line-height: 1.6;
 }
 
@@ -93,7 +93,7 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: 9999;
-  background: #1e293b;
+  background: #161618;
   color: #fff;
   padding: 0.7rem 1.5rem;
   border-radius: 12px;

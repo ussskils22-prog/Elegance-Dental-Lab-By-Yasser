@@ -1,9 +1,28 @@
-<div class="shell" [attr.dir]="lang.dir()">
+<div class="shell" [class.sidebar-closed]="!sidebarOpen" [attr.dir]="lang.dir()">
   <div class="sidebar">
     <div class="logo-area">
       <div class="logo-name">{{ labBranding.labName || 'Lab Core' }}</div>
       <div class="logo-sub">{{ 'admin.logoSub' | t }}</div>
     </div>
+    <div class="sidebar-tools">
+      <div class="sidebar-lang" role="group" [attr.aria-label]="'lang.dialogTitle' | t">
+        <button type="button" [class.active]="lang.isArabic()" (click)="lang.setLang('ar')">العربية</button>
+        <button type="button" [class.active]="lang.isEnglish()" (click)="lang.setLang('en')">English</button>
+      </div>
+      <label class="sidebar-field">
+        <span>{{ 'common.year' | t }}</span>
+        <select [ngModel]="dashYearFilter" (ngModelChange)="onDashYearChange($event)">
+          <option *ngFor="let year of dashYears" [value]="year">{{ year }}</option>
+        </select>
+      </label>
+      <label class="sidebar-field">
+        <span>{{ 'common.month' | t }}</span>
+        <select [ngModel]="dashMonthFilter" (ngModelChange)="onDashMonthChange($event)">
+          <option *ngFor="let month of dashMonths" [value]="month">{{ monthName(month) }}</option>
+        </select>
+      </label>
+    </div>
+    <div class="sidebar-nav">
     <div class="nav-item" [class.active]="activeNav === 'dashboard'" (click)="setNav('dashboard')">
       <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
       {{ 'admin.nav.dashboard' | t }}
@@ -44,8 +63,16 @@
       <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
       {{ 'admin.nav.whatsapp' | t }}
     </div>
+    </div>
 
     <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="avatar">{{ sidebarInitials }}</div>
+        <div class="sidebar-user-text">
+          <div class="admin-name">{{ sidebarUserName }}</div>
+          <div class="admin-role">{{ 'admin.role' | t }}</div>
+        </div>
+      </div>
       <div class="nav-item" (click)="logout()" role="button" tabindex="0" (keydown.enter)="logout()" (keydown.space)="$event.preventDefault(); logout()">
         <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         {{ 'common.logout' | t }}
@@ -56,7 +83,20 @@
   <div class="main">
     <div class="topbar">
       <div class="topbar-left">
-        <app-overflow-menu></app-overflow-menu>
+        <button
+          type="button"
+          class="sidebar-toggle"
+          (click)="toggleSidebar()"
+          [attr.aria-expanded]="sidebarOpen"
+          [attr.aria-label]="'menu.title' | t"
+          [attr.title]="'menu.title' | t"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="20" height="20" aria-hidden="true">
+            <line x1="4" y1="7" x2="20" y2="7" stroke-linecap="round"></line>
+            <line x1="4" y1="12" x2="20" y2="12" stroke-linecap="round"></line>
+            <line x1="4" y1="17" x2="20" y2="17" stroke-linecap="round"></line>
+          </svg>
+        </button>
       </div>
       <div class="topbar-right">
         <a routerLink="/scan" class="action-btn topbar-scan-btn">{{ 'hub.scan' | t }}</a>
@@ -97,179 +137,56 @@
           <div class="page-label">{{ 'admin.dashboard.label' | t }}</div>
           <div class="page-title">{{ 'admin.dashboard.title' | t }}</div>
         </div>
-        <div class="page-header-actions month-scope-controls" [attr.aria-label]="'admin.dashboard.monthScope' | t">
-          <div class="control-card" style="margin:0;min-width:120px;">
-            <label>{{ 'common.year' | t }}</label>
-            <select [ngModel]="dashYearFilter" (ngModelChange)="onDashYearChange($event)">
-              <option *ngFor="let year of dashYears" [value]="year">{{ year }}</option>
-            </select>
-          </div>
-          <div class="control-card" style="margin:0;min-width:140px;">
-            <label>{{ 'common.month' | t }}</label>
-            <select [ngModel]="dashMonthFilter" (ngModelChange)="onDashMonthChange($event)">
-              <option *ngFor="let month of dashMonths" [value]="month">{{ monthName(month) }}</option>
-            </select>
-          </div>
-        </div>
       </div>
 
-      <!-- عدادات الماتريال الخارجة -->
-      <div class="stats-grid materials-exit-grid" style="margin-bottom:24px">
-        <div class="stat-card material-exit-card" *ngFor="let m of exitedMaterialCounters" [style.border-top]="'4px solid ' + m.color">
-          <div class="stat-top">
-            <span class="stat-label" [style.color]="m.color" style="font-size:13px;font-weight:600;">{{ m.label }}</span>
-          </div>
-          <div class="stat-val" [style.color]="m.color" style="font-size:2.25rem;font-weight:800;">{{ m.qty }}</div>
-          <div class="stat-sub">{{ 'admin.dashboard.exitedUnit' | t }}</div>
-        </div>
-        <div class="stat-card elegance-dash-panel">
-          <div class="elegance-dash-mark">E</div>
-          <div class="elegance-dash-copy">
-            <div class="elegance-dash-kicker">Elegance Core</div>
-            <div class="elegance-dash-title">Precision Labs</div>
-            <div class="elegance-dash-sub">{{ 'admin.dashboard.eleganceSub' | t }}</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="stats-grid" style="margin-bottom:24px;grid-template-columns:repeat(3,minmax(140px,1fr));">
-        <div class="stat-card" style="border-top:4px solid #22c55e;">
-          <div class="stat-label" style="font-weight:700;color:#16a34a;">New</div>
-          <div class="stat-val" style="font-size:2.2rem;font-weight:800;color:#16a34a;">{{ kindNewCount }}</div>
+      <div class="dash-counters">
+        <div class="stat-card dash-counter" style="border-top-color:#22c55e">
+          <div class="stat-label" style="color:#16a34a">New</div>
+          <div class="stat-val">{{ kindNewCount }}</div>
           <div class="stat-sub">وحدات جديدة</div>
         </div>
-        <div class="stat-card" style="border-top:4px solid #f59e0b;">
-          <div class="stat-label" style="font-weight:700;color:#d97706;">Redo</div>
-          <div class="stat-val" style="font-size:2.2rem;font-weight:800;color:#d97706;">{{ kindRedoCount }}</div>
+        <div class="stat-card dash-counter" style="border-top-color:#f59e0b">
+          <div class="stat-label" style="color:#d97706">Redo</div>
+          <div class="stat-val">{{ kindRedoCount }}</div>
           <div class="stat-sub">وحدات إعادة</div>
         </div>
-        <div class="stat-card" style="border-top:4px solid #6366f1;">
-          <div class="stat-label" style="font-weight:700;color:#4f46e5;">Modification</div>
-          <div class="stat-val" style="font-size:2.2rem;font-weight:800;color:#4f46e5;">{{ kindModificationCount }}</div>
+        <div class="stat-card dash-counter" style="border-top-color:#6366f1">
+          <div class="stat-label" style="color:#4f46e5">Modification</div>
+          <div class="stat-val">{{ kindModificationCount }}</div>
           <div class="stat-sub">وحدات تعديل</div>
         </div>
       </div>
 
-      <div *ngIf="deliveryAlerts.overdueCount || deliveryAlerts.dueSoonCount" class="stats-grid" style="margin-bottom:24px;grid-template-columns:1fr 1fr;gap:16px;">
-        <div class="stat-card" style="border-top:4px solid #dc2626;" *ngIf="deliveryAlerts.overdueCount">
-          <div class="stat-label" style="font-weight:700;color:#dc2626;">متأخرة عن التسليم</div>
-          <div class="stat-val" style="font-size:2rem;font-weight:800;color:#dc2626;">{{ deliveryAlerts.overdueCount }}</div>
-          <div style="font-size:12px;margin-top:8px;max-height:120px;overflow:auto;">
-            <div *ngFor="let r of deliveryAlerts.overdue | slice:0:6">{{ r.caseNumber }} — {{ r.patientName }} ({{ r.hoursOverdue }}س)</div>
-          </div>
-        </div>
-        <div class="stat-card" style="border-top:4px solid #ea580c;" *ngIf="deliveryAlerts.dueSoonCount">
-          <div class="stat-label" style="font-weight:700;color:#ea580c;">تسليم خلال 24 ساعة</div>
-          <div class="stat-val" style="font-size:2rem;font-weight:800;color:#ea580c;">{{ deliveryAlerts.dueSoonCount }}</div>
-          <div style="font-size:12px;margin-top:8px;max-height:120px;overflow:auto;">
-            <div *ngFor="let r of deliveryAlerts.dueSoon | slice:0:6">{{ r.caseNumber }} — {{ r.patientName }}</div>
-          </div>
+      <div class="dash-counters">
+        <div class="stat-card dash-counter" *ngFor="let m of exitedMaterialCounters" [style.border-top-color]="m.color">
+          <div class="stat-label" [style.color]="m.color">{{ m.label }}</div>
+          <div class="stat-val">{{ m.qty }}</div>
+          <div class="stat-sub">{{ 'admin.dashboard.exitedUnit' | t }}</div>
         </div>
       </div>
 
-      <!-- إحصاءات الزيركونيا والإيماكس -->
-      <div class="stats-grid" style="margin-bottom:24px">
-        <div class="stat-card" style="border-top:4px solid #6366f1; display:flex; flex-direction:column; gap:16px;">
-          <div>
-            <div class="stat-top">
-              <div class="stat-icon" style="background:#eef2ff;">
-                <svg width="18" height="18" fill="none" stroke="#6366f1" stroke-width="2" viewBox="0 0 24 24">
-                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                  <path d="M2 17l10 5 10-5"/>
-                  <path d="M2 12l10 5 10-5"/>
-                </svg>
-              </div>
-              <span class="stat-label" style="font-size:13px;font-weight:600;color:#6366f1;">{{ 'admin.dashboard.totalZirconia' | t }}</span>
-            </div>
-            <div class="stat-val" style="font-size:3rem;font-weight:800;color:#6366f1;">{{ zirconCount }}</div>
-            <div class="stat-sub">{{ 'admin.dashboard.totalZirconiaSub' | t }}</div>
-          </div>
-          
-          <div style="display:flex; gap:8px; flex-wrap:wrap; border-top:1px solid #e2e8f0; padding-top:12px; margin-top:auto;">
-            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:6px 10px; display:flex; flex-direction:column; align-items:center; flex:1; min-width:70px;">
-              <span style="font-size:11px; color:#64748b; font-weight:600;">Zircon</span>
-              <span style="font-size:16px; color:#0f172a; font-weight:700;">{{ regularZirconCount }}</span>
-            </div>
-            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:6px 10px; display:flex; flex-direction:column; align-items:center; flex:1; min-width:70px;">
-              <span style="font-size:11px; color:#64748b; font-weight:600;">German Z.</span>
-              <span style="font-size:16px; color:#0f172a; font-weight:700;">{{ germanZirconCount }}</span>
-            </div>
-            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:6px 10px; display:flex; flex-direction:column; align-items:center; flex:1; min-width:70px;">
-              <span style="font-size:11px; color:#64748b; font-weight:600;">Titanium</span>
-              <span style="font-size:16px; color:#0f172a; font-weight:700;">{{ titaniumCount }}</span>
-            </div>
-            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:6px 10px; display:flex; flex-direction:column; align-items:center; flex:1; min-width:70px;">
-              <span style="font-size:11px; color:#64748b; font-weight:600;">Peek</span>
-              <span style="font-size:16px; color:#0f172a; font-weight:700;">{{ peekCount }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="stat-card" style="border-top:4px solid #0ea5e9;">
-          <div class="stat-top">
-            <div class="stat-icon" style="background:#e0f2fe;">
-              <svg width="18" height="18" fill="none" stroke="#0ea5e9" stroke-width="2" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M8 12h8M12 8v8"/>
-              </svg>
-            </div>
-            <span class="stat-label" style="font-size:13px;font-weight:600;color:#0ea5e9;">Emax</span>
-          </div>
-          <div class="stat-val" style="font-size:3rem;font-weight:800;color:#0ea5e9;">{{ emaxCount }}</div>
-          <div class="stat-sub">{{ 'admin.dashboard.emaxSub' | t }}</div>
+      <div class="dash-counters">
+        <div class="stat-card dash-counter" *ngFor="let m of productionCounters" [style.border-top-color]="m.color">
+          <div class="stat-label" [style.color]="m.color">{{ m.label }}</div>
+          <div class="stat-val">{{ m.qty }}</div>
+          <div class="stat-sub">{{ 'admin.dashboard.exitedUnit' | t }}</div>
         </div>
       </div>
 
-      <!-- إحصاءات الدكتور الجندي -->
-      <div class="stats-grid" style="margin-bottom:24px">
-        <div class="stat-card" style="border-top:4px solid #f59e0b; display:flex; flex-direction:column; gap:16px;">
-          <div>
-            <div class="stat-top">
-              <div class="stat-icon" style="background:#fef3c7;">
-                <svg width="18" height="18" fill="none" stroke="#f59e0b" stroke-width="2" viewBox="0 0 24 24">
-                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                  <path d="M2 17l10 5 10-5"/>
-                  <path d="M2 12l10 5 10-5"/>
-                </svg>
-              </div>
-              <span class="stat-label" style="font-size:13px;font-weight:600;color:#f59e0b;">{{ 'admin.dashboard.jundiZircon' | t }}</span>
-            </div>
-            <div class="stat-val" style="font-size:3rem;font-weight:800;color:#f59e0b;">{{ jundiZirconCount }}</div>
-            <div class="stat-sub">{{ 'admin.dashboard.jundiZirconSub' | t }}</div>
-          </div>
-          
-          <div style="display:flex; gap:8px; flex-wrap:wrap; border-top:1px solid #e2e8f0; padding-top:12px; margin-top:auto;">
-            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:6px 10px; display:flex; flex-direction:column; align-items:center; flex:1; min-width:70px;">
-              <span style="font-size:11px; color:#64748b; font-weight:600;">Zircon</span>
-              <span style="font-size:16px; color:#0f172a; font-weight:700;">{{ jundiRegularZirconCount }}</span>
-            </div>
-            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:6px 10px; display:flex; flex-direction:column; align-items:center; flex:1; min-width:70px;">
-              <span style="font-size:11px; color:#64748b; font-weight:600;">German Z.</span>
-              <span style="font-size:16px; color:#0f172a; font-weight:700;">{{ jundiGermanZirconCount }}</span>
-            </div>
-            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:6px 10px; display:flex; flex-direction:column; align-items:center; flex:1; min-width:70px;">
-              <span style="font-size:11px; color:#64748b; font-weight:600;">Titanium</span>
-              <span style="font-size:16px; color:#0f172a; font-weight:700;">{{ jundiTitaniumCount }}</span>
-            </div>
-            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:6px 10px; display:flex; flex-direction:column; align-items:center; flex:1; min-width:70px;">
-              <span style="font-size:11px; color:#64748b; font-weight:600;">Peek</span>
-              <span style="font-size:16px; color:#0f172a; font-weight:700;">{{ jundiPeekCount }}</span>
-            </div>
+      <div class="dash-counters" *ngIf="deliveryAlerts.overdueCount || deliveryAlerts.dueSoonCount">
+        <div class="stat-card dash-counter" style="border-top-color:#dc2626" *ngIf="deliveryAlerts.overdueCount">
+          <div class="stat-label" style="color:#dc2626">متأخرة عن التسليم</div>
+          <div class="stat-val">{{ deliveryAlerts.overdueCount }}</div>
+          <div class="dash-alert-list">
+            <div *ngFor="let r of deliveryAlerts.overdue | slice:0:6">{{ r.caseNumber }} — {{ r.doctorName || ('common.unknown' | t) }} ({{ r.hoursOverdue }}س)</div>
           </div>
         </div>
-
-        <div class="stat-card" style="border-top:4px solid #8b5cf6;">
-          <div class="stat-top">
-            <div class="stat-icon" style="background:#ede9fe;">
-              <svg width="18" height="18" fill="none" stroke="#8b5cf6" stroke-width="2" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M8 12h8M12 8v8"/>
-              </svg>
-            </div>
-            <span class="stat-label" style="font-size:13px;font-weight:600;color:#8b5cf6;">{{ 'admin.dashboard.jundiEmax' | t }}</span>
+        <div class="stat-card dash-counter" style="border-top-color:#ea580c" *ngIf="deliveryAlerts.dueSoonCount">
+          <div class="stat-label" style="color:#ea580c">تسليم خلال 24 ساعة</div>
+          <div class="stat-val">{{ deliveryAlerts.dueSoonCount }}</div>
+          <div class="dash-alert-list">
+            <div *ngFor="let r of deliveryAlerts.dueSoon | slice:0:6">{{ r.caseNumber }} — {{ r.doctorName || ('common.unknown' | t) }}</div>
           </div>
-          <div class="stat-val" style="font-size:3rem;font-weight:800;color:#8b5cf6;">{{ jundiEmaxCount }}</div>
-          <div class="stat-sub">{{ 'admin.dashboard.jundiEmaxSub' | t }}</div>
         </div>
       </div>
 
@@ -355,7 +272,7 @@
             </button>
           </div>
           <form class="modal-body" autocomplete="off" (submit)="$event.preventDefault()">
-            <p class="staff-form-hint" style="font-size:12px;color:#64748b;margin:0 0 12px;">
+            <p class="staff-form-hint" style="font-size:12px;color:#71717a;margin:0 0 12px;">
               {{ 'admin.staff.formHint' | t }}
             </p>
             <div class="form-group">
@@ -378,7 +295,7 @@
               <label>
                 {{ 'login.password' | t }}
                 @if (isEditMode) {
-                  <span style="font-weight:500;color:#64748b;font-size:12px;">{{ 'admin.staff.passwordOptional' | t }}</span>
+                  <span style="font-weight:500;color:#71717a;font-size:12px;">{{ 'admin.staff.passwordOptional' | t }}</span>
                 } @else {
                   <abbr [attr.title]="'common.required' | t">*</abbr>
                 }
@@ -404,7 +321,7 @@
               </div>
             </div>
             <div class="form-group">
-              <label>{{ 'common.phone' | t }} <span style="font-weight:500;color:#64748b;font-size:12px;">{{ 'admin.staff.phoneOptional' | t }}</span></label>
+              <label>{{ 'common.phone' | t }} <span style="font-weight:500;color:#71717a;font-size:12px;">{{ 'admin.staff.phoneOptional' | t }}</span></label>
               <input type="tel" name="staffPhone" autocomplete="off" [(ngModel)]="currentStaff.phone" placeholder="05xxxxxxxx" />
             </div>
             <div class="form-group">
@@ -416,14 +333,14 @@
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label>{{ 'common.status' | t }} <span style="font-weight:500;color:#64748b;font-size:12px;">{{ 'admin.staff.statusOptional' | t }}</span></label>
+                <label>{{ 'common.status' | t }} <span style="font-weight:500;color:#71717a;font-size:12px;">{{ 'admin.staff.statusOptional' | t }}</span></label>
                 <select name="staffStatus" [(ngModel)]="currentStaff.status">
                   <option value="active">{{ 'common.active' | t }}</option>
                   <option value="inactive">{{ 'common.inactive' | t }}</option>
                 </select>
               </div>
               <div class="form-group">
-                <label>{{ 'common.joined' | t }} <span style="font-weight:500;color:#64748b;font-size:12px;">{{ 'admin.staff.joinOptional' | t }}</span></label>
+                <label>{{ 'common.joined' | t }} <span style="font-weight:500;color:#71717a;font-size:12px;">{{ 'admin.staff.joinOptional' | t }}</span></label>
                 <input type="date" name="staffJoinDate" [(ngModel)]="currentStaff.joinDate" />
               </div>
             </div>
@@ -565,18 +482,18 @@
             type="text"
             [(ngModel)]="exocadMapInternalName"
             placeholder="الاسم في النظام (عربي)"
-            style="flex:1;min-width:160px;padding:8px;border-radius:8px;border:1px solid #cbd5e1;"
+            style="flex:1;min-width:160px;padding:8px;border-radius:8px;border:1px solid #d4d4d8;"
           />
           <input
             type="text"
             [(ngModel)]="exocadMapExocadNames"
             placeholder="أسماء Exocad (مفصولة بفاصلة)"
-            style="flex:1;min-width:160px;padding:8px;border-radius:8px;border:1px solid #cbd5e1;"
+            style="flex:1;min-width:160px;padding:8px;border-radius:8px;border:1px solid #d4d4d8;"
           />
           <button type="button" class="export-btn" (click)="saveExocadDoctorMapping()">حفظ الربط</button>
         </div>
         <p *ngIf="exocadMapMessage" style="font-size:13px;color:#0f766e;">{{ exocadMapMessage }}</p>
-        <div *ngFor="let m of exocadDoctorMappings" style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #e2e8f0;font-size:13px;">
+        <div *ngFor="let m of exocadDoctorMappings" style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #e4e4e7;font-size:13px;">
           <span><strong>{{ m.internalDoctorName }}</strong> ← {{ (m.exocadNames || []).join(', ') }}</span>
           <button type="button" class="staff-btn" style="color:#dc2626;" (click)="deleteExocadDoctorMapping(m._id!)">حذف</button>
         </div>
@@ -591,7 +508,7 @@
             </button>
           </div>
           <form class="modal-body" autocomplete="off" (submit)="$event.preventDefault()">
-            <p class="staff-form-hint" style="font-size:12px;color:#64748b;margin:0 0 12px;">
+            <p class="staff-form-hint" style="font-size:12px;color:#71717a;margin:0 0 12px;">
               {{ tDir('formHint') | t }}
             </p>
             <div class="form-group">
@@ -614,7 +531,7 @@
               <label>
                 {{ 'login.password' | t }}
                 @if (isDoctorEditMode) {
-                  <span style="font-weight:500;color:#64748b;font-size:12px;">{{ 'admin.doctors.passwordVisibleHint' | t }}</span>
+                  <span style="font-weight:500;color:#71717a;font-size:12px;">{{ 'admin.doctors.passwordVisibleHint' | t }}</span>
                 } @else {
                   <abbr [attr.title]="'common.required' | t">*</abbr>
                 }
@@ -643,7 +560,7 @@
               </p>
             </div>
             <div class="form-group">
-              <label>{{ 'common.phone' | t }} <span style="font-weight:500;color:#64748b;font-size:12px;">{{ 'admin.staff.phoneOptional' | t }}</span></label>
+              <label>{{ 'common.phone' | t }} <span style="font-weight:500;color:#71717a;font-size:12px;">{{ 'admin.staff.phoneOptional' | t }}</span></label>
               <input type="tel" name="doctorPhone" autocomplete="off" [(ngModel)]="currentDoctor.phone" placeholder="05xxxxxxxx" />
             </div>
           </form>
@@ -767,11 +684,11 @@
         <ng-container *ngIf="!reportDoctorFilter">
           <!-- عداد إجمالي فواتير كل الأطباء -->
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;">
-            <div style="background:linear-gradient(135deg,#1e3a5f,#1e40af);border-radius:16px;padding:20px 24px;box-shadow:0 4px 20px rgba(59,130,246,0.25);border:1px solid rgba(59,130,246,0.3);">
-              <div style="font-size:13px;color:#93c5fd;margin-bottom:8px;font-weight:600;">{{ 'admin.reports.totalBills' | t }}</div>
+            <div style="background:linear-gradient(135deg,#1e3a5f,#1e40af);border-radius:16px;padding:20px 24px;box-shadow:0 4px 20px rgba(20,184,166,0.25);border:1px solid rgba(20,184,166,0.3);">
+              <div style="font-size:13px;color:#5eead4;margin-bottom:8px;font-weight:600;">{{ 'admin.reports.totalBills' | t }}</div>
               <div style="font-size:24px;font-weight:800;color:#fff;">
                 {{ allDoctorsTotalDue | number:'1.0-0' }}
-                <span style="font-size:14px;font-weight:400;color:#93c5fd;">EGP</span>
+                <span style="font-size:14px;font-weight:400;color:#5eead4;">EGP</span>
               </div>
             </div>
             <div style="background:linear-gradient(135deg,#064e3b,#065f46);border-radius:16px;padding:20px 24px;box-shadow:0 4px 20px rgba(16,185,129,0.25);border:1px solid rgba(16,185,129,0.3);">
@@ -789,13 +706,13 @@
               </div>
             </div>
             <div style="background:linear-gradient(135deg,#312e81,#4338ca);border-radius:16px;padding:20px 24px;box-shadow:0 4px 20px rgba(99,102,241,0.25);border:1px solid rgba(99,102,241,0.3);">
-              <div style="font-size:13px;color:#c7d2fe;margin-bottom:8px;font-weight:600;">{{ 'admin.reports.doctorsCases' | t }}</div>
+              <div style="font-size:13px;color:#99f6e4;margin-bottom:8px;font-weight:600;">{{ 'admin.reports.doctorsCases' | t }}</div>
               <div style="font-size:24px;font-weight:800;color:#fff;">
                 {{ filteredDoctorReportSummaries.length }}
-                <span style="font-size:14px;font-weight:400;color:#c7d2fe;">{{ 'admin.reports.doctorUnit' | t }}</span>
+                <span style="font-size:14px;font-weight:400;color:#99f6e4;">{{ 'admin.reports.doctorUnit' | t }}</span>
                 &nbsp;/&nbsp;
                 {{ allDoctorsTotalCases | number:'1.0-0' }}
-                <span style="font-size:14px;font-weight:400;color:#c7d2fe;">{{ 'common.case' | t }}</span>
+                <span style="font-size:14px;font-weight:400;color:#99f6e4;">{{ 'common.case' | t }}</span>
               </div>
             </div>
           </div>
@@ -841,7 +758,7 @@
 
         <!-- 2. عرض تفاصيل الدكتور المختار مع حالاته -->
         <ng-container *ngIf="reportDoctorFilter">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; background:#1e293b; padding:12px 20px; border-radius:12px; border-left:4px solid #10b981;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; background:#161618; padding:12px 20px; border-radius:12px; border-left:4px solid #10b981;">
             <h3 style="color:#fff; margin:0; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
               <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:#10b981;"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
               {{ 'admin.reports.doctorAccountDetails' | t }}: {{ reportDoctorFilter }}
@@ -854,9 +771,9 @@
 
           <!-- كروت ملخص حساب الطبيب المختار -->
           <div class="stats-grid" style="margin-bottom:24px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
-            <div class="stat-card" style="border-top:4px solid #3b82f6;">
+            <div class="stat-card" style="border-top:4px solid #14b8a6;">
               <div class="stat-label">{{ 'admin.reports.exitedCasesTotal' | t }}</div>
-              <div class="stat-value" style="color: #3b82f6;">{{ reportFilteredCases.length }}</div>
+              <div class="stat-value" style="color: #14b8a6;">{{ reportFilteredCases.length }}</div>
             </div>
             <div class="stat-card" style="border-top:4px solid #10b981;">
               <div class="stat-label">{{ 'admin.reports.grandTotal' | t }}</div>
@@ -881,7 +798,7 @@
           <!-- تخصيص أسعار الطبيب -->
           <div class="report-table-card report-doctor-prices" style="margin-bottom:24px; padding:20px;">
             <div class="report-section-title">
-              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:#3b82f6;"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:#14b8a6;"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
               {{ 'admin.reports.customPrices' | t }}: {{ reportDoctorFilter }}
             </div>
             
@@ -896,7 +813,7 @@
               <button 
                 type="button" 
                 class="finish-btn" 
-                style="padding:8px 24px;font-size:14px;background:linear-gradient(135deg,#3b82f6,#2563eb);border:none;box-shadow:0 4px 12px rgba(37,99,235,0.2);" 
+                style="padding:8px 24px;font-size:14px;background:linear-gradient(135deg,#14b8a6,#0f766e);border:none;box-shadow:0 4px 12px rgba(15,118,110,0.2);" 
                 [disabled]="isPricingSaving"
                 (click)="saveDoctorCustomPrices()"
               >
@@ -1237,14 +1154,14 @@
         </div>
 
         <div class="report-table-card wa-settings-card" style="padding:20px;max-width:720px;overflow:visible;margin-bottom:48px;">
-          <p style="margin:0 0 16px;color:#94a3b8;font-size:14px;line-height:1.6;">
-            <strong style="color:#e2e8f0;">{{ 'admin.wa.introFree' | t }}</strong>
+          <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.6;">
+            <strong style="color:#e4e4e7;">{{ 'admin.wa.introFree' | t }}</strong>
             {{ 'admin.wa.introFreeBody' | t }}<br>
-            <strong style="color:#e2e8f0;">{{ 'admin.wa.introPaid' | t }}</strong>
+            <strong style="color:#e4e4e7;">{{ 'admin.wa.introPaid' | t }}</strong>
             {{ 'admin.wa.introPaidBody' | t }}
           </p>
 
-          <label class="remember-row" style="margin-bottom:14px;display:flex;gap:8px;align-items:center;color:#e2e8f0;">
+          <label class="remember-row" style="margin-bottom:14px;display:flex;gap:8px;align-items:center;color:#e4e4e7;">
             <input type="checkbox" [(ngModel)]="waEnabled" />
             <span>{{ 'admin.wa.enable' | t }}</span>
           </label>
@@ -1272,13 +1189,13 @@
           <div class="control-card" style="margin-bottom:12px;">
             <label>{{ 'admin.wa.alertPhones' | t }}</label>
             <input type="text" [(ngModel)]="waAlertPhones" [attr.placeholder]="'admin.wa.alertPhonesPh' | t" />
-            <small style="color:#94a3b8;">{{ 'admin.wa.alertPhonesHint' | t }}</small>
+            <small style="color:#a1a1aa;">{{ 'admin.wa.alertPhonesHint' | t }}</small>
           </div>
 
           <div class="control-card" style="margin-bottom:12px;">
             <label>{{ 'admin.wa.msgCompleted' | t }}</label>
             <textarea rows="3" [(ngModel)]="waMsgCompleted" style="width:100%;resize:vertical;"></textarea>
-            <small style="color:#94a3b8;">
+            <small style="color:#a1a1aa;">
               {{ 'admin.wa.variables' | t }}
               {{ '{' }}lab{{ '}' }}
               {{ '{' }}patient{{ '}' }}
@@ -1300,11 +1217,11 @@
 
           <div
             class="control-card"
-            style="margin-bottom:16px;padding:16px;border:1px solid #334155;border-radius:12px;"
+            style="margin-bottom:16px;padding:16px;border:1px solid #2a2a2e;border-radius:12px;"
             *ngIf="waProvider === 'waweb'"
           >
             <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-              <strong style="color:#e2e8f0;">{{ 'admin.wa.linkTitle' | t }}</strong>
+              <strong style="color:#e4e4e7;">{{ 'admin.wa.linkTitle' | t }}</strong>
               <span
                 class="staff-status-badge"
                 [class]="waWebConnected ? 'active' : 'inactive'"
@@ -1312,7 +1229,7 @@
                 {{ waWebStatusLabel }}
               </span>
             </div>
-            <p style="margin:0 0 12px;color:#94a3b8;font-size:13px;line-height:1.5;">
+            <p style="margin:0 0 12px;color:#a1a1aa;font-size:13px;line-height:1.5;">
               {{ 'admin.wa.linkHint' | t }}
             </p>
             <div *ngIf="waWebQr" style="text-align:center;margin:12px 0;">
@@ -1330,7 +1247,7 @@
                 {{ 'admin.wa.logout' | t }}
               </button>
             </div>
-            <p style="margin:10px 0 0;color:#94a3b8;font-size:12px;line-height:1.5;">
+            <p style="margin:10px 0 0;color:#a1a1aa;font-size:12px;line-height:1.5;">
               {{ 'admin.wa.qrTip' | t }}
             </p>
           </div>

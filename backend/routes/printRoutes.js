@@ -58,6 +58,15 @@ router.get(
   printController.listTodayJobs
 );
 
+// Lab-wide printing pause switch (stops every agent on every PC from claiming jobs)
+router.get(
+  '/paused',
+  authenticate,
+  authorize('admin', 'secretary', 'finisher', 'designer'),
+  printController.getPaused
+);
+router.put('/paused', authenticate, authorize('admin', 'secretary'), printController.setPaused);
+
 // Live Print Agent connection status (Windows service / agent.js)
 router.get(
   '/agent-status',

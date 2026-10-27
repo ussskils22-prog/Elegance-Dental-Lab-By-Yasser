@@ -37,7 +37,7 @@
   max-width: 100%;
   border-radius: 16px;
   background: #fff;
-  color: #0f172a;
+  color: #0a0a0b;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
   overflow: hidden;
 }
@@ -47,7 +47,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 14px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e4e4e7;
   font-size: 14px;
   font-weight: 700;
 }
@@ -57,8 +57,8 @@
   height: 32px;
   border: 0;
   border-radius: 8px;
-  background: #f1f5f9;
-  color: #0f172a;
+  background: #f4f4f5;
+  color: #0a0a0b;
   font-size: 22px;
   line-height: 1;
   cursor: pointer;
@@ -84,7 +84,7 @@
   font-weight: 800;
   letter-spacing: 0.04em;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color: #0f172a;
+  color: #0a0a0b;
 }
 
 .case-barcode-hint {
@@ -92,5 +92,5 @@
   padding: 0 16px 16px;
   text-align: center;
   font-size: 12px;
-  color: #64748b;
+  color: #71717a;
 }

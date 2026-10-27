@@ -1,5 +1,3 @@
-// archiver v8 is ESM; CJS require returns { ZipArchive, ... } not a callable.
-const { ZipArchive } = require('archiver');
 const DentalCase = require('../models/DentalCase');
 const User = require('../models/User');
 const PrintJob = require('../models/PrintJob');
@@ -9,6 +7,7 @@ const AuditLog = require('../models/AuditLog');
 const Notification = require('../models/Notification');
 const MonthArchive = require('../models/MonthArchive');
 const { isNonBillableCase } = require('../services/casePricingService');
+const { frozenBillAmount, hasFrozenSnapshot } = require('../services/doctorBalanceService');
 
 function parseNotesMeta(notes) {
   const prefix = '__META__\n';
@@ -23,7 +22,7 @@ function parseNotesMeta(notes) {
 function doctorNameFromCase(doc) {
   const meta = parseNotesMeta(doc.notes || '');
   return String(
-    meta.doctor || meta.doctorName || (doc.assignedTo && doc.assignedTo.fullName) || 'غير محدد'
+    meta.doctor || meta.doctorName || doc.referringDoctor || 'غير محدد'
   )
     .trim()
     .replace(/\s+/g, ' ');
@@ -64,8 +63,6 @@ function inMonth(date, year, month) {
 }
 
 function classifyCaseTypeUnits(caseType, quantity) {
-  let type = String(caseType || '').toLowerCase();
-  const qty = Math.max(1, Number(quantity) || 1);
   const units = {
     zircon: 0,
     emax: 0,
@@ -76,25 +73,33 @@ function classifyCaseTypeUnits(caseType, quantity) {
     nightGuard: 0,
     other: 0,
   };
-  // Prova / try-in phase — do not count as final material units
-  if (/try\s*in\s+before|tray\s*in\s+before/.test(type)) {
-    units.other += qty;
-    return units;
+  const parts = String(caseType || '')
+    .split('+')
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const fallbackQty = Math.max(1, Number(quantity) || 1);
+  for (const rawPart of parts.length ? parts : ['']) {
+    let type = rawPart.toLowerCase();
+    const match = rawPart.match(/\((\d+)\)/);
+    const qty = match ? parseInt(match[1], 10) || fallbackQty : fallbackQty;
+    if (/try\s*in\s+before|tray\s*in\s+before/.test(type)) {
+      units.other += qty;
+      continue;
+    }
+    type = type
+      .replace(/\s+after\s+try\s*in/gi, '')
+      .replace(/\s+after\s+tray\s*in/gi, '')
+      .replace(/\s+after\s+tary\s*in/gi, '')
+      .trim();
+    if (type.includes('german') && type.includes('zircon')) units.germanZircon += qty;
+    else if (type.includes('zircon') || type.includes('زيركون')) units.zircon += qty;
+    else if (type.includes('emax') || type.includes('ايماكس') || type.includes('إيماكس')) units.emax += qty;
+    else if (type.includes('titanium')) units.titanium += qty;
+    else if (type.includes('peek')) units.peek += qty;
+    else if (type.includes('pmma')) units.pmma += qty;
+    else if (type.includes('night')) units.nightGuard += qty;
+    else units.other += qty;
   }
-  // Final after try-in — count the material (emax / zircon / …)
-  type = type
-    .replace(/\s+after\s+try\s*in/gi, '')
-    .replace(/\s+after\s+tray\s*in/gi, '')
-    .replace(/\s+after\s+tary\s*in/gi, '')
-    .trim();
-  if (type.includes('german') && type.includes('zircon')) units.germanZircon += qty;
-  else if (type.includes('zircon') || type.includes('زيركون')) units.zircon += qty;
-  else if (type.includes('emax') || type.includes('ايماكس') || type.includes('إيماكس')) units.emax += qty;
-  else if (type.includes('titanium')) units.titanium += qty;
-  else if (type.includes('peek')) units.peek += qty;
-  else if (type.includes('pmma')) units.pmma += qty;
-  else if (type.includes('night')) units.nightGuard += qty;
-  else units.other += qty;
   return units;
 }
 
@@ -147,7 +152,9 @@ function buildSummary(cases) {
 
     if (doc.currentStage === 'exited' && !skipBillable) {
       exitedCases += 1;
-      const amount = Number(doc.salaryAmount || 0);
+      const amount = hasFrozenSnapshot(doc)
+        ? frozenBillAmount(doc)
+        : Number(doc.revenueAmount || doc.salaryAmount || 0);
       totalAmount += amount;
       d.totalAmount += amount;
       if (doc.paymentStatus === 'paid') {
@@ -195,10 +202,10 @@ async function loadExportPayload(year, month) {
 
   if (filterMonth) {
     cases = allCases.filter((doc) => {
-      if (doc.currentStage === 'exited') {
+      if (doc.currentStage === 'exited' || doc.status === 'exited') {
         return inMonth(caseExitedDate(doc), year, month);
       }
-      return inMonth(doc.createdAt, year, month);
+      return true;
     });
     filteredPayments = payments.filter((p) => inMonth(p.paymentDate || p.createdAt, year, month));
     filteredPrint = printJobs.filter((j) => inMonth(j.createdAt, year, month));
@@ -227,7 +234,9 @@ async function loadExportPayload(year, month) {
       status: doc.status || '',
       requesterType: doc.requesterType || '',
       priority: doc.priority || '',
-      salaryAmount: Number(doc.salaryAmount || 0),
+      salaryAmount: hasFrozenSnapshot(doc)
+        ? frozenBillAmount(doc)
+        : Number(doc.revenueAmount || doc.salaryAmount || 0),
       paymentStatus: doc.paymentStatus || 'unpaid',
       paidAt: doc.paidAt || '',
       dueDate: doc.dueDate || '',
@@ -326,7 +335,13 @@ exports.exportMonthData = async (req, res) => {
         .replace(/\s+/g, '_')
         .slice(0, 80) || 'doctor';
 
-    // Build the entire ZIP in memory first (avoids broken streams on Railway)
+    // Build the entire ZIP in memory first (avoids broken streams on Railway).
+    // archiver v8 is ESM-only, so load it here instead of at startup.
+    const archiverMod = await import('archiver');
+    const ZipArchive = archiverMod.ZipArchive || archiverMod.default?.ZipArchive;
+    if (!ZipArchive) {
+      throw new Error('archiver ZipArchive export missing');
+    }
     const zipBuffer = await new Promise((resolve, reject) => {
       const archive = new ZipArchive({ zlib: { level: 5 } });
       const chunks = [];
@@ -590,49 +605,21 @@ exports.closeMonth = async (req, res) => {
       });
     }
 
-    // Snapshot month data, then delete ONLY this month's exited cases + this month's payments.
+    // Closing records a snapshot. Live cases and payments stay so doctor accounts do not disappear.
     const allCases = await DentalCase.find({})
       .populate('assignedTo', 'fullName')
       .lean();
     const monthCases = allCases.filter((doc) => {
-      if (doc.currentStage === 'exited') return inMonth(caseExitedDate(doc), year, month);
-      return inMonth(doc.createdAt, year, month);
+      if (doc.currentStage === 'exited' || doc.status === 'exited') {
+        return inMonth(caseExitedDate(doc), year, month);
+      }
+      return true;
     });
     const summary = buildSummary(monthCases);
-
-    const exitedIds = allCases
-      .filter(
-        (doc) =>
-          doc.currentStage === 'exited' && inMonth(caseExitedDate(doc), year, month)
-      )
-      .map((doc) => doc._id);
-
-    const activeKept = allCases.filter((doc) => {
-      if (doc.currentStage !== 'exited') return true;
-      // Exited cases from other months stay in DB until their month is closed
-      return !inMonth(caseExitedDate(doc), year, month);
-    }).length;
-
-    const deleteCasesResult = await DentalCase.deleteMany({
-      _id: { $in: exitedIds },
-    });
-
-    // Delete only payments dated in this closed month (never wipe full ledger)
-    const monthStart = new Date(year, month - 1, 1, 0, 0, 0, 0);
-    const monthEnd = new Date(year, month, 0, 23, 59, 59, 999);
-    const deletePaymentsResult = await DoctorPayment.deleteMany({
-      paymentDate: { $gte: monthStart, $lte: monthEnd },
-    });
-
-    if (exitedIds.length) {
-      // Keep AuditLog rows for historical accountability (exported in ZIP / backup)
-      await Notification.deleteMany({ caseId: { $in: exitedIds } });
-    }
-
-    // Clear only print jobs created in this month (do not wipe the whole queue forever)
-    const deletePrintResult = await PrintJob.deleteMany({
-      createdAt: { $gte: monthStart, $lte: monthEnd },
-    });
+    const activeKept = allCases.filter((doc) => doc.currentStage !== 'exited' && doc.status !== 'exited').length;
+    const deleteCasesResult = { deletedCount: 0 };
+    const deletePaymentsResult = { deletedCount: 0 };
+    const deletePrintResult = { deletedCount: 0 };
 
     const archive = await MonthArchive.findOneAndUpdate(
       { year, month },
@@ -655,7 +642,7 @@ exports.closeMonth = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: 'تم إغلاق الشهر وحذف حالات/دفعات هذا الشهر فقط',
+      message: 'تم إغلاق الشهر. الحالات والدفعات فضلت في السيستم',
       data: {
         year,
         month,

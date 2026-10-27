@@ -10,8 +10,8 @@ const router = express.Router();
 // Validation rules
 const createCaseValidation = [
   body('patientName').trim().notEmpty(),
-  body('patientEmail').isEmail(),
-  body('patientPhone').trim().notEmpty(),
+  body('patientEmail').optional({ values: 'falsy' }).isEmail(),
+  body('patientPhone').optional({ values: 'falsy' }).trim(),
   body('requesterType').optional().isIn(['doctor', 'student', 'lab']),
   body('salaryAmount').optional().isFloat({ min: 0 }),
   body('caseType').trim().notEmpty(),
@@ -94,11 +94,14 @@ router.post(
   caseController.retagRequesterByName
 );
 
+// Case bill (doctor, due amount, paid status) — reception + admin
+router.get('/:id/bill', authorize('admin', 'secretary'), caseController.getCaseBill);
+
 // Get case by ID
-router.get('/:id', caseController.getCaseById);
+router.get('/:id', authenticate, caseController.getCaseById);
 
 // Update case (admin: any, secretary: own created, designer/finisher: assigned case)
-router.put('/:id', authorize('admin', 'secretary', 'designer', 'finisher', 'doctor'), updateCaseValidation, caseController.updateCase);
+router.put('/:id', authorize('admin', 'secretary', 'designer', 'finisher', 'doctor', 'student', 'lab'), updateCaseValidation, caseController.updateCase);
 router.put('/:id/financials', authorize('admin'), updateFinancialsValidation, caseController.updateCaseFinancials);
 router.delete('/:id', authorize('admin', 'secretary'), caseController.deleteCase);
 

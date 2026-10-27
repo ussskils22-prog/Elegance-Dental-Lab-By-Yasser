@@ -2,21 +2,54 @@
 <html lang="ar">
 <head>
   <meta charset="utf-8">
-  <title>Elegance</title>
+  <title>MASAR</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""/>
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&amp;family=Tajawal:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
   <link rel="icon" type="image/png" href="favicon.png">
-  <meta name="theme-color" content="#1a2744">
+  <meta name="theme-color" content="#0f6e62">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Elegance">
+  <meta name="apple-mobile-web-app-title" content="MASAR">
   <link rel="apple-touch-icon" href="icons/icon-192x192.png">
   <link rel="manifest" href="manifest.webmanifest">
 </head>
 <body>
+  <script>
+    (function () {
+      if (!('serviceWorker' in navigator)) return;
+      var reloading = false;
+      function reloadOnce() {
+        if (reloading) return;
+        try {
+          var n = Number(sessionStorage.getItem('masar_sw_reload_n') || '0');
+          if (n >= 2) return;
+          sessionStorage.setItem('masar_sw_reload_n', String(n + 1));
+        } catch (e) {}
+        reloading = true;
+        location.reload();
+      }
+      navigator.serviceWorker.addEventListener('controllerchange', reloadOnce);
+      window.addEventListener('load', function () {
+        window.setTimeout(function () {
+          try { sessionStorage.removeItem('masar_sw_reload_n'); } catch (e) {}
+        }, 20000);
+      });
+      navigator.serviceWorker.getRegistration().then(function (reg) {
+        if (!reg) return;
+        var worker = reg.waiting || navigator.serviceWorker.controller;
+        if (worker) worker.postMessage({ action: 'CHECK_FOR_UPDATES' });
+        reg.update().catch(function () {});
+        window.setTimeout(function () {
+          var next = reg.waiting || navigator.serviceWorker.controller;
+          if (next) next.postMessage({ action: 'ACTIVATE_UPDATE' });
+          window.setTimeout(reloadOnce, 800);
+        }, 1600);
+      }).catch(function () {});
+    })();
+  </script>
   <app-root></app-root>
   <noscript>Please enable JavaScript to continue using this application.</noscript>
 </body>

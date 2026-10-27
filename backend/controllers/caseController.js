@@ -411,13 +411,22 @@ function referringDoctorFromNotes(notes) {
     .replace(/\s+/g, ' ');
 }
 
+function looseDoctorName(name) {
+  return String(name || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase()
+    .replace(/^(د\.|د|dr\.|dr|doctor)\s*/i, '')
+    .trim();
+}
+
 function caseBelongsToDoctor(doc, doctorFullName) {
-  const want = normalizeDoctorKey(doctorFullName);
+  const want = looseDoctorName(doctorFullName);
   if (!want) return false;
-  const fromField = normalizeDoctorKey(doc.referringDoctor);
+  const fromField = looseDoctorName(doc.referringDoctor);
   if (fromField && fromField === want) return true;
   const meta = parseNotesMeta(doc.notes || '');
-  const got = normalizeDoctorKey(meta.doctor || meta.doctorName || '');
+  const got = looseDoctorName(meta.doctor || meta.doctorName || '');
   return got === want;
 }
 
@@ -456,7 +465,6 @@ exports.createCase = async (req, res) => {
     const normalizedRequesterType =
       requesterType === 'student' ? 'student' : requesterType === 'lab' ? 'lab' : 'doctor';
     priority = priorityForRequester(normalizedRequesterType, priority);
-    const isStudentCase = normalizedRequesterType === 'student';
     const createMeta = parseNotesMeta(notes || '');
     const notesFinal = stampOriginalEntry(notes ?? '', caseType, createMeta, caseType);
     const originalEntry =
@@ -479,9 +487,9 @@ exports.createCase = async (req, res) => {
       patientPhone,
       requesterType: normalizedRequesterType,
       salaryAmount: Number.isFinite(Number(salaryAmount)) ? Number(salaryAmount) : 0,
-      paymentStatus: isStudentCase ? 'paid' : 'unpaid',
-      paidAt: isStudentCase ? new Date() : null,
-      paidBy: isStudentCase ? req.user.id : null,
+      paymentStatus: 'unpaid',
+      paidAt: null,
+      paidBy: null,
       notes: notesFinal,
       referringDoctor,
       referringDoctorId,
@@ -530,8 +538,8 @@ exports.createCase = async (req, res) => {
     // Create notification
     await Notification.create({
       type: 'case_created',
-      title: 'New Case Created',
-      message: `Case ${newCase.caseNumber} for ${patientName} has been created`,
+      title: 'حالة جديدة',
+      message: `الحالة ${newCase.caseNumber} للمريض ${patientName}`,
       caseId: newCase._id,
       caseNumber: newCase.caseNumber,
       relatedUser: req.user.id,
@@ -667,6 +675,8 @@ exports.getAllCases = async (req, res) => {
           { patientName: { $regex: search, $options: 'i' } },
           { caseNumber: { $regex: search, $options: 'i' } },
           { patientEmail: { $regex: search, $options: 'i' } },
+          { patientPhone: { $regex: search, $options: 'i' } },
+          { referringDoctor: { $regex: search, $options: 'i' } },
         ],
       });
     }
@@ -696,24 +706,44 @@ exports.getAllCases = async (req, res) => {
     }
 
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
-    // Cap payload size — clients used to request 3000 and freeze the UI
     const requested = parseInt(limit, 10) || 10;
-    const limitNum = Math.min(Math.max(1, requested), 1500);
+    const limitNum = Math.min(Math.max(1, requested), 2000);
     const skip = (pageNum - 1) * limitNum;
+    const caseSelect =
+      'caseNumber patientName patientEmail patientPhone requesterType notes referringDoctor referringDoctorId plyScanPath plyFileName currentStage status assignedTo createdBy caseType originalEntry priority dueDate salaryAmount paymentStatus paidAt stageTimestamps createdAt updatedAt';
 
-    const [cases, total] = await Promise.all([
-      DentalCase.find(filter)
+    const listQuery = (q) =>
+      q
         .populate('assignedTo', 'fullName email role')
         .populate('createdBy', 'fullName email role')
-        .select(
-          'caseNumber patientName patientEmail patientPhone requesterType notes referringDoctor referringDoctorId plyScanPath plyFileName currentStage status assignedTo createdBy caseType originalEntry priority dueDate salaryAmount paymentStatus paidAt stageTimestamps createdAt updatedAt'
-        )
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limitNum)
-        .lean(),
-      DentalCase.countDocuments(filter),
-    ]);
+        .select(caseSelect);
+
+    let cases;
+    let total;
+    if (scope === 'board' && Array.isArray(filter.$and)) {
+      const openQ = { $and: [...filter.$and, { currentStage: { $ne: 'exited' } }] };
+      const exitedQ = { $and: [...filter.$and, { currentStage: 'exited' }] };
+      const [openCases, exitedCases, openTotal, exitedTotal] = await Promise.all([
+        listQuery(DentalCase.find(openQ)).sort({ createdAt: -1 }).limit(2000).lean(),
+        listQuery(DentalCase.find(exitedQ)).sort({ createdAt: -1 }).limit(1500).lean(),
+        DentalCase.countDocuments(openQ),
+        DentalCase.countDocuments(exitedQ),
+      ]);
+      const seen = new Set();
+      cases = [];
+      for (const row of [...openCases, ...exitedCases]) {
+        const id = String(row._id);
+        if (seen.has(id)) continue;
+        seen.add(id);
+        cases.push(row);
+      }
+      total = openTotal + exitedTotal;
+    } else {
+      [cases, total] = await Promise.all([
+        listQuery(DentalCase.find(filter)).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
+        DentalCase.countDocuments(filter),
+      ]);
+    }
 
     const data = cases.map((row) => presentCaseWithOriginal(row, null));
     res.status(200).json({
@@ -904,18 +934,16 @@ exports.getDeliveryAlerts = async (req, res) => {
       currentStage: { $nin: ['exited'] },
       status: { $ne: 'cancelled' },
     })
-      .select('caseNumber patientName caseType currentStage dueDate notes priority createdAt')
+      .select('caseNumber patientName caseType currentStage dueDate notes referringDoctor priority createdAt')
       .lean();
 
     const overdue = [];
     const dueSoon = [];
     for (const doc of cases) {
       const meta = parseNotesMeta(doc.notes || '');
-      let due = doc.dueDate ? new Date(doc.dueDate) : null;
-      if ((!due || Number.isNaN(due.getTime())) && meta.deliveryDate) {
-        due = new Date(String(meta.deliveryDate));
-      }
-      if (!due || Number.isNaN(due.getTime())) continue;
+      if (!meta.deliveryDate) continue;
+      const due = new Date(String(meta.deliveryDate));
+      if (Number.isNaN(due.getTime())) continue;
       const row = {
         id: String(doc._id),
         caseNumber: String(doc.caseNumber || ''),
@@ -968,7 +996,7 @@ exports.getFinancialReport = async (req, res) => {
     const pricings = await DoctorPricing.find().lean();
     const materials = await loadActiveMaterials();
     const labDefaults = materialsToDefaultPrices(materials);
-    const { frozenBillAmount } = require('../services/doctorBalanceService');
+    const { frozenBillAmount, hasFrozenSnapshot } = require('../services/doctorBalanceService');
 
     const rows = cases
       .map((doc) => {
@@ -999,8 +1027,11 @@ exports.getFinancialReport = async (req, res) => {
         );
         const storedSalary = Number(doc.salaryAmount || 0);
         const frozen = frozenBillAmount(doc);
-        // Prefer freeze; live only as preview when nothing frozen yet
-        const salaryAmount = frozen > 0 ? frozen : livePricedAmount > 0 ? livePricedAmount : storedSalary;
+        const salaryAmount = hasFrozenSnapshot(doc)
+          ? frozen
+          : livePricedAmount > 0
+            ? livePricedAmount
+            : storedSalary;
         const payment = String(doc.paymentStatus || 'unpaid');
 
         return {
@@ -1377,6 +1408,15 @@ exports.getCaseById = async (req, res) => {
 
     if (!dentalCase) {
       return res.status(404).json({ message: 'Case not found' });
+    }
+
+    if (isClientPortalRole(req.user?.role)) {
+      const linked =
+        dentalCase.referringDoctorId &&
+        String(dentalCase.referringDoctorId) === String(req.user.id);
+      if (!linked && !caseBelongsToDoctor(dentalCase, req.user.fullName)) {
+        return res.status(403).json({ success: false, message: 'يمكنك عرض حالاتك فقط' });
+      }
     }
 
     dentalCase.notes = sanitizeNotesMetaString(dentalCase.notes);
@@ -1924,26 +1964,6 @@ exports.scanAtStation = async (req, res) => {
       timestamp: new Date(),
     });
 
-    if (targetStage === 'completed' || targetStage === 'exited') {
-      try {
-        const { notifyDoctorCaseStatus } = require('../services/whatsappService');
-        const kind = targetStage === 'exited' ? 'exited' : 'completed';
-        notifyDoctorCaseStatus(dentalCase, kind).catch((err) =>
-          console.warn(
-            '[whatsapp] scanAtStation notify failed:',
-            dentalCase?.caseNumber,
-            kind,
-            err?.message || err
-          )
-        );
-      } catch (err) {
-        console.warn(
-          '[whatsapp] scanAtStation notify setup failed:',
-          dentalCase?.caseNumber,
-          err?.message || err
-        );
-      }
-    }
   } catch (error) {
     console.error('scanAtStation failed:', error);
     return res.status(500).json({
@@ -2006,23 +2026,6 @@ exports.completeCase = async (req, res) => {
       completedBy: req.user.id,
       timestamp: new Date(),
     });
-
-    try {
-      const { notifyDoctorCaseStatus } = require('../services/whatsappService');
-      notifyDoctorCaseStatus(dentalCase, 'completed').catch((err) =>
-        console.warn(
-          '[whatsapp] completeCase notify failed:',
-          dentalCase?.caseNumber,
-          err?.message || err
-        )
-      );
-    } catch (err) {
-      console.warn(
-        '[whatsapp] completeCase notify setup failed:',
-        dentalCase?.caseNumber,
-        err?.message || err
-      );
-    }
 
     res.status(200).json({
       success: true,
@@ -2166,7 +2169,7 @@ exports.exitCase = async (req, res) => {
       );
       const liveTotal = Number(breakdown.total) || 0;
       const stored = Number(dentalCase.salaryAmount) || 0;
-      const revenue = liveTotal > 0 ? liveTotal : stored;
+      const revenue = stored > 0 ? stored : liveTotal;
       dentalCase.salaryAmount = revenue;
       dentalCase.revenueAmount = revenue;
       dentalCase.billSnapshot = {
@@ -2279,8 +2282,6 @@ exports.releaseCase = async (req, res) => {
 
     dentalCase.assignedTo = null;
     dentalCase.assignedAt = null;
-    dentalCase.status = 'waiting';
-    dentalCase.currentStage = 'waiting';
 
     await dentalCase.save();
 
@@ -2378,18 +2379,6 @@ exports.updateCase = async (req, res) => {
         nextNotes,
         displayName
       );
-      if (nextType === 'student') {
-        await DentalCase.collection.updateOne(
-          { _id: dentalCase._id },
-          {
-            $set: {
-              paymentStatus: 'paid',
-              paidAt: new Date(),
-              paidBy: req.user.id,
-            },
-          }
-        );
-      }
       const fresh = await DentalCase.findById(dentalCase._id).populate(
         'createdBy',
         'fullName email role'
@@ -2402,16 +2391,6 @@ exports.updateCase = async (req, res) => {
       });
     }
 
-    if (req.user.role === 'secretary' && !requesterRetagOnly) {
-      const createdBy = normalizeDocId(dentalCase.createdBy);
-      if (createdBy && createdBy !== String(req.user.id)) {
-        return res.status(403).json({
-          success: false,
-          message: 'يمكنك تعديل الحالات التي أنشأتها فقط',
-        });
-      }
-    }
-
     if (req.user.role === 'designer') {
       // Allow designer to edit any case; ownership is reassigned automatically on edit.
       const assignedTo = dentalCase.assignedTo ? dentalCase.assignedTo.toString() : null;
@@ -2421,10 +2400,6 @@ exports.updateCase = async (req, res) => {
       }
       if (dentalCase.status === 'waiting') {
         dentalCase.status = 'in_progress';
-      }
-      if (dentalCase.currentStage === 'waiting' || dentalCase.currentStage === 'secretary') {
-        dentalCase.currentStage = 'design';
-        dentalCase.stageTimestamps.design = new Date();
       }
     }
 
@@ -2455,13 +2430,10 @@ exports.updateCase = async (req, res) => {
     // Exception: doctors may set priority (urgent/normal) on their cases at any stage
     if (isClientPortalRole(req.user.role)) {
       const meta = parseNotesMeta(dentalCase.notes || '');
-      const doctorName = String(meta.doctor || meta.doctorName || dentalCase.referringDoctor || '')
-        .trim()
-        .toLowerCase();
-      const me = String(req.user.fullName || '')
-        .trim()
-        .toLowerCase();
-      if (!me || doctorName !== me) {
+      const linkedAccount =
+        dentalCase.referringDoctorId &&
+        String(dentalCase.referringDoctorId) === String(req.user.id);
+      if (!linkedAccount && !caseBelongsToDoctor(dentalCase, req.user.fullName)) {
         return res.status(403).json({ message: 'يمكنك تعديل حالاتك فقط' });
       }
 
@@ -2504,11 +2476,6 @@ exports.updateCase = async (req, res) => {
       dentalCase.requesterType =
         requesterType === 'student' ? 'student' : requesterType === 'lab' ? 'lab' : 'doctor';
       dentalCase.notes = setRequesterTypeInNotes(dentalCase.notes || '', dentalCase.requesterType);
-      if (dentalCase.requesterType === 'student') {
-        dentalCase.paymentStatus = 'paid';
-        dentalCase.paidAt = new Date();
-        dentalCase.paidBy = req.user.id;
-      }
     }
     if (salaryAmount !== undefined) {
       const parsedSalary = Number(salaryAmount);
@@ -2663,6 +2630,15 @@ exports.updateCase = async (req, res) => {
     await dentalCase.save();
     await dentalCase.populate('createdBy', 'fullName email role');
 
+    void AuditLog.create({
+      caseId: dentalCase._id,
+      caseNumber: dentalCase.caseNumber,
+      action: 'updated',
+      performedBy: req.user.id,
+      performedByName: req.user.fullName,
+      details: { notes: 'case fields updated' },
+    }).catch((err) => console.warn('updateCase audit failed:', err.message));
+
     emitCaseUpdated(dentalCase, req.user);
 
     res.status(200).json({
@@ -2744,6 +2720,14 @@ exports.updateCaseFinancials = async (req, res) => {
 
     // When marking paid, write a case-linked ledger row so cash history exists
     // without double-counting (linked rows are excluded from unallocated paid sum).
+    if (paymentStatus === 'unpaid') {
+      try {
+        await DoctorPayment.deleteMany({ caseId: dentalCase._id, entryType: 'payment' });
+      } catch (ledgerErr) {
+        console.warn('Linked DoctorPayment delete failed:', ledgerErr.message);
+      }
+    }
+
     if (paymentStatus === 'paid') {
       try {
         const notesMeta = parseNotesMeta(dentalCase.notes || '');
@@ -2837,6 +2821,13 @@ exports.deleteCase = async (req, res) => {
 
     const caseId = String(dentalCase._id);
     const caseNumber = dentalCase.caseNumber;
+    void AuditLog.create({
+      caseId: dentalCase._id,
+      caseNumber,
+      action: 'deleted',
+      performedBy: req.user.id,
+      performedByName: req.user.fullName,
+    }).catch((err) => console.warn('deleteCase audit failed:', err.message));
     await DentalCase.findByIdAndDelete(req.params.id);
 
     try {
@@ -3079,5 +3070,79 @@ exports.uploadCaseImage = async (req, res) => {
       message: 'Failed to upload image',
       error: error.message,
     });
+  }
+};
+
+/**
+ * Bill summary for one case (reception / admin): doctor, amount due, paid status,
+ * and case-linked ledger payments. Amount = frozen snapshot at exit, else live price.
+ */
+exports.getCaseBill = async (req, res) => {
+  try {
+    const dentalCase = await DentalCase.findById(req.params.id).lean();
+    if (!dentalCase) {
+      return res.status(404).json({ success: false, message: 'Case not found' });
+    }
+    const meta = parseNotesMetaShared(dentalCase.notes || '');
+    const doctorName = String(
+      dentalCase.referringDoctor || meta.doctor || meta.doctorName || ''
+    ).trim();
+    const { frozenBillAmount, hasFrozenSnapshot } = require('../services/doctorBalanceService');
+
+    let amount = 0;
+    let source = 'none';
+    const needsLive =
+      !hasFrozenSnapshot(dentalCase) &&
+      !(Number(dentalCase.salaryAmount) > 0) &&
+      !isNonBillableCase(dentalCase.caseType, meta);
+
+    // Run the independent queries in parallel — the modal was waiting on them one by one
+    const [payments, pricings, materials] = await Promise.all([
+      DoctorPayment.find({ caseId: dentalCase._id }).sort({ paymentDate: -1 }).lean(),
+      needsLive ? DoctorPricing.find().lean() : Promise.resolve(null),
+      needsLive ? loadActiveMaterials() : Promise.resolve(null),
+    ]);
+
+    if (hasFrozenSnapshot(dentalCase)) {
+      amount = frozenBillAmount(dentalCase);
+      source = 'frozen';
+    } else if (Number(dentalCase.salaryAmount) > 0) {
+      amount = Number(dentalCase.salaryAmount);
+      source = 'manual';
+    } else if (needsLive) {
+      const labDefaults = materialsToDefaultPrices(materials);
+      const doctorPrices = mergePricesForDoctor(pricings, doctorName);
+      amount = calculateCaseCost(dentalCase.caseType, meta, doctorPrices, materials, labDefaults) || 0;
+      source = 'live';
+    }
+    const paidTotal = payments
+      .filter((p) => String(p.entryType || 'payment') !== 'charge')
+      .reduce((s, p) => s + (Number(p.amount) || 0), 0);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        caseId: String(dentalCase._id),
+        caseNumber: dentalCase.caseNumber,
+        patientName: dentalCase.patientName,
+        doctorName,
+        amount: Math.round(amount * 100) / 100,
+        amountSource: source,
+        nonBillable: isNonBillableCase(dentalCase.caseType, meta),
+        paymentStatus: dentalCase.paymentStatus === 'paid' ? 'paid' : 'unpaid',
+        paidAt: dentalCase.paidAt || null,
+        paidTotal,
+        currentStage: dentalCase.currentStage,
+        payments: payments.map((p) => ({
+          id: String(p._id),
+          amount: Number(p.amount) || 0,
+          entryType: String(p.entryType || 'payment'),
+          paymentDate: p.paymentDate || null,
+          notes: p.notes || '',
+        })),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to load case bill', error: error.message });
   }
 };

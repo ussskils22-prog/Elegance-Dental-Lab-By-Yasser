@@ -1,0 +1,75 @@
+:host {
+  display: inline-flex;
+  max-width: 100%;
+  color: #12312f;
+}
+
+:host-context(.dark-theme),
+.masar-lockup--light {
+  color: #f4f7f6;
+}
+
+.masar-lockup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.masar-lockup--hero {
+  flex-direction: column;
+  gap: 8px;
+}
+
+.masar-mark {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+}
+
+.masar-lockup--hero .masar-mark {
+  width: 72px;
+  height: 72px;
+}
+
+.masar-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.masar-lockup--hero .masar-text {
+  align-items: center;
+}
+
+.masar-product {
+  font-weight: 800;
+  font-size: 1.15rem;
+  line-height: 1;
+  letter-spacing: 0.16em;
+  color: currentColor;
+}
+
+.masar-lockup--hero .masar-product {
+  font-size: 1.7rem;
+  letter-spacing: 0.2em;
+}
+
+.masar-lab {
+  margin-top: 4px;
+  max-width: 240px;
+  overflow: hidden;
+  font-size: 0.74rem;
+  font-weight: 650;
+  line-height: 1.2;
+  color: var(--text-muted, #71717a);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.masar-lockup--hero .masar-lab {
+  max-width: none;
+  font-size: 0.95rem;
+  white-space: normal;
+}

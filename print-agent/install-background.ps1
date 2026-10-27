@@ -18,10 +18,9 @@ if (-not (Test-Path $node)) {
   }
 }
 
-Write-Host 'Stopping / disabling old LocalSystem service...'
+Write-Host 'Stopping / disabling old LocalSystem service (if any)...'
 try { Stop-Service -Name 'eleganceprintagent.exe' -Force -ErrorAction SilentlyContinue } catch {}
 try { & sc.exe config eleganceprintagent.exe start= disabled | Out-Null } catch {}
-try { & $node (Join-Path $dir 'uninstall-service.js') 2>$null } catch {}
 
 Write-Host 'Stopping any running agent/supervisor...'
 Get-CimInstance Win32_Process -Filter "Name='node.exe'" | ForEach-Object {
@@ -73,9 +72,9 @@ Write-Host ''
 Write-Host 'Done.'
 Write-Host ('  Task: ' + $t.TaskName + '  State: ' + $t.State)
 Write-Host '  Supervisor stays on at login. Agent auto-starts (config AUTO_START_AGENT).'
-Write-Host '  In the website: use تشغيل الطباعة / إيقاف الطباعة'
+Write-Host '  In the website: use Start Printing / Stop Printing'
 Write-Host ('  Control API: http://127.0.0.1:17891/status')
 Write-Host ('  Logs: ' + (Join-Path $daemon 'supervisor.log'))
 Write-Host ''
-Write-Host 'Do NOT use install-as-service.bat (LocalSystem breaks USB print).'
+Write-Host 'Use install-background.bat only (USB printers need user session).'
 

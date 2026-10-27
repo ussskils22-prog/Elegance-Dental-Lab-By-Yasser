@@ -2,10 +2,8 @@
  * Strict case workflow rules — forward-only stages, exit only after completed.
  * Enabled stages come from AppSettings.workflow (lab-configurable).
  *
- * Temporary: SCANNER1_ALLOW_STAGE_SKIP (default true) lets scanner1 complete
- * from any non-exited stage (new / design / finish / …) without walking the path.
- * Set env SCANNER1_ALLOW_STAGE_SKIP=false to restore strict order later.
- * railway-deploy-stamp: 2026-10-04 scanner1-complete-any-stage
+ * Scanner1 (reception / منتهية): always completes from any non-exited stage
+ * (waiting/new, design, finishing, …). No env flag — lab requirement.
  */
 
 const STAGE_ORDER = [
@@ -18,9 +16,9 @@ const STAGE_ORDER = [
   'exited',
 ];
 
+/** Always on — reception scan marks case completed from any open stage. */
 function scanner1SkipEnabled() {
-  const v = String(process.env.SCANNER1_ALLOW_STAGE_SKIP ?? 'true').toLowerCase().trim();
-  return v !== '0' && v !== 'false' && v !== 'no' && v !== 'off';
+  return true;
 }
 
 let workflowCache = {

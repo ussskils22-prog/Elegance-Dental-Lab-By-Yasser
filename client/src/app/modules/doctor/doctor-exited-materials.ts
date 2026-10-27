@@ -7,6 +7,7 @@ import { ThemeService } from '../../core/services/theme.service';
 import { LanguageService } from '../../core/i18n/language.service';
 import { TPipe } from '../../core/i18n/t.pipe';
 import { AppOverflowMenuComponent } from '../../shared/app-overflow-menu/app-overflow-menu';
+import { BrandLockupComponent } from '../../shared/brand-lockup/brand-lockup';
 
 export type DoctorExitedMaterialRow = {
   key: string;
@@ -24,7 +25,7 @@ export type DoctorExitedMaterialsSummary = {
 @Component({
   selector: 'app-doctor-exited-materials',
   standalone: true,
-  imports: [CommonModule, AppOverflowMenuComponent, TPipe],
+  imports: [CommonModule, AppOverflowMenuComponent, BrandLockupComponent, TPipe],
   templateUrl: './doctor-exited-materials.html',
   styleUrls: ['./doctor-exited-materials.css'],
 })

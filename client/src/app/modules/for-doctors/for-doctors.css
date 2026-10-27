@@ -255,7 +255,7 @@ body.dark-theme .doctors-footer,
 .dark-theme .doctors-header,
 .dark-theme .feature,
 .dark-theme .doctors-footer {
-  background: #1e293b;
+  background: #161618;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
 }
 
@@ -263,7 +263,7 @@ body.dark-theme .btn-secondary,
 .dark-theme .btn-secondary {
   background: #1e3a8a;
   color: #93c5fd;
-  border-color: #334155;
+  border-color: #2a2a2e;
 }
 
 body.dark-theme .btn-secondary:hover,

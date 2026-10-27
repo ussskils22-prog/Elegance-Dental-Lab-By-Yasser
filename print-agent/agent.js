@@ -149,6 +149,9 @@ const config = JSON.parse(configRaw);
 const SERVER_URL      = config.SERVER_URL.replace(/\/$/, '');
 const AGENT_SECRET    = config.PRINT_AGENT_SECRET;
 const PRINTER_NAME    = config.PRINTER_NAME;
+const RECEIPT_PRINTER_NAME = config.RECEIPT_PRINTER_NAME || 'XP-Q808K';
+/** true only when the receipt printer is installed and ready on THIS PC */
+let receiptPrinterOk = false;
 const RECONNECT_DELAY = 3000; // ms
 const POLL_INTERVAL_MS = Number(config.POLL_INTERVAL_MS) || 20000;
 const PRINT_CONFIRM_TIMEOUT_MS = Number(config.PRINT_CONFIRM_TIMEOUT_MS) || 90000;
@@ -157,6 +160,7 @@ const PRINTER_CHECK_MS = Number(config.PRINTER_CHECK_MS) || 10000;
 console.log('🖨️  Elegance Print Agent starting...');
 console.log(`   Server  : ${SERVER_URL}`);
 console.log(`   Printer : ${PRINTER_NAME}`);
+console.log(`   Receipt : ${RECEIPT_PRINTER_NAME}`);
 console.log(`   Poll    : every ${POLL_INTERVAL_MS / 1000}s`);
 console.log(`   Confirm : ${PRINT_CONFIRM_TIMEOUT_MS / 1000}s spooler timeout`);
 console.log(`   Printer check: every ${PRINTER_CHECK_MS / 1000}s`);
@@ -195,7 +199,8 @@ enableKeepAwake();
 
 // ── Connect to server ─────────────────────────────────────
 const socket = io(SERVER_URL, {
-  auth: { agentSecret: AGENT_SECRET },
+  // auth is re-evaluated on every (re)connect so the server knows our current capabilities
+  auth: (cb) => cb({ agentSecret: AGENT_SECRET, caps: receiptPrinterOk ? 'sheet,receipt' : 'sheet' }),
   reconnection: true,
   reconnectionDelay: RECONNECT_DELAY,
   reconnectionDelayMax: 15000,
@@ -203,19 +208,47 @@ const socket = io(SERVER_URL, {
   timeout: 20000,
 });
 
+// State file read by supervisor.js so the web UI shows the REAL link state
+const AGENT_STATE_PATH = path.join(__dirname, 'daemon', 'agent.state.json');
+function writeAgentState(connected) {
+  try {
+    fs.mkdirSync(path.dirname(AGENT_STATE_PATH), { recursive: true });
+    fs.writeFileSync(
+      AGENT_STATE_PATH,
+      JSON.stringify({
+        pid: process.pid,
+        connected: connected === undefined ? socket.connected : !!connected,
+        printerDown,
+        ts: new Date().toISOString(),
+      }),
+      'utf8'
+    );
+  } catch (_) {}
+}
+setInterval(() => writeAgentState(), 15000).unref();
+process.on('exit', () => {
+  try {
+    if (fs.existsSync(AGENT_STATE_PATH)) fs.unlinkSync(AGENT_STATE_PATH);
+  } catch (_) {}
+});
+
 socket.on('connect', () => {
   console.log('✅ Connected to server. Waiting for print jobs...');
+  writeAgentState(true);
+  socket.emit('print:agent-caps', { caps: receiptPrinterOk ? 'sheet,receipt' : 'sheet' });
   // Burst catch-up: network often stabilizes a few seconds after socket reconnect
   catchUpBurst('connect');
 });
 
 socket.on('connect_error', (err) => {
   networkDown = true;
+  writeAgentState(false);
   console.error('❌ Connection error:', err.message);
 });
 
 socket.on('disconnect', (reason) => {
   networkDown = true;
+  writeAgentState(false);
   console.warn('⚠️  Disconnected:', reason, '— will reconnect automatically...');
 });
 
@@ -487,6 +520,16 @@ async function processQueue() {
     console.log(`   Patient: ${job.printData.patient} | Doctor: ${job.printData.doctor}`);
 
     try {
+      // A receipt must never land on the sheet printer: if this PC has no ready
+      // receipt printer, leave the job for a station that has one.
+      if (String(job.printData?.jobKind || '') === 'receipt' && !receiptPrinterOk) {
+        console.log(`⏭️  Skip receipt ${job.jobId} — no ready receipt printer (${RECEIPT_PRINTER_NAME}) on this PC`);
+        startedIds.delete(job.jobId);
+        releaseJobLock(job.jobId);
+        currentJobId = null;
+        continue;
+      }
+
       // Atomic server claim — if another agent already owns this job, skip (no second sheet)
       const claimed = await claimJob(job.jobId);
       if (!claimed) {
@@ -497,23 +540,27 @@ async function processQueue() {
         continue;
       }
 
-      const html = await buildPrintHtml(job.printData);
+      const isReceipt = String(job.printData?.jobKind || '') === 'receipt';
+      const printerName = isReceipt ? RECEIPT_PRINTER_NAME : PRINTER_NAME;
+      if (isReceipt && !String(printerName || '').trim()) {
+        throw new Error('RECEIPT_PRINTER_NAME is empty in config.json');
+      }
+      const html = isReceipt ? buildReceiptHtml(job.printData) : await buildPrintHtml(job.printData);
       const pdfPath = path.join(os.tmpdir(), `print_job_${job.jobId}.pdf`);
       const t0 = Date.now();
-      await generatePdf(html, pdfPath);
+      await generatePdf(html, pdfPath, isReceipt ? 'receipt' : 'sheet');
       console.log(`   ✅ PDF generated in ${Date.now() - t0}ms: ${pdfPath}`);
 
-      console.log(`   🖨️  Sending PDF to printer [${PRINTER_NAME}]...`);
-      // One Sumatra at a time — parallel prints jam the P1102 and nothing comes out
+      console.log(`   🖨️  Sending PDF to printer [${printerName}]...`);
       await new Promise((resolve, reject) => {
         printPdfChain = printPdfChain
-          .then(() => withTimeout(printPdf(pdfPath), 20000, 'printPdf'))
+          .then(() => withTimeout(printPdf(pdfPath, printerName), 20000, 'printPdf'))
           .then(resolve, reject);
       });
-      console.log(`   📤 Sent to Windows spooler [${PRINTER_NAME}]`);
+      console.log(`   📤 Sent to Windows spooler [${printerName}]`);
 
-      const confirm = await waitForPrintConfirmation(PRINTER_NAME, new Set());
-      console.log(`   🖨️  Print confirmed (${confirm.mode}) on [${PRINTER_NAME}] (${Date.now() - t0}ms total)`);
+      const confirm = await waitForPrintConfirmation(printerName, new Set());
+      console.log(`   🖨️  Print confirmed (${confirm.mode}) on [${printerName}] (${Date.now() - t0}ms total)`);
 
       // Mark done locally FIRST so overlapping catch-up cannot re-queue this job
       completedIds.add(job.jobId);
@@ -609,6 +656,8 @@ function httpJson(method, url, body) {
           'Content-Type': 'application/json',
           'x-agent-secret': AGENT_SECRET,
           'x-agent-id': `pid-${process.pid}`,
+          // Only agents with a receipt printer configured may claim receipt jobs
+          'x-agent-caps': receiptPrinterOk ? 'sheet,receipt' : 'sheet',
           ...(payload ? { 'Content-Length': Buffer.byteLength(payload) } : {}),
         },
         timeout: 15000,
@@ -708,6 +757,30 @@ function catchUpBurst(reason) {
 // Poll forever — covers sleep wake, missed socket events, and PC restarts
 setInterval(() => fetchAndEnqueuePending('interval'), POLL_INTERVAL_MS);
 
+// Receipt printer presence — only then do we claim receipt jobs (so an agent on a PC
+// without the XP-Q808K never pulls a receipt and lets it fall on the sheet printer).
+async function checkReceiptPrinter(logChange) {
+  if (!RECEIPT_PRINTER_NAME) return;
+  try {
+    const health = await getPrinterHealth(RECEIPT_PRINTER_NAME);
+    const ok = Boolean(health.ok);
+    if (ok !== receiptPrinterOk || logChange) {
+      console.log(ok ? `   Receipt printer ${RECEIPT_PRINTER_NAME}: ready` : `   Receipt printer ${RECEIPT_PRINTER_NAME}: NOT ready (${health.error || ''})`);
+    }
+    const became = !receiptPrinterOk && ok;
+    const changed = ok !== receiptPrinterOk;
+    receiptPrinterOk = ok;
+    if (changed && socket.connected) {
+      socket.emit('print:agent-caps', { caps: ok ? 'sheet,receipt' : 'sheet' });
+    }
+    if (became) catchUpBurst('receipt-printer-ready');
+  } catch (err) {
+    receiptPrinterOk = false;
+  }
+}
+checkReceiptPrinter(true);
+setInterval(() => checkReceiptPrinter(false), Math.max(PRINTER_CHECK_MS, 30000));
+
 // Watch printer USB/power — when it comes back, print everything waiting
 setInterval(async () => {
   try {
@@ -750,12 +823,48 @@ function getLocalBrowserPath() {
   return undefined;
 }
 
-function printPdf(pdfPath) {
+function printPdf(pdfPath, printerName) {
   const options = {};
-  if (PRINTER_NAME && PRINTER_NAME.trim()) {
-    options.printer = PRINTER_NAME.trim();
-  }
+  const name = String(printerName || PRINTER_NAME || '').trim();
+  if (name) options.printer = name;
   return print(pdfPath, options);
+}
+
+function buildReceiptHtml(data) {
+  const doctor = escapeHtml(data.doctor || '');
+  const amount = Number(data.amount) || 0;
+  const when = escapeHtml(data.printDate || '');
+  const note = escapeHtml(data.receiptNote || data.workDetail || '');
+  const receiptNo = escapeHtml(String(data.caseNumber || '').slice(-8));
+  const money = amount.toLocaleString('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<style>
+  @page { size: 80mm 150mm; margin: 4mm; }
+  body { font-family: Tahoma, sans-serif; width: 72mm; margin: 0; color: #000; font-size: 13px; }
+  h1 { font-size: 16px; text-align: center; margin: 0 0 4px; }
+  .center { text-align: center; }
+  .line { border-top: 1px dashed #000; margin: 8px 0; }
+  .row { display: flex; justify-content: space-between; gap: 8px; margin: 4px 0; }
+  .amount { font-size: 22px; font-weight: 700; text-align: center; margin: 8px 0; }
+</style>
+</head>
+<body>
+  <h1>Elegance Dental Lab</h1>
+  <div class="center">إيصال تحصيل</div>
+  <div class="line"></div>
+  <div class="row"><span>الدكتور</span><span>${doctor}</span></div>
+  <div class="row"><span>التاريخ</span><span>${when}</span></div>
+  ${receiptNo ? `<div class="row"><span>رقم</span><span>${receiptNo}</span></div>` : ''}
+  <div class="line"></div>
+  <div class="amount">${money} ج.م</div>
+  ${note ? `<div class="center">${note}</div>` : ''}
+  <div class="line"></div>
+  <div class="center">شكراً لتعاملكم معنا</div>
+</body>
+</html>`;
 }
 
 // Keep one Chrome alive — cold launch every job was ~5–6s of the ~15s feel
@@ -811,18 +920,30 @@ async function warmPdfBrowser() {
   }
 }
 
-async function generatePdfViaWarmBrowser(html, outputPath) {
+function pdfPaper(kind) {
+  if (kind === 'receipt') {
+    return {
+      width: '80mm',
+      height: '160mm',
+      printBackground: true,
+      preferCSSPageSize: true,
+      margin: { top: '4mm', right: '3mm', bottom: '4mm', left: '3mm' },
+    };
+  }
+  return {
+    format: 'A4',
+    printBackground: true,
+    preferCSSPageSize: true,
+    margin: { top: '14mm', right: '18mm', bottom: '14mm', left: '18mm' },
+  };
+}
+
+async function generatePdfViaWarmBrowser(html, outputPath, kind) {
   const browser = await getPdfBrowser();
   const page = await browser.newPage();
   try {
     await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 8000 });
-    await page.pdf({
-      path: outputPath,
-      format: 'A4',
-      printBackground: true,
-      preferCSSPageSize: true,
-      margin: { top: '12mm', right: '12mm', bottom: '12mm', left: '12mm' },
-    });
+    await page.pdf({ path: outputPath, ...pdfPaper(kind) });
   } finally {
     await page.close().catch(() => {});
   }
@@ -871,10 +992,10 @@ async function generatePdfViaBrowserCli(html, outputPath) {
   fs.unlink(tempHtmlPath, () => {});
 }
 
-async function generatePdf(html, outputPath) {
+async function generatePdf(html, outputPath, kind) {
   const t0 = Date.now();
   try {
-    await generatePdfViaWarmBrowser(html, outputPath);
+    await generatePdfViaWarmBrowser(html, outputPath, kind);
     console.log(`   ✅ PDF warm-browser done in ${Date.now() - t0}ms`);
     return;
   } catch (err) {
@@ -904,13 +1025,7 @@ async function generatePdf(html, outputPath) {
   try {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 8000 });
-    await page.pdf({
-      path: outputPath,
-      format: 'A4',
-      printBackground: true,
-      preferCSSPageSize: true,
-      margin: { top: '12mm', right: '12mm', bottom: '12mm', left: '12mm' },
-    });
+    await page.pdf({ path: outputPath, ...pdfPaper(kind) });
     console.log(`   ✅ PDF Puppeteer done in ${Date.now() - t0}ms`);
   } finally {
     await browser.close().catch(() => {});
@@ -1096,8 +1211,8 @@ async function buildPrintHtml(c) {
   <meta charset="UTF-8">
   <title>ريكويست</title>
   <style>
-    /* A4; content slightly below top so the sheet looks balanced (not stuck to the edge). */
-    @page { size: A4; margin: 12mm 12mm 12mm 12mm; }
+    /* A4; wider L/R margins so HP USB drivers don't clip edge text. */
+    @page { size: A4; margin: 14mm 18mm 14mm 18mm; }
     html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -1107,13 +1222,13 @@ async function buildPrintHtml(c) {
       font-size: 14px;
       line-height: 1.4;
       direction: rtl;
-      padding-top: 0;
-      margin-top: 0;
+      padding: 0 2mm;
+      margin: 0;
     }
     .sheet {
-      width: 150mm;
+      width: 145mm;
       max-width: 100%;
-      margin: 18mm auto 0;
+      margin: 14mm auto 0;
       display: flex;
       flex-direction: column;
     }

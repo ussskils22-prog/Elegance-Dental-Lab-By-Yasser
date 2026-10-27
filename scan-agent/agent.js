@@ -60,6 +60,32 @@ if (!SERVER_URL || !EMAIL || !PASSWORD) {
   process.exit(1);
 }
 
+// State file read by print-agent/supervisor.js so the web UI shows the REAL link state
+const SCANNER_STATE_PATH = path.join(
+  __dirname,
+  'daemon',
+  path.basename(configPath).replace(/^config\./, '').replace(/\.json$/, '') + '.state.json'
+);
+let scannerLinked = false;
+function writeScannerState(connected) {
+  if (connected !== undefined) scannerLinked = !!connected;
+  try {
+    fs.mkdirSync(path.dirname(SCANNER_STATE_PATH), { recursive: true });
+    fs.writeFileSync(
+      SCANNER_STATE_PATH,
+      JSON.stringify({ pid: process.pid, connected: scannerLinked, ts: new Date().toISOString() }),
+      'utf8'
+    );
+  } catch (_) {}
+}
+writeScannerState(false);
+setInterval(() => writeScannerState(), 15000).unref();
+process.on('exit', () => {
+  try {
+    if (fs.existsSync(SCANNER_STATE_PATH)) fs.unlinkSync(SCANNER_STATE_PATH);
+  } catch (_) {}
+});
+
 let authToken = '';
 let authRole = '';
 let busy = false;
@@ -166,6 +192,7 @@ async function loginOnce() {
   authRole = String(res.data.user?.role || '');
   const name = res.data.user?.fullName || EMAIL;
   say(`✅ Logged in as ${name} (role: ${authRole})`);
+  writeScannerState(true);
   if (!/^scanner[123]$/.test(authRole)) {
     say('⚠️  Account role is not scanner1/2/3 — station may not lock correctly');
     say('   Fix the employee position in Admin to سكان 1 / 2 / 3');
@@ -249,6 +276,7 @@ async function scanCode(rawCode) {
 
     if (res.status >= 200 && res.status < 300 && res.data?.success) {
       const message = res.data.message || 'OK';
+      writeScannerState(true);
       say(`✅ ${message}`);
       if (res.data.case?.currentStage) {
         say(`   → stage: ${res.data.case.currentStage}`);
@@ -258,10 +286,12 @@ async function scanCode(rawCode) {
     }
 
     const message = res.data?.message || res.data?.error || `HTTP ${res.status}`;
+    writeScannerState(true); // server answered — link is alive even if the scan was rejected
     say(`❌ ${message}`);
     beep(false);
     return { ok: false, message };
   } catch (err) {
+    writeScannerState(false); // network / server unreachable
     say(`❌ ${err.message}`);
     beep(false);
     return { ok: false, message: err.message };
@@ -571,7 +601,10 @@ async function main() {
   }
 
   setInterval(() => {
-    loginOnce().catch((err) => say(`⚠️  Re-login failed: ${err.message}`));
+    loginOnce().catch((err) => {
+      writeScannerState(false);
+      say(`⚠️  Re-login failed: ${err.message}`);
+    });
   }, TOKEN_REFRESH_MS);
 
   // Prefer US-layout hook alone — running both fires the same barcode twice

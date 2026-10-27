@@ -260,11 +260,11 @@ export function buildCreateCasePayload(
   form: SecretaryCaseFormPayload,
   plyPreserve?: { plyScanPath: string; plyFileName?: string }
 ): Record<string, unknown> {
-  const email = (form.patientEmail || '').trim() || `case+${Date.now()}@mylab.com`;
-  const phone = (form.patientPhone || '').trim() || '0000000000';
+  const email = (form.patientEmail || '').trim();
+  const phone = (form.patientPhone || '').trim();
   const originalEntry = snapshotOriginalEntry(form);
   const payload: Record<string, unknown> = {
-    patientName: (form.patient || '').trim() || 'غير محدد',
+    patientName: (form.patient || '').trim(),
     patientEmail: email,
     patientPhone: phone,
     requesterType: normalizeRequesterType(form.requesterType),
@@ -479,6 +479,7 @@ export function mapApiCaseToDentalCase(doc: Record<string, unknown>): DentalCase
     patientEmail: String(doc['patientEmail'] ?? ''),
     patientPhone: String(doc['patientPhone'] ?? ''),
     salaryAmount,
+    paymentStatus: String(doc['paymentStatus'] ?? 'unpaid') === 'paid' ? 'paid' : 'unpaid',
     finishingNotes,
     plyScanUrl: plyScanUrl || undefined,
     plyFileName: plyFileName || undefined,

@@ -26,7 +26,6 @@ import {
   LabWorkflow,
 } from '../../core/services/lab-config.service';
 import { FinancePanel } from './finance-panel/finance-panel';
-import { AppOverflowMenuComponent } from '../../shared/app-overflow-menu/app-overflow-menu';
 import {
   isExcludedWorkPart,
   isWholeCaseExcluded,
@@ -153,7 +152,7 @@ export interface AiChatMessage {
 
 @Component({
   selector: 'app-admin',
-  imports: [CommonModule, FormsModule, RouterModule, FinancePanel, AppOverflowMenuComponent, TPipe],
+  imports: [CommonModule, FormsModule, RouterModule, FinancePanel, TPipe],
   templateUrl: './admin.html',
   styleUrl: './admin.css',
   standalone: true
@@ -162,6 +161,7 @@ export class Admin implements OnInit, OnDestroy {
   private salaryDrafts: Record<string, string> = {};
   private salarySavingByCaseId: Record<string, boolean> = {};
   activeNav = 'dashboard';
+  sidebarOpen = true;
   showStaffPassword = false;
   showStaffModal = false;
   staffModalError = '';
@@ -367,6 +367,20 @@ export class Admin implements OnInit, OnDestroy {
     this.auth.performLogout(this.router);
   }
 
+  toggleSidebar(): void {
+    this.sidebarOpen = !this.sidebarOpen;
+  }
+
+  get sidebarUserName(): string {
+    return this.auth.getSession()?.name?.trim() || 'SE Yasser';
+  }
+
+  get sidebarInitials(): string {
+    const parts = this.sidebarUserName.split(/\s+/).filter(Boolean).slice(0, 2);
+    const letters = parts.map((part) => part.charAt(0)).join('');
+    return letters.toUpperCase() || 'SY';
+  }
+
   ngOnInit(): void {
     this.restoreActiveNav();
     this.loadCasesFromApi();
@@ -418,7 +432,7 @@ export class Admin implements OnInit, OnDestroy {
       .pipe(
         takeUntil(this.destroy$),
         filter((evt) => !!evt),
-        debounceTime(2000)
+        debounceTime(8000)
       )
       .subscribe(() => {
         this.loadCasesFromApi();
@@ -738,8 +752,9 @@ export class Admin implements OnInit, OnDestroy {
       const ledger = this.doctorPayments.filter(
         (p) => this.doctorGroupKey(p.doctorName) === key && this.matchesPaymentPeriod(p)
       );
+      // Case-linked payments are already counted via the case "paid" flag
       const paidFromPayments = ledger
-        .filter((p) => this.isDoctorLedgerPayment(p))
+        .filter((p) => this.isDoctorLedgerPayment(p) && !p.caseId)
         .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
       const charges = ledger
         .filter((p) => this.isDoctorLedgerCharge(p))
@@ -1407,9 +1422,9 @@ export class Admin implements OnInit, OnDestroy {
     return this.materialStats['peek'] || 0;
   }
 
-  /** عدادات الماتريال الخارجة — بدون زيركون/إيماكس/تيتانيوم/بيك (متكررة تحت) */
+  /** عدادات الماتريال الخارجة. Wax و Ring يختفوا طول ما رقمهم صفر. */
   get exitedMaterialCounters(): { label: string; qty: number; color: string }[] {
-    return [
+    const rows = [
       { label: 'Pmma Cad', qty: this.materialStats['pmma'] || 0, color: '#14b8a6' },
       { label: 'Try in', qty: this.materialStats['tryIn'] || 0, color: '#f59e0b' },
       { label: 'Mokup', qty: this.materialStats['mokup'] || 0, color: '#ec4899' },
@@ -1417,6 +1432,19 @@ export class Admin implements OnInit, OnDestroy {
       { label: 'Wax', qty: this.materialStats['wax'] || 0, color: '#a16207' },
       { label: 'Ring', qty: this.materialStats['ring'] || 0, color: '#ef4444' },
     ];
+    return rows.filter((row) => (row.label !== 'Wax' && row.label !== 'Ring') || row.qty > 0);
+  }
+
+  /** الزيركون والإيماكس. التيتانيوم والبيك يظهروا لما يكون لهم رقم. */
+  get productionCounters(): { label: string; qty: number; color: string }[] {
+    const rows = [
+      { label: 'Zircon', qty: this.regularZirconCount, color: '#6366f1' },
+      { label: 'German Zircon', qty: this.germanZirconCount, color: '#4f46e5' },
+      { label: 'Emax', qty: this.emaxCount, color: '#0ea5e9' },
+    ];
+    if (this.titaniumCount > 0) rows.push({ label: 'Titanium', qty: this.titaniumCount, color: '#71717a' });
+    if (this.peekCount > 0) rows.push({ label: 'Peek', qty: this.peekCount, color: '#0f766e' });
+    return rows;
   }
 
   get kindNewCount(): number {
@@ -2024,6 +2052,7 @@ export class Admin implements OnInit, OnDestroy {
       deliveryDateDisplay: dueDate ? dueDate.toLocaleString() : 'غير متوفر',
       dueDateDisplay: dueDate ? dueDate.toLocaleString() : 'N/A',
       exitedAtDisplay: this.formatDateEn(exitedAt),
+      exitedAt,
       caseType: String(row['caseType'] ?? 'General'),
       salary,
       paid,

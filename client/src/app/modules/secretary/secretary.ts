@@ -7,7 +7,7 @@ import { catchError, concatMap, forkJoin, from, map, of, Subscription, switchMap
 import type { Observable } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { type ClientAccountKind } from '../../core/auth/client-account';
-import { CaseApiService } from '../../core/services/case-api.service';
+import { CaseApiService, type CaseBill } from '../../core/services/case-api.service';
 import { SharedCasesService, type DentalCase } from '../../core/services/shared-cases.service';
 import { UserApiService } from '../../core/services/user-api.service';
 import {
@@ -29,6 +29,7 @@ import { ThemeService } from '../../core/services/theme.service';
 import { LanguageService } from '../../core/i18n/language.service';
 import { TPipe } from '../../core/i18n/t.pipe';
 import { AppOverflowMenuComponent, type AppMenuItem } from '../../shared/app-overflow-menu/app-overflow-menu';
+import { BrandLockupComponent } from '../../shared/brand-lockup/brand-lockup';
 import { CaseBarcodeComponent } from '../../shared/case-barcode/case-barcode';
 import { LabConfigService } from '../../core/services/lab-config.service';
 import { ToothChartComponent } from '../../shared/tooth-chart/tooth-chart';
@@ -79,7 +80,7 @@ function emptyDraft(): CaseDraft {
 @Component({
   selector: 'app-secretary',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, PatientLabelPipe, CaseBarcodeComponent, ToothChartComponent, AppOverflowMenuComponent, TPipe],
+  imports: [CommonModule, FormsModule, RouterLink, PatientLabelPipe, CaseBarcodeComponent, ToothChartComponent, AppOverflowMenuComponent, BrandLockupComponent, TPipe],
   templateUrl: './secretary.html',
   styleUrl: './secretary.css',
 })
@@ -165,6 +166,11 @@ export class Secretary implements OnInit, OnDestroy {
   }
 
   readonly secretaryMenuItems: AppMenuItem[] = [
+    {
+      id: 'devices',
+      labelKey: 'devices.menu',
+      action: () => this.openDevices(),
+    },
     {
       id: 'doctor-list',
       labelKey: 'menu.doctorList',
@@ -1581,6 +1587,7 @@ export class Secretary implements OnInit, OnDestroy {
       clearTimeout(this.reloadDebounceTimer);
       this.reloadDebounceTimer = null;
     }
+    this.closeDevices();
     if (this.printAgentPollTimer) {
       clearInterval(this.printAgentPollTimer);
       this.printAgentPollTimer = null;
@@ -1633,6 +1640,87 @@ export class Secretary implements OnInit, OnDestroy {
     }
     this.printAgentOnline.set(false);
     this.flash(this.lang.t('print.stoppedToast'));
+  }
+
+  // ───────── الأجهزة (الطابعة / الإيصالات / السكانات) ─────────
+  readonly devicesOpen = signal(false);
+  private devicesPollTimer: ReturnType<typeof setInterval> | null = null;
+
+  /** Lab-wide pause flag on the server — stops every print agent on every PC. */
+  readonly labPrintPaused = signal<boolean | null>(null);
+  labPauseSaving = false;
+
+  openDevices(): void {
+    this.devicesOpen.set(true);
+    void this.localPrint.refresh();
+    this.loadLabPrintPaused();
+    if (this.devicesPollTimer) clearInterval(this.devicesPollTimer);
+    this.devicesPollTimer = setInterval(() => {
+      void this.localPrint.refresh();
+      this.loadLabPrintPaused();
+    }, 4000);
+  }
+
+  private loadLabPrintPaused(): void {
+    this.http.get<{ paused?: boolean }>(`${this.apiBase}/print/paused`).subscribe({
+      next: (res) => this.labPrintPaused.set(Boolean(res?.paused)),
+      error: () => {},
+    });
+  }
+
+  toggleLabPrinting(): void {
+    const next = !this.labPrintPaused();
+    this.labPauseSaving = true;
+    this.http.put<{ paused?: boolean }>(`${this.apiBase}/print/paused`, { paused: next }).subscribe({
+      next: (res) => {
+        this.labPauseSaving = false;
+        this.labPrintPaused.set(Boolean(res?.paused));
+        this.flash(this.lang.t(next ? 'devices.labPausedToast' : 'devices.labResumedToast'));
+      },
+      error: (err) => {
+        this.labPauseSaving = false;
+        this.flash(String(err?.error?.message || err?.message || 'خطأ'));
+      },
+    });
+  }
+
+  closeDevices(): void {
+    this.devicesOpen.set(false);
+    if (this.devicesPollTimer) {
+      clearInterval(this.devicesPollTimer);
+      this.devicesPollTimer = null;
+    }
+  }
+
+  async toggleScanner(id: number, running: boolean): Promise<void> {
+    const st = running ? await this.localPrint.stopScanner(id) : await this.localPrint.startScanner(id);
+    if (!st.reachable) this.flash(this.lang.t('print.controlUnavailable'));
+  }
+
+  printerStateKey(state: string | undefined): string {
+    switch (state) {
+      case 'ready':
+        return 'devices.printerReady';
+      case 'offline':
+        return 'devices.printerOffline';
+      case 'error':
+        return 'devices.printerError';
+      case 'missing':
+        return 'devices.printerMissing';
+      default:
+        return 'print.agentHint';
+    }
+  }
+
+  /** Combined light for the menu: green = agent running + linked + sheet printer ready */
+  devicesOverall(): 'ok' | 'warn' | 'off' {
+    const s = this.localPrint.status();
+    if (!s.reachable) return 'off';
+    const p = s.print;
+    const sheet = s.printers.sheet?.state;
+    if (p.installed && p.running && p.serverLinked !== false && (sheet === 'ready' || sheet === 'unknown' || !sheet)) return 'ok';
+    if (p.installed && !p.running) return 'off';
+    return 'warn';
   }
 
   private connectRealtimeUpdates(): void {
@@ -3037,6 +3125,108 @@ export class Secretary implements OnInit, OnDestroy {
   private flash(msg: string): void {
     this.toast.set(msg);
     window.setTimeout(() => this.toast.set(null), 2800);
+  }
+
+  // ───────── تحصيل / حالة الدفع على الكارد ─────────
+  readonly billCase = signal<DentalCase | null>(null);
+  readonly bill = signal<CaseBill | null>(null);
+  billLoading = false;
+  billError = '';
+  collectAmount: number | null = null;
+  collectNotes = '';
+  collectSaving = false;
+
+  /** Show "unpaid" only on finished/exited cases; "paid" whenever paid. */
+  paymentBadge(c: DentalCase): 'paid' | 'unpaid' | null {
+    if (c.paymentStatus === 'paid') return 'paid';
+    if (c.status === 'finished' || c.status === 'exited') return 'unpaid';
+    return null;
+  }
+
+  openBill(c: DentalCase): void {
+    this.billCase.set(c);
+    this.bill.set(null);
+    this.billError = '';
+    this.billLoading = true;
+    this.collectAmount = null;
+    this.collectNotes = '';
+    this.caseApi.getCaseBill(c.id).subscribe({
+      next: (res) => {
+        this.billLoading = false;
+        const b = res?.data || null;
+        this.bill.set(b);
+        if (b && b.paymentStatus !== 'paid') {
+          const remaining = Math.max(0, (b.amount || 0) - (b.paidTotal || 0));
+          this.collectAmount = remaining > 0 ? remaining : null;
+        }
+      },
+      error: (err) => {
+        this.billLoading = false;
+        this.billError = String(err?.error?.message || err?.message || 'تعذر تحميل بيانات الحساب');
+      },
+    });
+  }
+
+  closeBill(): void {
+    this.billCase.set(null);
+    this.bill.set(null);
+    this.billError = '';
+  }
+
+  billRemaining(): number {
+    const b = this.bill();
+    if (!b) return 0;
+    return Math.max(0, Math.round(((b.amount || 0) - (b.paidTotal || 0)) * 100) / 100);
+  }
+
+  collectPayment(): void {
+    const b = this.bill();
+    const c = this.billCase();
+    const amount = Number(this.collectAmount);
+    if (!b || !c || !Number.isFinite(amount) || amount <= 0) return;
+    if (!b.doctorName) {
+      this.billError = 'الحالة مفيهاش اسم دكتور، عدّليها الأول';
+      return;
+    }
+    this.collectSaving = true;
+    this.billError = '';
+    const note = [`حالة ${b.caseNumber}`, b.patientName ? `المريض ${b.patientName}` : '', this.collectNotes.trim()]
+      .filter(Boolean)
+      .join(' — ');
+    this.caseApi.collectCasePayment(b, amount, note).subscribe({
+      next: (res) => {
+        this.collectSaving = false;
+        const status = String(res?.data?.casePaymentStatus || '');
+        if (status === 'paid') {
+          c.paymentStatus = 'paid';
+        }
+        this.flash(this.lang.t('bill.collectedToast'));
+        this.openBill(c);
+        this.scheduleBackgroundReload();
+      },
+      error: (err) => {
+        this.collectSaving = false;
+        this.billError = String(err?.error?.message || err?.message || 'تعذر تسجيل التحصيل');
+      },
+    });
+  }
+
+  formatMoney(n: number | null | undefined): string {
+    const v = Number(n) || 0;
+    return v.toLocaleString('en-US', { maximumFractionDigits: 0 });
+  }
+
+  /** ISO timestamp → "24/10/2026 09:50 م" (Cairo time) */
+  formatIsoDate(val: string | null | undefined): string {
+    if (!val) return '—';
+    const d = new Date(val);
+    if (Number.isNaN(d.getTime())) return String(val);
+    const date = d.toLocaleDateString('ar-EG-u-nu-latn', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Africa/Cairo' });
+    const time = d
+      .toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Africa/Cairo' })
+      .replace('AM', 'ص')
+      .replace('PM', 'م');
+    return `${date} ${time}`;
   }
 
   parseArabicDateToYmd(val: string): string {

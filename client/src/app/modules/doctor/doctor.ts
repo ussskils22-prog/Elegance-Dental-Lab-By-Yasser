@@ -39,6 +39,7 @@ import { LabConfigService } from '../../core/services/lab-config.service';
 import { ToothChartComponent } from '../../shared/tooth-chart/tooth-chart';
 import { ToothAssignment, countByMaterial } from '../../shared/tooth-chart/tooth-chart.types';
 import { AppOverflowMenuComponent, type AppMenuItem } from '../../shared/app-overflow-menu/app-overflow-menu';
+import { BrandLockupComponent } from '../../shared/brand-lockup/brand-lockup';
 import { isClientAccountKind, type ClientAccountKind } from '../../core/auth/client-account';
 
 function todayYmd(): string {
@@ -89,6 +90,7 @@ export type DoctorNotif = {
     CaseBarcodeComponent,
     ToothChartComponent,
     AppOverflowMenuComponent,
+    BrandLockupComponent,
     TPipe,
   ],
   templateUrl: './doctor.html',

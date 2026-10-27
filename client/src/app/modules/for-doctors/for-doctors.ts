@@ -4,11 +4,12 @@ import { RouterLink } from '@angular/router';
 import { ThemeService } from '../../core/services/theme.service';
 import { LanguageService } from '../../core/i18n/language.service';
 import { AppOverflowMenuComponent } from '../../shared/app-overflow-menu/app-overflow-menu';
+import { BrandLockupComponent } from '../../shared/brand-lockup/brand-lockup';
 
 @Component({
   selector: 'app-for-doctors',
   standalone: true,
-  imports: [CommonModule, RouterLink, AppOverflowMenuComponent],
+  imports: [CommonModule, RouterLink, AppOverflowMenuComponent, BrandLockupComponent],
   templateUrl: './for-doctors.html',
   styleUrl: './for-doctors.css',
 })

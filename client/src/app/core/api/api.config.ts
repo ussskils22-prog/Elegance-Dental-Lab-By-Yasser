@@ -9,7 +9,7 @@ export const ELEGANCE_RAILWAY_API =
  * Keep this updated in vercel.demo.json rewrites too (see docs/DEMO.md).
  */
 export const DEMO_RAILWAY_API =
-  'https://elegance-demo-api.up.railway.app/api';
+  'https://elegance-demo-api-ussskils22-progs-projects.vercel.app/api';
 
 /** Hostnames that must talk to the demo API (never production Mongo). */
 const DEMO_HOSTS = new Set([

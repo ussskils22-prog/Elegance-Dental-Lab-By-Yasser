@@ -10,11 +10,12 @@ import { TPipe } from '../../core/i18n/t.pipe';
 import { PwaInstallService } from '../../core/services/pwa-install.service';
 import { LabConfigService, LabBranding } from '../../core/services/lab-config.service';
 import { AppOverflowMenuComponent } from '../../shared/app-overflow-menu/app-overflow-menu';
+import { BrandLockupComponent } from '../../shared/brand-lockup/brand-lockup';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, AppOverflowMenuComponent, TPipe],
+  imports: [CommonModule, FormsModule, RouterLink, AppOverflowMenuComponent, BrandLockupComponent, TPipe],
   templateUrl: './login.html',
   styleUrl: './login.css',
 })

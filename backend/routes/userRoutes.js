@@ -38,7 +38,7 @@ router.use(authenticate);
 router.get('/', authorize('admin'), userController.getAllUsers);
 
 // Get users by role
-router.get('/role/:role', userController.getUsersByRole);
+router.get('/role/:role', authorize('admin', 'secretary'), userController.getUsersByRole);
 
 // Convert/create doctor/student/lab by name and retag their cases
 router.post(
@@ -50,7 +50,7 @@ router.post(
 );
 
 // Get user by ID
-router.get('/:id', userController.getUserById);
+router.get('/:id', authorize('admin', 'secretary'), userController.getUserById);
 
 // Reset doctor password (admin or secretary)
 router.patch(

@@ -20,8 +20,7 @@ exports.getAllUsers = async (req, res) => {
     if (status) filter.status = status;
 
     const users = await User.find(filter)
-      .select('+loginPasswordVisible')
-      .select('-password')
+      .select('-password -loginPasswordVisible')
       .sort({ fullName: 1 });
 
     res.status(200).json({
@@ -147,6 +146,10 @@ exports.updateUserStatus = async (req, res) => {
       return res.status(400).json({ message: 'Invalid status' });
     }
 
+    if (req.user.role !== 'admin' && String(req.params.id) !== String(req.user.id)) {
+      return res.status(403).json({ message: 'يمكنك تحديث حالتك فقط' });
+    }
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
       {
@@ -177,15 +180,18 @@ exports.updateUserStatus = async (req, res) => {
 // Delete user (soft delete)
 exports.deleteUser = async (req, res) => {
   try {
-    const user = await User.findByIdAndDelete(req.params.id);
+    const user = await User.findById(req.params.id);
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    user.isActive = false;
+    await user.save();
+
     res.status(200).json({
       success: true,
-      message: 'User deleted successfully',
+      message: 'تم إيقاف الحساب',
     });
   } catch (error) {
     res.status(500).json({

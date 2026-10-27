@@ -13,6 +13,7 @@ import { mapApiCaseToDentalCase } from '../../core/mappers/dental-case-api.mappe
 import { DentalCase } from '../../core/services/shared-cases.service';
 import { PatientLabelPipe } from '../secretary/patient-label.pipe';
 import { AppOverflowMenuComponent } from '../../shared/app-overflow-menu/app-overflow-menu';
+import { BrandLockupComponent } from '../../shared/brand-lockup/brand-lockup';
 
 export type ScanStation = 'reception' | 'design' | 'finishing';
 
@@ -53,7 +54,7 @@ const ROLE_META: Partial<
 @Component({
   selector: 'app-station-scan',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, PatientLabelPipe, AppOverflowMenuComponent, TPipe],
+  imports: [CommonModule, FormsModule, RouterLink, PatientLabelPipe, AppOverflowMenuComponent, BrandLockupComponent, TPipe],
   templateUrl: './station-scan.html',
   styleUrls: ['../secretary/secretary.css', './station-scan.css'],
 })

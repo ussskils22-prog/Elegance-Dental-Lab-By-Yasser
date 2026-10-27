@@ -36,6 +36,14 @@ export class SwUpdateService {
 
     // Immediate check (don't wait for Angular stability — PWA reopen needs this)
     this.safeCheck();
+    void this.nudgeInstalledWorker();
+    window.setTimeout(() => {
+      try {
+        sessionStorage.removeItem('masar_sw_reload');
+      } catch {
+        /* ignore */
+      }
+    }, 15000);
 
     // After first stable, then every 30s while the tab/app is open
     this.appRef.isStable
@@ -54,6 +62,7 @@ export class SwUpdateService {
       ).subscribe(() => {
         if (document.visibilityState === 'hidden') return;
         this.safeCheck();
+        void this.nudgeInstalledWorker();
       });
     }
   }
@@ -70,21 +79,54 @@ export class SwUpdateService {
   private async applyUpdate(auto: boolean): Promise<void> {
     if (this.reloadArmed) return;
     this.applying.set(true);
+    this.updateReady.set(true);
     try {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('controllerchange', () => this.reloadOnce(), {
+          once: true,
+        });
+      }
       await this.updates.activateUpdate();
-      this.reloadArmed = true;
-      // Bust any intermediate caches and force a full navigation reload
-      const url = new URL(window.location.href);
-      url.searchParams.set('_sw', String(Date.now()));
-      window.location.replace(url.toString());
+      window.setTimeout(() => this.reloadOnce(), 1200);
     } catch {
       this.applying.set(false);
       this.updateReady.set(true);
       if (!auto) {
-        // Last resort: unregister SW and clear caches
         await this.hardResetApp();
       }
     }
+  }
+
+  /** Ask the installed worker to look for a deploy, then switch to it. */
+  private async nudgeInstalledWorker(): Promise<void> {
+    if (!('serviceWorker' in navigator)) return;
+    try {
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (!reg) return;
+      await reg.update().catch(() => undefined);
+      const waiting = reg.waiting;
+      if (waiting) {
+        waiting.postMessage({ action: 'ACTIVATE_UPDATE' });
+        this.updateReady.set(true);
+        window.setTimeout(() => this.reloadOnce(), 1500);
+        return;
+      }
+      navigator.serviceWorker.controller?.postMessage({ action: 'CHECK_FOR_UPDATES' });
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private reloadOnce(): void {
+    if (this.reloadArmed) return;
+    try {
+      if (sessionStorage.getItem('masar_sw_reload') === '1') return;
+      sessionStorage.setItem('masar_sw_reload', '1');
+    } catch {
+      /* ignore */
+    }
+    this.reloadArmed = true;
+    window.location.reload();
   }
 
   private async hardResetApp(): Promise<void> {

@@ -222,4 +222,35 @@ export class CaseApiService {
   deleteDoctorPayment(id: string): Observable<any> {
     return this.http.delete(`${this.rootApiUrl}/doctor-payments/${id}`);
   }
+
+  /** Bill summary of one case (reception / admin). */
+  getCaseBill(caseId: string): Observable<{ success: boolean; data: CaseBill }> {
+    return this.http.get<{ success: boolean; data: CaseBill }>(`${this.apiUrl}/${caseId}/bill`);
+  }
+
+  /** Record a cash payment linked to a case (marks it paid when covered + prints receipt). */
+  collectCasePayment(bill: CaseBill, amount: number, notes: string = ''): Observable<any> {
+    return this.http.post(`${this.rootApiUrl}/doctor-payments`, {
+      doctorName: bill.doctorName,
+      amount,
+      notes,
+      entryType: 'payment',
+      caseId: bill.caseId,
+    });
+  }
+}
+
+export interface CaseBill {
+  caseId: string;
+  caseNumber: string;
+  patientName: string;
+  doctorName: string;
+  amount: number;
+  amountSource: 'frozen' | 'manual' | 'live' | 'none';
+  nonBillable: boolean;
+  paymentStatus: 'paid' | 'unpaid';
+  paidAt: string | null;
+  paidTotal: number;
+  currentStage: string;
+  payments: { id: string; amount: number; entryType: string; paymentDate: string | null; notes: string }[];
 }

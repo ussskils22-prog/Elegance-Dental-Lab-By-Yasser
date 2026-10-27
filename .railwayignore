@@ -1,0 +1,10 @@
+**/.env
+**/.env.*
+**/node_modules
+client/dist
+.git
+print-agent
+scan-agent
+uploads
+*.log
+agent-transcripts

@@ -1,0 +1,20 @@
+<div
+  class="masar-lockup"
+  [class.masar-lockup--hero]="layout === 'hero'"
+  [class.masar-lockup--light]="tone === 'light'"
+>
+  <svg class="masar-mark" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+    <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="1.8" />
+    <circle cx="32" cy="32" r="23.5" stroke="#C4A46A" stroke-width="1.2" />
+    <path
+      fill="currentColor"
+      d="M18 45V36c0-4 3-7 6-7 2 0 3 4 4 8 1-6 2.2-10 4-10s3 4 4 10c1-4 2-8 4-8 3 0 6 3 6 7v9H18z"
+    />
+  </svg>
+  <div class="masar-text">
+    <span class="masar-product">MASAR</span>
+    @if (showLab) {
+      <span class="masar-lab">{{ labName }}</span>
+    }
+  </div>
+</div>

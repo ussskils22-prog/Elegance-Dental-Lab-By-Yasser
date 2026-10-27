@@ -6,11 +6,12 @@ import { ThemeService } from '../../core/services/theme.service';
 import { LanguageService } from '../../core/i18n/language.service';
 import { TPipe } from '../../core/i18n/t.pipe';
 import { AppOverflowMenuComponent } from '../../shared/app-overflow-menu/app-overflow-menu';
+import { BrandLockupComponent } from '../../shared/brand-lockup/brand-lockup';
 
 @Component({
   selector: 'app-doctor-request-rep',
   standalone: true,
-  imports: [CommonModule, AppOverflowMenuComponent, TPipe],
+  imports: [CommonModule, AppOverflowMenuComponent, BrandLockupComponent, TPipe],
   templateUrl: './doctor-request-rep.html',
   styleUrls: ['./doctor-request-rep.css'],
 })

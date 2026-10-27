@@ -173,20 +173,19 @@ async function applyToCase(caseId, payload, syncStatus = 'SYNCED', extra = {}) {
       0,
   };
 
+  const requestedBeforeSheet = requestedUnitsFromCase(doc);
   let sheet = null;
   if (syncStatus === 'SYNCED') {
-    // Apply sheet FIRST (uses existing doc.exocad as fallback), then refresh exocad block.
     sheet = applyDesignedSheetToDoc(doc, mergedPayload);
   }
 
   doc.exocad = buildExocadFields(mergedPayload, doc, syncStatus, extra);
   if (syncStatus === 'SYNCED') {
-    const requested = requestedUnitsFromCase(doc);
     const actual =
       Number(mergedPayload.designedUnits) ||
       (mergedPayload.designedTeeth || []).length ||
       0;
-    doc.exocad.unitsDifference = actual - requested;
+    doc.exocad.unitsDifference = actual - requestedBeforeSheet;
     doc.exocad.lastSyncedAt = new Date();
     doc.exocad.lastSyncError = sheet?.applied
       ? ''
@@ -404,33 +403,6 @@ async function syncCaseById(caseId) {
   const doctor = caseDoctorName(doc);
   let hits = recent.filter((ing) => ingestMatchesPatient(ing, patient));
 
-  // Fallback: patient AR↔EN miss (or agent name empty) → try doctor practice match.
-  if (!hits.length) {
-    const byDoctor = [];
-    for (const ing of recent) {
-      const mapped = await resolveInternalDoctorNames(ing.practiceName);
-      if (doctorMatchesPractice(doctor, ing.practiceName, mapped)) {
-        byDoctor.push(ing);
-      }
-    }
-    if (byDoctor.length === 1 && Number(byDoctor[0].designedUnits || 0) > 0) {
-      hits = byDoctor;
-    } else if (byDoctor.length > 1) {
-      const patientAmongDoctor = byDoctor.filter((ing) =>
-        ingestMatchesPatient(ing, patient)
-      );
-      const needed = requestedUnitsFromCase(doc);
-      const qtyHits = patientAmongDoctor.length
-        ? patientAmongDoctor
-        : byDoctor.filter((ing) => Number(ing.designedUnits || 0) === needed && needed > 0);
-      hits = qtyHits.length
-        ? qtyHits
-        : patientAmongDoctor.length
-          ? patientAmongDoctor
-          : byDoctor;
-    }
-  }
-
   if (!hits.length) {
     const sample = recent
       .slice(0, 5)
@@ -461,18 +433,6 @@ async function syncCaseById(caseId) {
 
   if (narrowed.length === 1) {
     return confirmMatch(caseId, narrowed[0].exocadCaseId);
-  }
-
-  // Still several projects for same doctor+patient → pick the richest CAD design
-  // (highest designedUnits), which is what the user expects after expanding teeth.
-  narrowed.sort(
-    (a, b) =>
-      Number(b.designedUnits || 0) - Number(a.designedUnits || 0) ||
-      String(b.lastIngestedAt || '').localeCompare(String(a.lastIngestedAt || ''))
-  );
-  const best = narrowed[0];
-  if (best && Number(best.designedUnits || 0) > 0) {
-    return confirmMatch(caseId, best.exocadCaseId);
   }
 
   doc.set('exocad.syncStatus', 'MULTIPLE_MATCHES');

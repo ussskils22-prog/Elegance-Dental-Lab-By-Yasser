@@ -4,13 +4,10 @@
   "description": "Print Agent for Elegance Dental Lab - receives remote print jobs and prints automatically",
   "main": "agent.js",
   "scripts": {
-    "start": "node agent.js",
-    "install-service": "node install-service.js",
-    "uninstall-service": "node uninstall-service.js"
+    "start": "node agent.js"
   },
   "dependencies": {
     "bwip-js": "^4.11.2",
-    "node-windows": "^1.0.0-beta.8",
     "pdf-to-printer": "^5.2.0",
     "puppeteer": "^21.0.0",
     "qrcode": "^1.5.4",

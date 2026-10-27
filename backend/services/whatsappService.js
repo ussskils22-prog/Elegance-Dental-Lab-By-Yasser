@@ -290,7 +290,7 @@ async function notifyDoctorCaseStatus(dentalCase, kind) {
       return;
     }
     // WhatsApp Web: only notify when case is completed (lower ban risk)
-    if (c.provider === 'waweb' && kind !== 'completed') {
+    if (c.provider === 'waweb' && kind !== 'exited') {
       console.log('[whatsapp] waweb skip non-completed:', kind, dentalCase?.caseNumber);
       return;
     }

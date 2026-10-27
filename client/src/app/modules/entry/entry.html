@@ -7,29 +7,10 @@
   <header class="topbar">
     <div class="topbar-left">
       <app-overflow-menu></app-overflow-menu>
-      <div class="avatar">
-        <div class="elegance-logo-container">
-          <svg viewBox="0 0 100 100" fill="none" class="elegance-logo-svg">
-            <path d="M 32,25 C 20,25 15,45 25,68 C 32,82 46,85 48,72 C 44,64 36,48 40,36 C 44,24 52,28 58,26" stroke="url(#logo-grad-e)" stroke-width="5.5" stroke-linecap="round" />
-            <path d="M 68,25 C 80,25 85,45 75,68 C 68,82 54,85 52,72 C 56,64 64,48 60,36 C 56,24 48,28 42,26" stroke="url(#logo-grad-e)" stroke-width="5.5" stroke-linecap="round" />
-            <defs>
-              <linearGradient id="logo-grad-e" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#2563eb" />
-                <stop offset="100%" stop-color="#0d9488" />
-              </linearGradient>
-            </defs>
-          </svg>
-        </div>
-      </div>
     </div>
 
     <div class="topbar-center">
-      <div class="elegance-navbar-brand">
-        <span class="elegance-navbar-dot"></span>
-        <span class="elegance-navbar-title">Elegance</span>
-        <span class="elegance-navbar-dot"></span>
-      </div>
-      <p class="elegance-navbar-sub">Precision Labs — {{ 'entry.sub' | t }}</p>
+      <app-brand-lockup></app-brand-lockup>
     </div>
 
     <div class="topbar-right">
@@ -465,7 +446,7 @@
               }
 
               @if (!hasWorkTypesWithQuantity) {
-                <p class="wt-error" style="color:#64748b;margin:8px 0 0;">
+                <p class="wt-error" style="color:#71717a;margin:8px 0 0;">
                   {{ 'form.toothChartHint' | t }}
                 </p>
               }

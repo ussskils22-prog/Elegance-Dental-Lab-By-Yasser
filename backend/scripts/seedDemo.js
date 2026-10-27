@@ -8,8 +8,13 @@
  *   DEMO_MODE=true MONGODB_URI="mongodb://..." node scripts/seedDemo.js
  */
 require('dotenv').config();
+const dns = require('dns');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+
+if (process.env.MONGO_USE_PUBLIC_DNS === '1') {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+}
 
 const User = require('../models/User');
 const DentalCase = require('../models/DentalCase');
@@ -19,7 +24,7 @@ const DoctorPricing = require('../models/DoctorPricing');
 
 const DEMO_ADMIN = {
   fullName: 'Admin Demo',
-  email: 'demo-admin@unishop.local',
+  email: 'demo-admin@elegance-demo.com',
   password: 'Demo@UniShop2026',
   phone: '01000000000',
   role: 'admin',
@@ -65,6 +70,11 @@ async function createUser(data) {
   });
 }
 
+function mongoDbName(uri) {
+  const match = String(uri).match(/^mongodb(?:\+srv)?:\/\/(?:[^@/]+@)?[^/?]+\/([^?]*)/i);
+  return decodeURIComponent((match && match[1]) || '').trim();
+}
+
 async function seed() {
   if (String(process.env.DEMO_MODE || '').toLowerCase() !== 'true') {
     console.error('REFUSED: Set DEMO_MODE=true to run seedDemo.js (protects production DBs).');
@@ -77,6 +87,13 @@ async function seed() {
     process.exit(1);
   }
 
+  const dbName = mongoDbName(uri);
+  const blocked = new Set(['dental-system', 'admin', 'production', 'test', '']);
+  if (blocked.has(dbName) || !dbName.includes('demo')) {
+    console.error('REFUSED: demo seed only runs against a database whose name contains "demo". Got:', dbName || '(default)');
+    process.exit(1);
+  }
+
   await mongoose.connect(uri);
   console.log('Connected:', mongoose.connection.host, '/', mongoose.connection.name);
   console.log('Wiping demo collections...');
@@ -85,7 +102,7 @@ async function seed() {
   const admin = await createUser(DEMO_ADMIN);
   const secretary = await createUser({
     fullName: 'سكرتارية ديمو',
-    email: 'demo-secretary@unishop.local',
+    email: 'demo-secretary@elegance-demo.com',
     password: 'Demo@123456',
     phone: '01000000002',
     role: 'secretary',
@@ -93,7 +110,7 @@ async function seed() {
   });
   const designer = await createUser({
     fullName: 'ديزاينر ديمو',
-    email: 'demo-designer@unishop.local',
+    email: 'demo-designer@elegance-demo.com',
     password: 'Demo@123456',
     phone: '01000000003',
     role: 'designer',
@@ -101,7 +118,7 @@ async function seed() {
   });
   const finisher = await createUser({
     fullName: 'فينيشر ديمو',
-    email: 'demo-finisher@unishop.local',
+    email: 'demo-finisher@elegance-demo.com',
     password: 'Demo@123456',
     phone: '01000000004',
     role: 'finisher',
@@ -110,9 +127,9 @@ async function seed() {
 
   const doctors = [];
   const doctorDefs = [
-    { fullName: 'د. أحمد التجريبي', email: 'demo-doctor1@unishop.local', pin: '1234' },
-    { fullName: 'د. سارة النموذج', email: 'demo-doctor2@unishop.local', pin: '1234' },
-    { fullName: 'د. كريم العرض', email: 'demo-doctor3@unishop.local', pin: '5678' },
+    { fullName: 'د. أحمد التجريبي', email: 'demo-doctor1@elegance-demo.com', pin: '1234' },
+    { fullName: 'د. سارة النموذج', email: 'demo-doctor2@elegance-demo.com', pin: '1234' },
+    { fullName: 'د. كريم العرض', email: 'demo-doctor3@elegance-demo.com', pin: '5678' },
   ];
   for (const d of doctorDefs) {
     doctors.push(
@@ -128,7 +145,7 @@ async function seed() {
 
   await createUser({
     fullName: 'طالب ديمو',
-    email: 'demo-student@unishop.local',
+    email: 'demo-student@elegance-demo.com',
     password: 'Demo@123456',
     phone: '01033334444',
     role: 'student',
@@ -262,7 +279,7 @@ async function seed() {
 
     const c = new DentalCase({
       patientName: spec.patientName,
-      patientEmail: 'patient.demo@unishop.local',
+      patientEmail: 'patient.demo@elegance-demo.com',
       patientPhone: '01099998888',
       requesterType: 'doctor',
       referringDoctor: spec.doctor.fullName,
@@ -312,9 +329,9 @@ async function seed() {
   console.log(`  ${DEMO_ADMIN.email}`);
   console.log(`  ${DEMO_ADMIN.password}`);
   console.log('Staff (password Demo@123456):');
-  console.log('  demo-secretary@unishop.local');
-  console.log('  demo-designer@unishop.local');
-  console.log('  demo-finisher@unishop.local');
+  console.log('  demo-secretary@elegance-demo.com');
+  console.log('  demo-designer@elegance-demo.com');
+  console.log('  demo-finisher@elegance-demo.com');
   console.log('Doctors (password Demo@123456, PIN 1234/5678):');
   for (const d of doctorDefs) console.log(`  ${d.email}  pin=${d.pin}`);
   console.log(`Users: admin=${admin.email}, secretary=${secretary.email}, designer=${designer.email}, finisher=${finisher.email}`);
@@ -324,7 +341,8 @@ async function seed() {
 }
 
 seed().catch(async (err) => {
-  console.error('seedDemo failed:', err);
+  const text = String(err && err.stack ? err.stack : err).replace(/mongodb(?:\+srv)?:\/\/[^@\s]+@/gi, 'mongodb://***@');
+  console.error('seedDemo failed:', text);
   try {
     await mongoose.disconnect();
   } catch (_) {}

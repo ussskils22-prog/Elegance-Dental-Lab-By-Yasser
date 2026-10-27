@@ -18,7 +18,7 @@
 
 .label-optional {
   font-weight: 500;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary, #71717a);
   font-size: 0.85em;
 }
 
@@ -44,7 +44,7 @@
 .doctor-case-card:hover,
 .doctor-case-card:focus-visible {
   /* Avoid transform here — it traps position:fixed overlays (barcode modal) inside the card */
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 8px 24px rgba(10, 10, 11, 0.08);
   outline: none;
 }
 
@@ -66,7 +66,7 @@
   border: none;
   border-radius: 12px;
   background: var(--bg-secondary);
-  color: var(--muted, #64748b);
+  color: var(--muted, #71717a);
   padding: 0;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
@@ -136,7 +136,7 @@
   justify-content: center;
   border: none;
   background: transparent;
-  color: #94a3b8;
+  color: #a1a1aa;
   padding: 2px;
   cursor: pointer;
   border-radius: 6px;
@@ -194,7 +194,7 @@
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary, #0f172a);
+  color: var(--text-primary, #0a0a0b);
   cursor: pointer;
 }
 
@@ -217,7 +217,7 @@
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  color: var(--text-primary, #0f172a);
+  color: var(--text-primary, #0a0a0b);
   cursor: pointer;
   user-select: none;
 }
@@ -234,10 +234,10 @@
   height: auto;
   min-height: 44px;
   padding: 0.4rem 0.5rem;
-  border: 1px dashed var(--border, #cbd5e1);
+  border: 1px dashed var(--border, #d4d4d8);
   border-radius: 12px;
-  background: var(--bg-secondary, #f8fafc);
-  color: var(--text-secondary, #475569);
+  background: var(--bg-secondary, #fafafa);
+  color: var(--text-secondary, #3a3a40);
   cursor: pointer;
   width: 100%;
   box-sizing: border-box;
@@ -246,7 +246,7 @@
 .ply-picked {
   font-size: 0.8rem;
   font-weight: 500;
-  color: var(--muted, #64748b);
+  color: var(--muted, #71717a);
   margin: 0.25rem 0 0;
 }
 
@@ -330,19 +330,19 @@
   gap: 16px;
   align-items: flex-start;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-color, #e2e8f0);
+  border-bottom: 1px solid var(--border-color, #e4e4e7);
   font-size: 14px;
 }
 
 .detail-row span {
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary, #71717a);
   flex-shrink: 0;
 }
 
 .detail-row strong {
   text-align: left;
   font-weight: 600;
-  color: var(--text-primary, #0f172a);
+  color: var(--text-primary, #0a0a0b);
   word-break: break-word;
 }
 
@@ -364,7 +364,7 @@
 .notif-time {
   display: block;
   font-size: 11px;
-  color: var(--text-secondary, #94a3b8);
+  color: var(--text-secondary, #a1a1aa);
   margin-top: 2px;
 }
 
@@ -448,7 +448,7 @@
   position: fixed;
   inset: 0;
   z-index: 400;
-  background: rgba(15, 23, 42, 0.55);
+  background: rgba(10, 10, 11, 0.55);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -459,7 +459,7 @@
   width: 100%;
   max-width: 420px;
   background: var(--bg-card, #fff);
-  color: var(--text, #0f172a);
+  color: var(--text, #0a0a0b);
   border-radius: 18px 18px 14px 14px;
   padding: 20px 18px 16px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
@@ -474,7 +474,7 @@
 .ios-install-note {
   margin: 0 0 14px;
   font-size: 0.9rem;
-  color: var(--muted, #475569);
+  color: var(--muted, #3a3a40);
   line-height: 1.5;
 }
 
@@ -531,8 +531,8 @@
   padding: 6px;
   border-radius: 14px;
   background: var(--bg-card, #fff);
-  border: 1px solid var(--border-color, #e2e8f0);
-  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16);
+  border: 1px solid var(--border-color, #e4e4e7);
+  box-shadow: 0 16px 40px rgba(10, 10, 11, 0.16);
   z-index: 40;
   animation: doctor-menu-in 0.16s ease-out;
 }
@@ -559,7 +559,7 @@
   font: inherit;
   font-size: 0.92rem;
   font-weight: 700;
-  color: var(--text-primary, #0f172a);
+  color: var(--text-primary, #0a0a0b);
   cursor: pointer;
 }
 
@@ -576,14 +576,14 @@
 
 :host-context(body.dark-theme) .doctor-portal-menu,
 .dark-theme .doctor-portal-menu {
-  background: var(--bg-card, #0f172a);
-  border-color: rgba(148, 163, 184, 0.22);
+  background: var(--bg-card, #0a0a0b);
+  border-color: rgba(161, 161, 170, 0.22);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
 }
 
 :host-context(body.dark-theme) .doctor-portal-menu-item,
 .dark-theme .doctor-portal-menu-item {
-  color: var(--text-primary, #f8fafc);
+  color: var(--text-primary, #fafafa);
 }
 
 :host-context(body.dark-theme) .doctor-portal-menu-item:hover,

@@ -15,8 +15,8 @@
   gap: 8px;
   flex-wrap: wrap;
   padding: 10px 16px;
-  border-bottom: 1px solid var(--border-primary, #e2e8f0);
-  background: color-mix(in srgb, var(--bg-secondary, #f1f5f9) 70%, transparent);
+  border-bottom: 1px solid var(--border-primary, #e4e4e7);
+  background: color-mix(in srgb, var(--bg-secondary, #f4f4f5) 70%, transparent);
 }
 
 .hub-back-admin {
@@ -55,17 +55,17 @@
   font-weight: 700;
   padding: 6px 10px;
   border-radius: 999px;
-  border: 1px solid var(--border-primary, #e2e8f0);
+  border: 1px solid var(--border-primary, #e4e4e7);
   white-space: nowrap;
-  color: var(--muted, #64748b);
-  background: color-mix(in srgb, var(--bg-secondary, #f1f5f9) 80%, transparent);
+  color: var(--muted, #71717a);
+  background: color-mix(in srgb, var(--bg-secondary, #f4f4f5) 80%, transparent);
 }
 
 .print-agent-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #94a3b8;
+  background: #a1a1aa;
   flex-shrink: 0;
 }
 
@@ -164,12 +164,12 @@ body.dark-theme .hub-back-admin:hover,
 
 .hub-link {
   text-decoration: none;
-  color: var(--text-primary, #0f172a);
+  color: var(--text-primary, #0a0a0b);
   font-weight: 700;
   font-size: 14px;
   padding: 8px 16px;
   border-radius: 999px;
-  border: 1px solid var(--border-primary, #e2e8f0);
+  border: 1px solid var(--border-primary, #e4e4e7);
   background: var(--bg-card, #fff);
 }
 
@@ -182,15 +182,15 @@ body.dark-theme .hub-back-admin:hover,
 
 body.dark-theme .reception-hub,
 .dark-theme .reception-hub {
-  border-bottom-color: var(--border-primary, #334155);
-  background: color-mix(in srgb, var(--bg-secondary, #1e293b) 80%, transparent);
+  border-bottom-color: var(--border-primary, #2a2a2e);
+  background: color-mix(in srgb, var(--bg-secondary, #161618) 80%, transparent);
 }
 
 body.dark-theme .hub-link,
 .dark-theme .hub-link {
-  background: var(--bg-secondary, #1e293b);
-  border-color: var(--border-primary, #334155);
-  color: var(--text-primary, #f8fafc);
+  background: var(--bg-secondary, #161618);
+  border-color: var(--border-primary, #2a2a2e);
+  color: var(--text-primary, #fafafa);
 }
 
 body.dark-theme .hub-link.active,
@@ -237,7 +237,7 @@ body.dark-theme .hub-link:hover,
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  background: linear-gradient(135deg, #2563eb, #0d9488);
+  background: linear-gradient(135deg, #0f766e, #0d9488);
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -290,9 +290,9 @@ body.dark-theme .hub-link:hover,
 }
 body.dark-theme .case-card,
 .dark-theme .case-card {
-  background: #1e293b !important;
-  border-color: #334155 !important;
-  color: #f8fafc;
+  background: #161618 !important;
+  border-color: #2a2a2e !important;
+  color: #fafafa;
 }
 .case-card:hover {
   box-shadow: 0 4px 18px rgba(0,0,0,.1);
@@ -321,7 +321,7 @@ body.dark-theme .case-card,
 .case-id {
   font-size: 13px;
   font-weight: 700;
-  color: var(--primary, #2563eb);
+  color: var(--primary, #0f766e);
   font-feature-settings: "tnum";
 }
 
@@ -336,7 +336,7 @@ body.dark-theme .case-card,
 
 /* status colors */
 .status-pending  { background: #fef3c7; color: #92400e; }
-.status-printing { background: #dbeafe; color: #1e40af; }
+.status-printing { background: #ccfbf1; color: #1e40af; }
 .status-done     { background: #d1fae5; color: #065f46; }
 .status-awaiting { background: #fef3c7; color: #92400e; }
 .status-failed   { background: #fee2e2; color: #991b1b; }
@@ -346,16 +346,16 @@ body.dark-theme .case-card,
 .doctor {
   font-size: 17px;
   font-weight: 700;
-  color: var(--text-primary, #0f172a);
+  color: var(--text-primary, #0a0a0b);
 }
 body.dark-theme .doctor,
 .dark-theme .doctor {
-  color: #f8fafc;
+  color: #fafafa;
 }
 .patient {
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-muted, #64748b);
+  color: var(--text-muted, #71717a);
   margin-top: 2px;
 }
 
@@ -365,7 +365,7 @@ body.dark-theme .doctor,
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 20px;
-  background: #dbeafe;
+  background: #ccfbf1;
   color: #1e40af;
   width: fit-content;
 }
@@ -407,7 +407,7 @@ body.dark-theme .doctor,
 .action-btn:hover { opacity: 0.85; transform: translateY(-1px); }
 
 .action-btn--reprint {
-  background: linear-gradient(135deg, #2563eb, #0d9488);
+  background: linear-gradient(135deg, #0f766e, #0d9488);
   color: #fff;
 }
 
@@ -430,7 +430,7 @@ body.dark-theme .doctor,
   align-items: center;
   gap: 10px;
   background: var(--bg-card, #ffffff);
-  border: 1px solid var(--border-primary, #e2e8f0);
+  border: 1px solid var(--border-primary, #e4e4e7);
   border-radius: 12px;
   padding: 10px 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -438,16 +438,16 @@ body.dark-theme .doctor,
 }
 body.dark-theme .search-box,
 .dark-theme .search-box {
-  background: #1e293b;
-  border-color: #334155;
-  color: #f8fafc;
+  background: #161618;
+  border-color: #2a2a2e;
+  color: #fafafa;
 }
 .search-box:focus-within {
-  border-color: var(--primary, #2563eb);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  border-color: var(--primary, #0f766e);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.15);
 }
 .search-box svg {
-  color: #64748b;
+  color: #71717a;
   flex-shrink: 0;
 }
 .search-box input {
@@ -460,12 +460,12 @@ body.dark-theme .search-box,
   font-family: inherit;
 }
 .search-box input::placeholder {
-  color: #94a3b8;
+  color: #a1a1aa;
 }
 .clear-search-btn {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: #a1a1aa;
   cursor: pointer;
   font-size: 14px;
   padding: 2px 6px;
@@ -557,14 +557,14 @@ body.dark-theme .spec-branch,
   padding: 12px 14px;
   border-radius: 12px;
   background: var(--bg-card, #ffffff);
-  border: 1px solid var(--border-primary, #e2e8f0);
+  border: 1px solid var(--border-primary, #e4e4e7);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
   transition: transform 0.15s, border-color 0.2s;
 }
 body.dark-theme .stat-pill,
 .dark-theme .stat-pill {
-  background: #1e293b;
-  border-color: #334155;
+  background: #161618;
+  border-color: #2a2a2e;
 }
 .stat-pill:hover {
   transform: translateY(-2px);
@@ -579,11 +579,11 @@ body.dark-theme .stat-pill,
 .stat-text {
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-muted, #64748b);
+  color: var(--text-muted, #71717a);
   margin-top: 4px;
 }
 
-.stat-total .stat-num { color: #2563eb; }
+.stat-total .stat-num { color: #0f766e; }
 .stat-done .stat-num { color: #10b981; }
 .stat-awaiting .stat-num { color: #d97706; }
 .stat-pending .stat-num { color: #f59e0b; }
@@ -615,7 +615,7 @@ body.dark-theme .stat-pill,
   left: 0;
   right: 0;
   background: var(--bg-card, #fff);
-  border: 1px solid var(--border, #e2e8f0);
+  border: 1px solid var(--border, #e4e4e7);
   border-radius: 12px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
   z-index: 1000;
@@ -630,7 +630,7 @@ body.dark-theme .stat-pill,
   padding: 0.65rem 0.85rem;
   font-size: 0.85rem;
   font-weight: 500;
-  color: var(--text, #0f172a);
+  color: var(--text, #0a0a0b);
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
   text-align: right;
@@ -638,7 +638,7 @@ body.dark-theme .stat-pill,
 
 .autocomplete-dropdown li:hover,
 .autocomplete-dropdown li.active {
-  background: var(--primary, #2563eb);
+  background: var(--primary, #0f766e);
   color: #ffffff;
 }
 
@@ -655,7 +655,7 @@ body.dark-theme .stat-pill,
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  color: var(--text, #0f172a);
+  color: var(--text, #0a0a0b);
   cursor: pointer;
   user-select: none;
 }
@@ -664,7 +664,7 @@ body.dark-theme .stat-pill,
   width: 18px;
   height: 18px;
   margin: 0;
-  accent-color: #2563eb;
+  accent-color: #0f766e;
   cursor: pointer;
 }
 
@@ -679,17 +679,17 @@ body.dark-theme .stat-pill,
   height: auto;
   min-height: 44px;
   padding: 0.4rem 0.5rem;
-  border: 1px dashed #cbd5e1;
+  border: 1px dashed #d4d4d8;
   border-radius: 12px;
-  background: #f8fafc;
-  color: #475569;
+  background: #fafafa;
+  color: #3a3a40;
   cursor: pointer;
 }
 
 .ply-picked {
   font-size: 0.8rem;
   font-weight: 500;
-  color: var(--muted, #64748b);
+  color: var(--muted, #71717a);
   margin: 0.25rem 0 0;
 }
 
@@ -699,7 +699,7 @@ body.dark-theme .stat-pill,
   background: none;
   font: inherit;
   font-weight: 700;
-  color: #2563eb;
+  color: #0f766e;
   cursor: pointer;
   text-decoration: underline;
 }

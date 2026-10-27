@@ -38,6 +38,8 @@ export interface DentalCase {
   patientEmail?: string;
   patientPhone?: string;
   salaryAmount?: number;
+  /** حالة الدفع من السيرفر (paid / unpaid) */
+  paymentStatus?: 'paid' | 'unpaid';
   finishingNotes?: string;
   /** مسار ملف المسح .ply (رابط كامل للعرض/التحميل) */
   plyScanUrl?: string;

@@ -57,6 +57,8 @@ const setupSocket = (server) => {
       if (agentSecret) {
         if (agentSecret === process.env.PRINT_AGENT_SECRET) {
           socket.isPrintAgent = true;
+          // Capabilities declared by the agent ("sheet,receipt"). Old agents send none → sheets only.
+          socket.agentCaps = parseCaps(socket.handshake.auth.caps);
           return next();
         }
         return next(new Error('Invalid agent secret'));
@@ -84,7 +86,13 @@ const setupSocket = (server) => {
     // ── Print Agent connection ──────────────────────────
     if (socket.isPrintAgent) {
       socket.join('print-agents');
-      printAgentConnections.set(socket.id, { connectedAt: new Date() });
+      printAgentConnections.set(socket.id, { connectedAt: new Date(), caps: socket.agentCaps || [] });
+
+      // Agent tells us when its receipt printer appears/disappears
+      socket.on('print:agent-caps', (data) => {
+        const row = printAgentConnections.get(socket.id);
+        if (row) row.caps = parseCaps(data && data.caps);
+      });
       console.log(
         `🖨️  Print Agent connected (${printAgentConnections.size} online) — joined print-agents room`
       );
@@ -95,8 +103,11 @@ const setupSocket = (server) => {
         try {
           const PrintJob = require('../models/PrintJob');
           const staleBefore = new Date(Date.now() - 5 * 60 * 1000);
+          const canReceipt = (socket.agentCaps || []).includes('receipt');
           const pendingJobs = await PrintJob.find({
             paperConfirmed: { $ne: 'yes' },
+            // Receipts only to agents with a receipt printer — never on the sheet printer
+            ...(canReceipt ? {} : { 'printData.jobKind': { $ne: 'receipt' } }),
             $or: [
               { status: { $in: ['pending', 'failed'] } },
               { status: 'printing', claimedAt: { $lt: staleBefore } },
@@ -174,73 +185,8 @@ const setupSocket = (server) => {
       status: 'online',
     });
 
-    // ════════════════════════════════════════════════
-    // CASE EVENTS
-    // ════════════════════════════════════════════════
-
-    // Case created
-    socket.on('case:created', (data) => {
-      io.emit('case:created', {
-        caseId: data.caseId,
-        caseNumber: data.caseNumber,
-        patientName: data.patientName,
-        createdBy: data.createdBy,
-        timestamp: new Date(),
-      });
-    });
-
-    // Case assigned
-    socket.on('case:assigned', (data) => {
-      io.emit('case:assigned', {
-        caseId: data.caseId,
-        caseNumber: data.caseNumber,
-        assignedTo: data.assignedTo,
-        assignedToName: data.assignedToName,
-        timestamp: new Date(),
-      });
-    });
-
-    // Case reassigned
-    socket.on('case:reassigned', (data) => {
-      io.emit('case:reassigned', {
-        caseId: data.caseId,
-        caseNumber: data.caseNumber,
-        oldAssignee: data.oldAssignee,
-        newAssignee: data.newAssignee,
-        timestamp: new Date(),
-      });
-    });
-
-    // Case moved to stage
-    socket.on('case:moved-stage', (data) => {
-      io.emit('case:moved-stage', {
-        caseId: data.caseId,
-        caseNumber: data.caseNumber,
-        oldStage: data.oldStage,
-        newStage: data.newStage,
-        timestamp: new Date(),
-      });
-    });
-
-    // Case completed
-    socket.on('case:completed', (data) => {
-      io.emit('case:completed', {
-        caseId: data.caseId,
-        caseNumber: data.caseNumber,
-        completedBy: data.completedBy,
-        timestamp: new Date(),
-      });
-    });
-
-    // Case released
-    socket.on('case:released', (data) => {
-      io.emit('case:released', {
-        caseId: data.caseId,
-        caseNumber: data.caseNumber,
-        releasedBy: data.releasedBy,
-        timestamp: new Date(),
-      });
-    });
+    // Case events are emitted by the API after the database write.
+    // Clients must not rebroadcast them — that made every screen reload on a fake move.
 
     // ════════════════════════════════════════════════
     // USER EVENTS
@@ -265,24 +211,6 @@ const setupSocket = (server) => {
         });
       } catch (error) {
         console.error('Error updating user status:', error);
-      }
-    });
-
-    // ════════════════════════════════════════════════
-    // NOTIFICATION EVENTS
-    // ════════════════════════════════════════════════
-
-    // Send notification
-    socket.on('notification:send', (data) => {
-      if (data.targetAudience === 'all') {
-        io.emit('notification:new', data);
-      } else if (Array.isArray(data.targetUsers)) {
-        data.targetUsers.forEach((userId) => {
-          const targetSocket = userConnections.get(userId);
-          if (targetSocket) {
-            io.to(targetSocket).emit('notification:new', data);
-          }
-        });
       }
     });
 
@@ -330,12 +258,25 @@ const emitToAll = (event, data) => {
   }
 };
 
-/** Send a print job to exactly one agent (newest connection) — prevents double sheets */
+function parseCaps(raw) {
+  return String(raw || '')
+    .toLowerCase()
+    .split(/[,\s]+/)
+    .filter(Boolean);
+}
+
+/**
+ * Send a print job to exactly one agent (newest connection) — prevents double sheets.
+ * Receipt jobs go only to an agent that declared a receipt printer; if none is online the
+ * job stays pending and the capable agent picks it up on its next poll.
+ */
 const emitToOnePrintAgent = (event, data) => {
   if (!io) return;
+  const isReceipt = String(data?.printData?.jobKind || '') === 'receipt';
   let targetId = null;
   let newest = null;
   for (const [sid, row] of printAgentConnections.entries()) {
+    if (isReceipt && !(row.caps || []).includes('receipt')) continue;
     if (!newest || (row.connectedAt && row.connectedAt > newest)) {
       newest = row.connectedAt;
       targetId = sid;
@@ -343,6 +284,10 @@ const emitToOnePrintAgent = (event, data) => {
   }
   if (targetId) {
     io.to(targetId).emit(event, data);
+    return;
+  }
+  if (isReceipt) {
+    console.log('🧾 Receipt job queued — no agent with a receipt printer is online right now');
     return;
   }
   // Fallback if map empty but room has members

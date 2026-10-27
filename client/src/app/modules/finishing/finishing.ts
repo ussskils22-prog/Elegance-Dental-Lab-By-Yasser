@@ -13,12 +13,13 @@ import { LanguageService } from '../../core/i18n/language.service';
 import { TPipe } from '../../core/i18n/t.pipe';
 import { CaseBarcodeComponent } from '../../shared/case-barcode/case-barcode';
 import { AppOverflowMenuComponent } from '../../shared/app-overflow-menu/app-overflow-menu';
+import { BrandLockupComponent } from '../../shared/brand-lockup/brand-lockup';
 import { formatCaseWorkflowError } from '../../core/utils/api-error';
 
 @Component({
   selector: 'app-finishing',
   standalone: true,
-  imports: [CommonModule, FormsModule, CaseBarcodeComponent, AppOverflowMenuComponent, TPipe],
+  imports: [CommonModule, FormsModule, CaseBarcodeComponent, AppOverflowMenuComponent, BrandLockupComponent, TPipe],
   templateUrl: './finishing.html',
   styleUrl: './finishing.css',
 })

@@ -4,7 +4,7 @@
 
 ## التشغيل الدائم في الخلفية (موصى به) — من غير فتح نافذة
 
-طابعات **USB** (مثل HP P1102) **ما بتطبعش** من خدمة `LocalSystem`. الحل: Task Scheduler بحساب المستخدم، يشتغل **مخفي** عند الـ login.
+طابعات **USB** (مثل HP P1102) تحتاج Task Scheduler بحساب المستخدم، يشتغل **مخفي** عند الـ login.
 
 مرة واحدة: كليك يمين على **`install-background.bat`** → **Run as administrator**.
 
@@ -18,8 +18,6 @@
 - `PRINT_AGENT_SECRET` = نفس env السيرفر
 - `PRINTER_NAME` = `HP LaserJet Professional P1102`
 
-> **متستخدمش** `install-as-service.bat` — ده LocalSystem وبيكسر طباعة الـ USB.
-
 ## تشغيل يدوي (اختبار فقط)
 
 ```bat
@@ -27,10 +25,10 @@ cd print-agent
 node agent.js
 ```
 
-## تحديث الشيت / الـ agent
+## تحديث الـ agent على جهاز الطباعة
 
 1. انسخ `agent.js` (وأي ملفات تانية اتغيرت) مكان القديم.
-2. أعد تشغيل الخدمة من `services.msc` (Restart) — أو لو شغال يدوي: أوقف وأعد `node agent.js`.
+2. أعد تشغيل المهمة: Task Scheduler → `ElegancePrintAgent` → End ثم Run — أو شغّل `install-background.bat` تاني كـ Admin.
 3. اطبع ريكويست جديد للتأكد.
 
 **مهم:** Vercel وحده مش بيحدّث الـ agent على جهاز الطباعة.

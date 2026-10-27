@@ -3,5 +3,7 @@
   "EMAIL": "scan1@dental.com",
   "PASSWORD": "change-me",
   "LABEL": "سكان 1 — منتهية",
-  "TARGET": "completed"
+  "TARGET": "completed",
+  "BACKGROUND_SCAN": true,
+  "HIDE_CONSOLE": true
 }

@@ -27,7 +27,8 @@ exports.getNotifications = async (req, res) => {
     const total = await Notification.countDocuments(filter);
     const unreadCount = await Notification.countDocuments({
       ...filter,
-      read: false,
+      read: { $ne: true },
+      readBy: { $nin: [req.user.id] },
     });
 
     res.status(200).json({
@@ -57,7 +58,7 @@ exports.markAsRead = async (req, res) => {
 
     const notification = await Notification.findByIdAndUpdate(
       notificationId,
-      { read: true },
+      { $addToSet: { readBy: req.user.id } },
       { new: true }
     );
 
@@ -88,10 +89,11 @@ exports.markAllAsRead = async (req, res) => {
         { targetUsers: req.user.id },
         { relatedUser: req.user.id },
       ],
-      read: false,
+      read: { $ne: true },
+      readBy: { $nin: [req.user.id] },
     };
 
-    await Notification.updateMany(filter, { read: true });
+    await Notification.updateMany(filter, { $addToSet: { readBy: req.user.id } });
 
     res.status(200).json({
       success: true,
@@ -142,7 +144,11 @@ exports.getUnreadCount = async (req, res) => {
       read: false,
     };
 
-    const unreadCount = await Notification.countDocuments(filter);
+    const unreadCount = await Notification.countDocuments({
+      ...filter,
+      read: { $ne: true },
+      readBy: { $nin: [req.user.id] },
+    });
 
     res.status(200).json({
       success: true,

@@ -1,1 +1,17 @@
 .vercel
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.log
+agent.lock
+print-agent/daemon/
+backend/uploads/
+.DS_Store
+Thumbs.db
+*.tmp
+.idea/
+.vscode/
+
+.vercel

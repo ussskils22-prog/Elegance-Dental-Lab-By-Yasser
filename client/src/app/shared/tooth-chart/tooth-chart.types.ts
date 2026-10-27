@@ -61,13 +61,13 @@ export const MATERIAL_COLORS: Record<string, string> = {
   'German Zircon': '#f59e0b',
   Emax: '#0ea5e9',
   Peek: '#a855f7',
-  Titanium: '#64748b',
+  Titanium: '#71717a',
   'Pmma Cad': '#14b8a6',
   'Try in': '#06b6d4',
   Mokup: '#ec4899',
   Mockup: '#ec4899',
   'Night Guard': '#8b5cf6',
-  Wax: '#94a3b8',
+  Wax: '#a1a1aa',
   Ring: '#78716c',
 };
 

@@ -1,0 +1,7 @@
+node_modules
+uploads
+.env
+.env.*
+*.log
+print-agent/daemon
+scan-agent/daemon

@@ -23,6 +23,7 @@ import { TPipe } from '../../core/i18n/t.pipe';
 import { environment } from '../../../environments/environment';
 import { ToothChartComponent } from '../../shared/tooth-chart/tooth-chart';
 import { AppOverflowMenuComponent } from '../../shared/app-overflow-menu/app-overflow-menu';
+import { BrandLockupComponent } from '../../shared/brand-lockup/brand-lockup';
 import { ToothAssignment, countByMaterial } from '../../shared/tooth-chart/tooth-chart.types';
 
 function todayYmd(): string {
@@ -72,7 +73,7 @@ export interface PrintJobCard {
 @Component({
   selector: 'app-entry',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ToothChartComponent, AppOverflowMenuComponent, TPipe],
+  imports: [CommonModule, FormsModule, RouterLink, ToothChartComponent, AppOverflowMenuComponent, BrandLockupComponent, TPipe],
   templateUrl: './entry.html',
   styleUrl: './entry.css',
 })

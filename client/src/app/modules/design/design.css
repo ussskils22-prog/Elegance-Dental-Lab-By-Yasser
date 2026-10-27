@@ -285,7 +285,7 @@
 .filter-under-khart.active { background: #0ea5a4; border-color: #0ea5a4; }
 .filter-revision.active  { background: var(--red);    border-color: var(--red); }
 .filter-ready.active     { background: #059669;       border-color: #059669; }
-.filter-finished.active  { background: #475569;       border-color: #475569; }
+.filter-finished.active  { background: #3a3a40;       border-color: #3a3a40; }
 
 .tab-count {
   background: rgba(255,255,255,.25);
@@ -1450,7 +1450,7 @@
 .ply-scan-name {
   margin: 0 0 12px;
   font-size: 13px;
-  color: var(--text-muted, #64748b);
+  color: var(--text-muted, #71717a);
   word-break: break-all;
 }
 
@@ -1498,7 +1498,7 @@
 .ply-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.85);
+  background: rgba(10, 10, 11, 0.85);
   backdrop-filter: blur(10px);
   z-index: 1001;
   display: flex;
@@ -1534,8 +1534,8 @@
   height: 36px;
   border-radius: 50%;
   border: none;
-  background: #f1f5f9;
-  color: #334155;
+  background: #f4f4f5;
+  color: #2a2a2e;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1543,27 +1543,27 @@
 }
 
 .ply-modal-close:hover {
-  background: #e2e8f0;
+  background: #e4e4e7;
 }
 
 .ply-modal-title {
   margin: 8px 40px 4px 0;
   font-size: 1.1rem;
   font-weight: 800;
-  color: var(--text-primary, #0f172a);
+  color: var(--text-primary, #0a0a0b);
 }
 
 .ply-modal-filename {
   margin: 0 40px 6px 0;
   font-size: 12px;
-  color: #64748b;
+  color: #71717a;
   word-break: break-all;
 }
 
 .ply-modal-hint {
   margin: 0 0 12px;
   font-size: 11px;
-  color: #94a3b8;
+  color: #a1a1aa;
 }
 
 .ply-modal-loading,
@@ -1575,8 +1575,8 @@
 }
 
 .ply-modal-loading {
-  background: #f8fafc;
-  color: #475569;
+  background: #fafafa;
+  color: #3a3a40;
 }
 
 .ply-modal-error {
@@ -1588,7 +1588,7 @@
   min-height: min(52vh, 520px);
   border-radius: 12px;
   overflow: hidden;
-  background: #0f172a;
+  background: #0a0a0b;
 }
 
 .ply-view-host canvas {

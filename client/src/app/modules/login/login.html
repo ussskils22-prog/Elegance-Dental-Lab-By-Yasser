@@ -92,19 +92,7 @@
       <section class="form-panel">
         <header class="form-header">
           <div class="brand">
-            <span class="brand-icon" aria-hidden="true">
-              <svg viewBox="0 0 100 100" fill="none" class="elegance-logo-svg">
-                <path d="M 32,25 C 20,25 15,45 25,68 C 32,82 46,85 48,72 C 44,64 36,48 40,36 C 44,24 52,28 58,26" stroke="url(#login-logo-grad)" stroke-width="5.5" stroke-linecap="round" />
-                <path d="M 68,25 C 80,25 85,45 75,68 C 68,82 54,85 52,72 C 56,64 64,48 60,36 C 56,24 48,28 42,26" stroke="url(#login-logo-grad)" stroke-width="5.5" stroke-linecap="round" />
-                <defs>
-                  <linearGradient id="login-logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#2563eb" />
-                    <stop offset="100%" stop-color="#0d9488" />
-                  </linearGradient>
-                </defs>
-              </svg>
-            </span>
-            <span class="brand-name">{{ branding.labName }}</span>
+            <app-brand-lockup layout="hero"></app-brand-lockup>
           </div>
           <h1 class="title">{{ 'login.welcome' | t }}</h1>
           <p class="subtitle">{{ 'login.subtitle' | t }}</p>
@@ -225,8 +213,11 @@
         </footer>
       </section>
 
-      <aside class="hero-panel" aria-hidden="true">
+      <aside class="hero-panel">
         <div class="hero-bg"></div>
+        <div class="hero-brand">
+          <app-brand-lockup layout="hero" [showLab]="false" tone="light"></app-brand-lockup>
+        </div>
       </aside>
     </div>
   </div>

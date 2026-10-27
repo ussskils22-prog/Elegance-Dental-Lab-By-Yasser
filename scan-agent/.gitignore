@@ -1,6 +1,8 @@
 node_modules/
+daemon/
 config.json
 config.scanner1.json
 config.scanner2.json
 config.scanner3.json
 *.log
+run-scanner*-hidden.vbs

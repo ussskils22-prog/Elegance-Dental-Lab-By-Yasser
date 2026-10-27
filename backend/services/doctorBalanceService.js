@@ -115,4 +115,5 @@ module.exports = {
   resolveDoctorPaid,
   isUnallocatedPayment,
   isCasePaid,
+  hasFrozenSnapshot,
 };

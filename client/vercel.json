@@ -1,6 +1,14 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist/client/browser",
+  "headers": [
+    {
+      "source": "/(ngsw.json|ngsw-worker.js|safety-worker.js|manifest.webmanifest|index.html)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/:path*",
