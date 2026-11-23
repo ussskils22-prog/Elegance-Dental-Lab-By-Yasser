@@ -12,9 +12,9 @@
 
 .fp-tabs button,
 .fp-mode button {
-  border: 1px solid #d4d4d8;
-  background: #fff;
-  color: #0a0a0b;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-card);
+  color: var(--text-primary);
   padding: 8px 14px;
   border-radius: 8px;
   cursor: pointer;
@@ -24,14 +24,14 @@
 
 .fp-tabs button.active,
 .fp-mode button.active {
-  background: #0a0a0b;
-  color: #fff;
-  border-color: #0a0a0b;
+  background: var(--accent-primary);
+  color: var(--on-accent);
+  border-color: var(--accent-primary);
 }
 
 .fp-hint {
   font-size: 13px;
-  color: #71717a;
+  color: var(--text-muted);
   margin: 0 0 12px;
 }
 
@@ -44,17 +44,17 @@
 }
 
 .fp-msg.ok {
-  background: #ecfdf5;
-  color: #047857;
+  background: var(--success-bg);
+  color: var(--success-text);
 }
 
 .fp-msg.err {
-  background: #fef2f2;
-  color: #b91c1c;
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
 
 .fp-loading {
-  color: #71717a;
+  color: var(--text-muted);
   margin-bottom: 8px;
 }
 
@@ -74,15 +74,15 @@
 }
 
 .fp-card {
-  background: #fafafa;
-  border: 1px solid #e4e4e7;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: 12px;
   padding: 14px;
 }
 
 .fp-card .lbl {
   font-size: 12px;
-  color: #71717a;
+  color: var(--text-muted);
   font-weight: 600;
 }
 
@@ -90,27 +90,27 @@
   font-size: 22px;
   font-weight: 800;
   margin-top: 6px;
-  color: #0a0a0b;
+  color: var(--text-primary);
 }
 
 .fp-card .sub {
   font-size: 11px;
-  color: #71717a;
+  color: var(--text-muted);
   margin-top: 4px;
 }
 
 .fp-card.good .val {
-  color: #047857;
+  color: var(--success-text);
 }
 
 .fp-card.bad .val,
 .fp-card.danger .val {
-  color: #b91c1c;
+  color: var(--danger-text);
 }
 
 .fp-breakdown {
-  background: #fff;
-  border: 1px solid #e4e4e7;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
   border-radius: 12px;
   padding: 14px;
 }
@@ -122,7 +122,7 @@
 
 .fp-breakdown td {
   padding: 8px 4px;
-  border-bottom: 1px solid #f4f4f5;
+  border-bottom: 1px solid var(--bg-secondary);
   font-size: 14px;
 }
 
@@ -135,8 +135,8 @@
 .fp-explain {
   margin: 12px 0 0;
   font-size: 13px;
-  color: #3a3a40;
-  background: #f4f4f5;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
   padding: 10px;
   border-radius: 8px;
 }
@@ -148,8 +148,8 @@
 }
 
 .fp-box {
-  background: #fff;
-  border: 1px solid #e4e4e7;
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
   border-radius: 12px;
   padding: 14px;
 }
@@ -163,7 +163,7 @@
   display: block;
   font-size: 12px;
   font-weight: 600;
-  color: #3a3a40;
+  color: var(--text-secondary);
   margin: 8px 0 4px;
 }
 
@@ -171,7 +171,7 @@
 .fp-box select {
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid #d4d4d8;
+  border: 1px solid var(--border-primary);
   border-radius: 8px;
   font-size: 13px;
   box-sizing: border-box;
@@ -185,8 +185,8 @@
 
 .fp-btn {
   margin-top: 12px;
-  border: 1px solid #d4d4d8;
-  background: #fafafa;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
   padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
@@ -195,15 +195,15 @@
 }
 
 .fp-btn.primary {
-  background: #0f766e;
-  color: #fff;
-  border-color: #0f766e;
+  background: var(--accent-primary);
+  color: var(--on-accent);
+  border-color: var(--accent-primary);
 }
 
 .fp-btn.danger {
-  background: #fef2f2;
-  color: #b91c1c;
-  border-color: #fecaca;
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  border-color: var(--danger-border);
 }
 
 .fp-btn.sm {
@@ -221,24 +221,24 @@
 .fp-table th,
 .fp-table td {
   padding: 8px 6px;
-  border-bottom: 1px solid #e4e4e7;
+  border-bottom: 1px solid var(--border-primary);
   text-align: right;
   vertical-align: middle;
 }
 
 .fp-table th {
   font-size: 12px;
-  color: #71717a;
-  background: #fafafa;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
 }
 
 .fp-table tr.low {
-  background: #fff7ed;
+  background: var(--warning-bg);
 }
 
 .fp-table .empty {
   text-align: center;
-  color: #a1a1aa;
+  color: var(--text-muted);
   padding: 16px;
 }
 
@@ -246,7 +246,7 @@
 .fp-table select {
   width: 90px;
   padding: 4px 6px;
-  border: 1px solid #d4d4d8;
+  border: 1px solid var(--border-primary);
   border-radius: 6px;
 }
 
@@ -269,13 +269,13 @@
 
 .fp-mini {
   font-size: 12px;
-  color: #71717a;
+  color: var(--text-muted);
   margin: 0 0 8px;
 }
 
 /* Dark theme */
 :host-context(body.dark-theme) .fp-root {
-  color: #e4e4e7;
+  color: var(--text-secondary);
 }
 
 :host-context(body.dark-theme) .fp-hint,
@@ -285,106 +285,106 @@
 :host-context(body.dark-theme) .fp-card .sub,
 :host-context(body.dark-theme) .fp-box label,
 :host-context(body.dark-theme) .fp-table th {
-  color: #a1a1aa;
+  color: var(--text-muted);
 }
 
 :host-context(body.dark-theme) .fp-tabs button,
 :host-context(body.dark-theme) .fp-mode button {
-  background: #161618;
-  border-color: #2a2a2e;
-  color: #e4e4e7;
+  background: var(--bg-card);
+  border-color: var(--border-primary);
+  color: var(--text-secondary);
 }
 
 :host-context(body.dark-theme) .fp-tabs button.active,
 :host-context(body.dark-theme) .fp-mode button.active {
-  background: #14b8a6;
-  border-color: #14b8a6;
-  color: #fff;
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: var(--on-accent);
 }
 
 :host-context(body.dark-theme) .fp-card,
 :host-context(body.dark-theme) .fp-box,
 :host-context(body.dark-theme) .fp-breakdown {
-  background: #0a0a0b;
-  border-color: #2a2a2e;
+  background: var(--bg-primary);
+  border-color: var(--border-primary);
 }
 
 :host-context(body.dark-theme) .fp-card .val,
 :host-context(body.dark-theme) .fp-box h3,
 :host-context(body.dark-theme) .fp-toolbar h3,
 :host-context(body.dark-theme) .fp-breakdown td {
-  color: #f4f4f5;
+  color: var(--text-primary);
 }
 
 :host-context(body.dark-theme) .fp-breakdown td {
-  border-bottom-color: #161618;
+  border-bottom-color: var(--bg-card);
 }
 
 :host-context(body.dark-theme) .fp-explain {
-  background: #161618;
-  color: #d4d4d8;
+  background: var(--bg-card);
+  color: var(--text-secondary);
 }
 
 :host-context(body.dark-theme) .fp-box input,
 :host-context(body.dark-theme) .fp-box select,
 :host-context(body.dark-theme) .fp-table input,
 :host-context(body.dark-theme) .fp-table select {
-  background: #161618;
-  border-color: #3a3a40;
-  color: #f4f4f5;
+  background: var(--bg-card);
+  border-color: var(--border-secondary);
+  color: var(--text-primary);
 }
 
 :host-context(body.dark-theme) .fp-table th {
-  background: #161618;
+  background: var(--bg-card);
 }
 
 :host-context(body.dark-theme) .fp-table th,
 :host-context(body.dark-theme) .fp-table td {
-  border-bottom-color: #2a2a2e;
-  color: #e4e4e7;
+  border-bottom-color: var(--border-primary);
+  color: var(--text-secondary);
 }
 
 :host-context(body.dark-theme) .fp-table tr.low {
-  background: #422006;
+  background: var(--warning-bg);
 }
 
 :host-context(body.dark-theme) .fp-table .empty {
-  color: #71717a;
+  color: var(--text-muted);
 }
 
 :host-context(body.dark-theme) .fp-btn {
-  background: #161618;
-  border-color: #3a3a40;
-  color: #e4e4e7;
+  background: var(--bg-card);
+  border-color: var(--border-secondary);
+  color: var(--text-secondary);
 }
 
 :host-context(body.dark-theme) .fp-btn.primary {
-  background: #0f766e;
-  border-color: #0f766e;
-  color: #fff;
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: var(--on-accent);
 }
 
 :host-context(body.dark-theme) .fp-btn.danger {
-  background: #450a0a;
-  border-color: #7f1d1d;
-  color: #fecaca;
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger-text);
 }
 
 :host-context(body.dark-theme) .fp-msg.ok {
-  background: #064e3b;
-  color: #6ee7b7;
+  background: var(--success-bg);
+  color: var(--success-text);
 }
 
 :host-context(body.dark-theme) .fp-msg.err {
-  background: #450a0a;
-  color: #fca5a5;
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
 
 :host-context(body.dark-theme) .fp-card.good .val {
-  color: #34d399;
+  color: var(--success-text);
 }
 
 :host-context(body.dark-theme) .fp-card.bad .val,
 :host-context(body.dark-theme) .fp-card.danger .val {
-  color: #f87171;
+  color: var(--danger-text);
 }

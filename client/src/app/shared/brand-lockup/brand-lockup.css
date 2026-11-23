@@ -1,12 +1,12 @@
 :host {
   display: inline-flex;
   max-width: 100%;
-  color: #12312f;
+  color: var(--text-primary);
 }
 
 :host-context(.dark-theme),
 .masar-lockup--light {
-  color: #f4f7f6;
+  color: #f4f7f6; /* hex-ok: lockup forced-light variant sits on dark artwork */
 }
 
 .masar-lockup {
@@ -47,7 +47,7 @@
   font-weight: 800;
   font-size: 1.15rem;
   line-height: 1;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.3em;
   color: currentColor;
 }
 
@@ -63,7 +63,7 @@
   font-size: 0.74rem;
   font-weight: 650;
   line-height: 1.2;
-  color: var(--text-muted, #71717a);
+  color: var(--text-muted);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

@@ -18,7 +18,7 @@
 
 .label-optional {
   font-weight: 500;
-  color: var(--text-secondary, #71717a);
+  color: var(--text-secondary);
   font-size: 0.85em;
 }
 
@@ -37,8 +37,8 @@
 
 .doctor-case-card.is-important,
 .doctor-case-card.is-urgent {
-  border-color: #f59e0b;
-  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.25);
+  border-color: var(--warning-solid);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--warning-solid) 25%, transparent);
 }
 
 .doctor-case-card:hover,
@@ -66,7 +66,7 @@
   border: none;
   border-radius: 12px;
   background: var(--bg-secondary);
-  color: var(--muted, #71717a);
+  color: var(--muted);
   padding: 0;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
@@ -74,7 +74,7 @@
 
 .doctor-portal .topbar .icon-btn:hover {
   background: var(--border-primary);
-  color: var(--primary, #2563eb);
+  color: var(--primary);
 }
 
 .doctor-portal .topbar .icon-btn svg {
@@ -136,7 +136,7 @@
   justify-content: center;
   border: none;
   background: transparent;
-  color: #a1a1aa;
+  color: var(--text-muted);
   padding: 2px;
   cursor: pointer;
   border-radius: 6px;
@@ -144,12 +144,12 @@
 }
 
 .important-star:hover {
-  color: #f59e0b;
-  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning-text);
+  background: color-mix(in srgb, var(--warning-solid) 10%, transparent);
 }
 
 .important-star.active {
-  color: #f59e0b;
+  color: var(--warning-text);
 }
 
 .urgent-pill,
@@ -162,19 +162,19 @@
 }
 
 .urgent-pill {
-  background: #fef2f2;
-  color: #dc2626;
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }
 
 .important-pill {
-  background: #fffbeb;
-  color: #b45309;
+  background: var(--warning-bg);
+  color: var(--warning-text);
 }
 
 .filter-important.active {
-  background: #b45309;
-  border-color: #b45309;
-  color: #fff;
+  background: var(--warning-solid);
+  border-color: var(--warning-solid);
+  color: var(--on-accent);
 }
 
 .detail-head-actions {
@@ -189,19 +189,19 @@
   gap: 10px;
   margin: 4px 0 12px;
   padding: 10px 12px;
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid color-mix(in srgb, var(--warning-solid) 35%, transparent);
+  background: color-mix(in srgb, var(--warning-solid) 8%, transparent);
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary, #0a0a0b);
+  color: var(--text-primary);
   cursor: pointer;
 }
 
 .urgent-check input {
   width: 18px;
   height: 18px;
-  accent-color: #d97706;
+  accent-color: var(--warning-text);
 }
 
 .intake-checkboxes {
@@ -217,7 +217,7 @@
   align-items: center;
   gap: 8px;
   font-weight: 600;
-  color: var(--text-primary, #0a0a0b);
+  color: var(--text-primary);
   cursor: pointer;
   user-select: none;
 }
@@ -226,7 +226,7 @@
   width: 18px;
   height: 18px;
   margin: 0;
-  accent-color: #2563eb;
+  accent-color: var(--stage-design-text);
   cursor: pointer;
 }
 
@@ -234,10 +234,10 @@
   height: auto;
   min-height: 44px;
   padding: 0.4rem 0.5rem;
-  border: 1px dashed var(--border, #d4d4d8);
+  border: 1px dashed var(--border);
   border-radius: 12px;
-  background: var(--bg-secondary, #fafafa);
-  color: var(--text-secondary, #3a3a40);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   cursor: pointer;
   width: 100%;
   box-sizing: border-box;
@@ -246,7 +246,7 @@
 .ply-picked {
   font-size: 0.8rem;
   font-weight: 500;
-  color: var(--muted, #71717a);
+  color: var(--muted);
   margin: 0.25rem 0 0;
 }
 
@@ -256,7 +256,7 @@
   background: none;
   font: inherit;
   font-weight: 700;
-  color: var(--accent-blue, #2563eb);
+  color: var(--accent-blue);
   cursor: pointer;
   text-decoration: underline;
 }
@@ -269,14 +269,14 @@
 
 :host-context(body.dark-theme) .urgent-pill,
 .dark-theme .urgent-pill {
-  background: rgba(220, 38, 38, 0.18);
-  color: #fca5a5;
+  background: color-mix(in srgb, var(--danger-solid) 18%, transparent);
+  color: var(--danger-text);
 }
 
 :host-context(body.dark-theme) .important-pill,
 .dark-theme .important-pill {
-  background: rgba(245, 158, 11, 0.18);
-  color: #fbbf24;
+  background: color-mix(in srgb, var(--warning-solid) 18%, transparent);
+  color: var(--warning-text);
 }
 
 :host-context(body.dark-theme) .doctor-case-card:hover,
@@ -288,16 +288,16 @@
 
 :host-context(body.dark-theme) .doctor-access-banner,
 .dark-theme .doctor-access-banner {
-  background: rgba(37, 99, 235, 0.16);
-  border-color: rgba(96, 165, 250, 0.35);
-  color: #bfdbfe;
+  background: color-mix(in srgb, var(--stage-design-solid) 16%, transparent);
+  border-color: color-mix(in srgb, var(--stage-design-solid) 35%, transparent);
+  color: var(--stage-design-text);
 }
 
 :host-context(body.dark-theme) .doctor-access-banner--warn,
 .dark-theme .doctor-access-banner--warn {
-  background: rgba(245, 158, 11, 0.14);
-  border-color: rgba(251, 191, 36, 0.35);
-  color: #fde68a;
+  background: color-mix(in srgb, var(--warning-solid) 14%, transparent);
+  border-color: color-mix(in srgb, var(--warning-solid) 35%, transparent);
+  color: var(--warning-text);
 }
 
 .detail-modal {
@@ -330,19 +330,19 @@
   gap: 16px;
   align-items: flex-start;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-color, #e4e4e7);
+  border-bottom: 1px solid var(--border-color);
   font-size: 14px;
 }
 
 .detail-row span {
-  color: var(--text-secondary, #71717a);
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 
 .detail-row strong {
   text-align: left;
   font-weight: 600;
-  color: var(--text-primary, #0a0a0b);
+  color: var(--text-primary);
   word-break: break-word;
 }
 
@@ -358,13 +358,13 @@
 }
 
 .doctor-notif-panel .notification-item.unread {
-  background: rgba(13, 148, 136, 0.08);
+  background: color-mix(in srgb, var(--accent-primary) 8%, transparent);
 }
 
 .notif-time {
   display: block;
   font-size: 11px;
-  color: var(--text-secondary, #a1a1aa);
+  color: var(--text-secondary);
   margin-top: 2px;
 }
 
@@ -416,9 +416,9 @@
   margin: 12px 16px 0;
   padding: 12px 14px;
   border-radius: 14px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
-  color: #1e3a8a;
+  background: var(--stage-design-bg);
+  border: 1px solid var(--stage-design-border);
+  color: var(--stage-design-text);
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -427,9 +427,9 @@
 }
 
 .doctor-access-banner--warn {
-  background: #fff7ed;
-  border-color: #fed7aa;
-  color: #9a3412;
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+  color: var(--warning-text);
 }
 
 .doctor-access-banner p {
@@ -458,8 +458,8 @@
 .ios-install-sheet {
   width: 100%;
   max-width: 420px;
-  background: var(--bg-card, #fff);
-  color: var(--text, #0a0a0b);
+  background: var(--bg-card);
+  color: var(--text);
   border-radius: 18px 18px 14px 14px;
   padding: 20px 18px 16px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
@@ -474,7 +474,7 @@
 .ios-install-note {
   margin: 0 0 14px;
   font-size: 0.9rem;
-  color: var(--muted, #3a3a40);
+  color: var(--muted);
   line-height: 1.5;
 }
 
@@ -500,8 +500,8 @@
   width: 28px;
   height: 28px;
   border-radius: 999px;
-  background: #059669;
-  color: #fff;
+  background: var(--success-solid);
+  color: var(--on-accent);
   font-weight: 800;
   display: inline-flex;
   align-items: center;
@@ -530,8 +530,8 @@
   min-width: 168px;
   padding: 6px;
   border-radius: 14px;
-  background: var(--bg-card, #fff);
-  border: 1px solid var(--border-color, #e4e4e7);
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
   box-shadow: 0 16px 40px rgba(10, 10, 11, 0.16);
   z-index: 40;
   animation: doctor-menu-in 0.16s ease-out;
@@ -559,14 +559,14 @@
   font: inherit;
   font-size: 0.92rem;
   font-weight: 700;
-  color: var(--text-primary, #0a0a0b);
+  color: var(--text-primary);
   cursor: pointer;
 }
 
 .doctor-portal-menu-item:hover,
 .doctor-portal-menu-item:focus-visible {
-  background: rgba(37, 99, 235, 0.08);
-  color: #1d4ed8;
+  background: color-mix(in srgb, var(--stage-design-solid) 8%, transparent);
+  color: var(--stage-design-text);
   outline: none;
 }
 
@@ -576,22 +576,22 @@
 
 :host-context(body.dark-theme) .doctor-portal-menu,
 .dark-theme .doctor-portal-menu {
-  background: var(--bg-card, #0a0a0b);
+  background: var(--bg-card);
   border-color: rgba(161, 161, 170, 0.22);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
 }
 
 :host-context(body.dark-theme) .doctor-portal-menu-item,
 .dark-theme .doctor-portal-menu-item {
-  color: var(--text-primary, #fafafa);
+  color: var(--text-primary);
 }
 
 :host-context(body.dark-theme) .doctor-portal-menu-item:hover,
 :host-context(body.dark-theme) .doctor-portal-menu-item:focus-visible,
 .dark-theme .doctor-portal-menu-item:hover,
 .dark-theme .doctor-portal-menu-item:focus-visible {
-  background: rgba(59, 130, 246, 0.16);
-  color: #93c5fd;
+  background: color-mix(in srgb, var(--stage-design-solid) 16%, transparent);
+  color: var(--stage-design-text);
 }
 
 @media (max-width: 560px) {
@@ -599,3 +599,20 @@
     min-width: 156px;
   }
 }
+
+/* Stage badge — shared stage colors */
+.case-phase-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  background: var(--stage-pending-bg);
+  color: var(--stage-pending-text);
+  border: 1px solid var(--stage-pending-border);
+}
+.case-phase-badge.design { background: var(--stage-design-bg); color: var(--stage-design-text); border-color: var(--stage-design-border); }
+.case-phase-badge.finishing { background: var(--stage-finishing-bg); color: var(--stage-finishing-text); border-color: var(--stage-finishing-border); }
+.case-phase-badge.finished { background: var(--stage-finished-bg); color: var(--stage-finished-text); border-color: var(--stage-finished-border); }
+.case-phase-badge.exited { background: var(--stage-exited-bg); color: var(--stage-exited-text); border-color: var(--stage-exited-border); }

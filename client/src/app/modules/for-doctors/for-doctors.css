@@ -1,7 +1,7 @@
 :host {
   --primary: var(--accent-primary);
   --primary-mid: var(--accent-blue);
-  --primary-dark: #082a5c;
+  --primary-dark: var(--accent-hover);
   --accent: var(--accent-primary);
   --page-bg: var(--bg-primary);
   --card: var(--bg-card);
@@ -10,12 +10,7 @@
   --radius-card: 20px;
   display: block;
   min-height: 100vh;
-  font-family:
-    'Tajawal',
-    'IBM Plex Sans Arabic',
-    'Segoe UI',
-    system-ui,
-    sans-serif;
+  font-family: var(--font-sans);
 }
 
 .doctors-page {
@@ -24,8 +19,8 @@
   box-sizing: border-box;
   padding: clamp(1rem, 4vw, 2.5rem);
   background:
-    radial-gradient(1200px 480px at 80% -10%, rgba(37, 99, 235, 0.12), transparent 55%),
-    radial-gradient(900px 420px at 0% 100%, rgba(13, 148, 136, 0.1), transparent 50%),
+    radial-gradient(1200px 480px at 80% -10%, color-mix(in srgb, var(--stage-design-solid) 12%, transparent), transparent 55%),
+    radial-gradient(900px 420px at 0% 100%, color-mix(in srgb, var(--accent-primary) 10%, transparent), transparent 50%),
     var(--page-bg);
   position: relative;
 }
@@ -102,7 +97,7 @@
   margin: 0 0 0.5rem;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #0d9488;
+  color: var(--accent-primary);
   letter-spacing: 0.02em;
 }
 
@@ -139,7 +134,7 @@
   border-radius: 14px;
   font-size: 1rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--on-accent);
   text-decoration: none;
   background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
   box-shadow: 0 8px 24px rgba(12, 61, 140, 0.28);
@@ -164,13 +159,13 @@
   font-weight: 700;
   color: var(--primary);
   text-decoration: none;
-  background: var(--accent-secondary, #e6f1fb);
+  background: var(--accent-secondary);
   border: 1px solid rgba(24, 95, 165, 0.25);
   transition: background 0.12s;
 }
 
 .btn-secondary:hover {
-  background: #d7e8f8;
+  background: var(--stage-design-bg);
 }
 
 .features {
@@ -195,7 +190,7 @@
   right: 0;
   width: 4px;
   height: 100%;
-  background: linear-gradient(180deg, #2563eb 0%, #0d9488 100%);
+  background: linear-gradient(180deg, var(--stage-design-solid) 0%, var(--accent-primary) 100%);
 }
 
 .feature-title {
@@ -246,7 +241,7 @@
 .footer-note {
   margin: 1.1rem 0 0;
   font-size: 0.75rem;
-  color: #8b97b0;
+  color: var(--text-muted);
 }
 
 body.dark-theme .doctors-header,
@@ -255,20 +250,20 @@ body.dark-theme .doctors-footer,
 .dark-theme .doctors-header,
 .dark-theme .feature,
 .dark-theme .doctors-footer {
-  background: #161618;
+  background: var(--bg-card);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
 }
 
 body.dark-theme .btn-secondary,
 .dark-theme .btn-secondary {
-  background: #1e3a8a;
-  color: #93c5fd;
-  border-color: #2a2a2e;
+  background: var(--stage-design-bg);
+  color: var(--stage-design-text);
+  border-color: var(--border-primary);
 }
 
 body.dark-theme .btn-secondary:hover,
 .dark-theme .btn-secondary:hover {
-  background: #1e40af;
+  background: var(--accent-tint-text);
 }
 
 @media (max-width: 720px) {

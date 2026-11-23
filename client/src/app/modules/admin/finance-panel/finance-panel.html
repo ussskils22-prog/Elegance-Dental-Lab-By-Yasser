@@ -155,7 +155,7 @@
             <td>{{ r.patientName }}</td>
             <td>{{ r.revenue | number:'1.0-0' }}</td>
             <td>{{ r.materialCost | number:'1.0-0' }}</td>
-            <td [style.color]="r.caseProfit >= 0 ? '#047857' : '#b91c1c'"><strong>{{ r.caseProfit | number:'1.0-0' }}</strong></td>
+            <td [style.color]="r.caseProfit >= 0 ? 'var(--success-text)' : 'var(--danger-text)'"><strong>{{ r.caseProfit | number:'1.0-0' }}</strong></td>
             <td>{{ r.paymentStatus === 'paid' ? 'مدفوع' : 'مستحق' }}</td>
           </tr>
           <tr *ngIf="!profitRows.length"><td colspan="7" class="empty">لا حالات خارجة في هذه الفترة</td></tr>

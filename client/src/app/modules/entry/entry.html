@@ -111,23 +111,23 @@
     <!-- Stats Counters -->
     <div class="stats-counters">
       <div class="stat-pill stat-total">
-        <span class="stat-num">{{ printJobs().length }}</span>
+        <span class="stat-num">{{ printJobs().length | number }}</span>
         <span class="stat-text">{{ 'entry.statTotal' | t }}</span>
       </div>
       <div class="stat-pill stat-done">
-        <span class="stat-num">{{ doneJobsCount() }}</span>
+        <span class="stat-num">{{ doneJobsCount() | number }}</span>
         <span class="stat-text">{{ 'entry.statConfirmed' | t }}</span>
       </div>
       <div class="stat-pill stat-awaiting">
-        <span class="stat-num">{{ awaitingConfirmCount() }}</span>
+        <span class="stat-num">{{ awaitingConfirmCount() | number }}</span>
         <span class="stat-text">{{ 'entry.statAwaiting' | t }}</span>
       </div>
       <div class="stat-pill stat-pending">
-        <span class="stat-num">{{ pendingJobsCount() }}</span>
+        <span class="stat-num">{{ pendingJobsCount() | number }}</span>
         <span class="stat-text">{{ 'entry.statPending' | t }}</span>
       </div>
       <div class="stat-pill stat-failed">
-        <span class="stat-num">{{ failedJobsCount() }}</span>
+        <span class="stat-num">{{ failedJobsCount() | number }}</span>
         <span class="stat-text">{{ 'entry.statFailed' | t }}</span>
       </div>
     </div>
@@ -446,7 +446,7 @@
               }
 
               @if (!hasWorkTypesWithQuantity) {
-                <p class="wt-error" style="color:#71717a;margin:8px 0 0;">
+                <p class="wt-error" style="color:var(--text-muted);margin:8px 0 0;">
                   {{ 'form.toothChartHint' | t }}
                 </p>
               }

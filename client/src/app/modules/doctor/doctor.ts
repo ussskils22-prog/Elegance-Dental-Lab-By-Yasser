@@ -1335,7 +1335,7 @@ export class DoctorComponent implements OnInit, OnDestroy {
     const map: Record<DoctorStage, { label: string; color: string }> = {
       pending: { label: this.lang.t('phase.pending'), color: 'pending' },
       design: { label: this.lang.t('phase.design'), color: 'design' },
-      finishing: { label: this.lang.t('phase.finishing'), color: 'khart' },
+      finishing: { label: this.lang.t('phase.finishing'), color: 'finishing' },
       finished: { label: this.lang.t('phase.finished'), color: 'finished' },
       exited: { label: this.lang.t('phase.exited'), color: 'exited' },
     };

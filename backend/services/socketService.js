@@ -266,17 +266,28 @@ function parseCaps(raw) {
 }
 
 /**
- * Send a print job to exactly one agent (newest connection) — prevents double sheets.
- * Receipt jobs go only to an agent that declared a receipt printer; if none is online the
- * job stays pending and the capable agent picks it up on its next poll.
+ * Receipt jobs go only to the newest agent that declared a receipt printer.
+ * Sheet jobs go to every connected agent at once. Atomic claim prints exactly one,
+ * so the PC sitting on the HP starts immediately instead of losing to whichever
+ * socket connected last and then waiting for the next poll.
  */
 const emitToOnePrintAgent = (event, data) => {
   if (!io) return;
   const isReceipt = String(data?.printData?.jobKind || '') === 'receipt';
+  if (!isReceipt) {
+    const ids = [...printAgentConnections.keys()];
+    if (ids.length === 0) {
+      io.to('print-agents').emit(event, data);
+      return;
+    }
+    for (const sid of ids) io.to(sid).emit(event, data);
+    return;
+  }
+
   let targetId = null;
   let newest = null;
   for (const [sid, row] of printAgentConnections.entries()) {
-    if (isReceipt && !(row.caps || []).includes('receipt')) continue;
+    if (!(row.caps || []).includes('receipt')) continue;
     if (!newest || (row.connectedAt && row.connectedAt > newest)) {
       newest = row.connectedAt;
       targetId = sid;
@@ -286,12 +297,7 @@ const emitToOnePrintAgent = (event, data) => {
     io.to(targetId).emit(event, data);
     return;
   }
-  if (isReceipt) {
-    console.log('🧾 Receipt job queued — no agent with a receipt printer is online right now');
-    return;
-  }
-  // Fallback if map empty but room has members
-  io.to('print-agents').emit(event, data);
+  console.log('🧾 Receipt job queued — no agent with a receipt printer is online right now');
 };
 
 module.exports = {

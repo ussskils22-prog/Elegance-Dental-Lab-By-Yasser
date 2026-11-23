@@ -142,7 +142,7 @@
           <div class="work-type-tag">{{ c.workType }}</div>
           <div class="work-specs">
             <span class="spec-pill" [attr.title]="'common.color' | t" *ngIf="c.color">
-              <span class="spec-dot" [style.background]="c.color === 'A1' || c.color === 'B1' ? '#fde047' : '#e4e4e7'"></span>
+              <span class="spec-dot" [style.background]="c.color === 'A1' || c.color === 'B1' ? '#fde047' : 'var(--tag-bg)'"></span>
               {{ c.color }}
             </span>
             <span class="spec-pill" [attr.title]="'common.qty' | t" *ngIf="c.quantity">
@@ -414,7 +414,7 @@
       </div>
 
       <!-- Exocad sync — updates case quantity + teeth sheet from CAD-Data -->
-      <div class="card" style="border-top:3px solid #0d9488;">
+      <div class="card" style="border-top:3px solid var(--accent-primary);">
         <div class="card-head" style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
           <span>Exocad</span>
           <button
@@ -434,7 +434,7 @@
           </div>
           <div class="work-detail-item">
             <span class="work-label">الفعلي (Exocad)</span>
-            <span class="work-value" [style.color]="(exocadStatus?.unitsDifference || 0) !== 0 ? '#dc2626' : '#0d9488'">
+            <span class="work-value" [style.color]="(exocadStatus?.unitsDifference || 0) !== 0 ? 'var(--danger-text)' : 'var(--accent-primary)'">
               {{ exocadStatus?.actualDesignedUnits ?? '—' }}
             </span>
           </div>
@@ -460,7 +460,7 @@
           </p>
         }
         @if (exocadMessage) {
-          <p style="margin:0 16px 12px;font-size:12px;color:#b45309;">{{ exocadMessage }}</p>
+          <p style="margin:0 16px 12px;font-size:12px;color:var(--warning-text);">{{ exocadMessage }}</p>
         }
         @if (selectedCase.status === 'exited') {
           <p style="margin:0 16px 12px;font-size:12px;opacity:.75;">الحالات الخارجة مقفولة — لا مزامنة.</p>

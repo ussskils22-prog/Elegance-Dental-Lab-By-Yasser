@@ -140,18 +140,18 @@
       </div>
 
       <div class="dash-counters">
-        <div class="stat-card dash-counter" style="border-top-color:#22c55e">
-          <div class="stat-label" style="color:#16a34a">New</div>
+        <div class="stat-card dash-counter" style="border-top-color:var(--success-solid)">
+          <div class="stat-label" style="color:var(--success-text)">New</div>
           <div class="stat-val">{{ kindNewCount }}</div>
           <div class="stat-sub">وحدات جديدة</div>
         </div>
-        <div class="stat-card dash-counter" style="border-top-color:#f59e0b">
-          <div class="stat-label" style="color:#d97706">Redo</div>
+        <div class="stat-card dash-counter" style="border-top-color:var(--warning-solid)">
+          <div class="stat-label" style="color:var(--warning-text)">Redo</div>
           <div class="stat-val">{{ kindRedoCount }}</div>
           <div class="stat-sub">وحدات إعادة</div>
         </div>
-        <div class="stat-card dash-counter" style="border-top-color:#6366f1">
-          <div class="stat-label" style="color:#4f46e5">Modification</div>
+        <div class="stat-card dash-counter" style="border-top-color:var(--neutral-border)">
+          <div class="stat-label" style="color:var(--neutral-text)">Modification</div>
           <div class="stat-val">{{ kindModificationCount }}</div>
           <div class="stat-sub">وحدات تعديل</div>
         </div>
@@ -174,15 +174,15 @@
       </div>
 
       <div class="dash-counters" *ngIf="deliveryAlerts.overdueCount || deliveryAlerts.dueSoonCount">
-        <div class="stat-card dash-counter" style="border-top-color:#dc2626" *ngIf="deliveryAlerts.overdueCount">
-          <div class="stat-label" style="color:#dc2626">متأخرة عن التسليم</div>
+        <div class="stat-card dash-counter" style="border-top-color:var(--danger-solid)" *ngIf="deliveryAlerts.overdueCount">
+          <div class="stat-label" style="color:var(--danger-text)">متأخرة عن التسليم</div>
           <div class="stat-val">{{ deliveryAlerts.overdueCount }}</div>
           <div class="dash-alert-list">
             <div *ngFor="let r of deliveryAlerts.overdue | slice:0:6">{{ r.caseNumber }} — {{ r.doctorName || ('common.unknown' | t) }} ({{ r.hoursOverdue }}س)</div>
           </div>
         </div>
-        <div class="stat-card dash-counter" style="border-top-color:#ea580c" *ngIf="deliveryAlerts.dueSoonCount">
-          <div class="stat-label" style="color:#ea580c">تسليم خلال 24 ساعة</div>
+        <div class="stat-card dash-counter" style="border-top-color:var(--warning-solid)" *ngIf="deliveryAlerts.dueSoonCount">
+          <div class="stat-label" style="color:var(--warning-text)">تسليم خلال 24 ساعة</div>
           <div class="stat-val">{{ deliveryAlerts.dueSoonCount }}</div>
           <div class="dash-alert-list">
             <div *ngFor="let r of deliveryAlerts.dueSoon | slice:0:6">{{ r.caseNumber }} — {{ r.doctorName || ('common.unknown' | t) }}</div>
@@ -205,7 +205,7 @@
         </button>
       </div>
 
-      <p *ngIf="staffLoadError" style="margin:0 0 12px;color:#dc2626;font-size:14px;">{{ staffLoadError }}</p>
+      <p *ngIf="staffLoadError" style="margin:0 0 12px;color:var(--danger-text);font-size:14px;">{{ staffLoadError }}</p>
 
       <div class="staff-search">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -252,7 +252,7 @@
             <button
               type="button"
               class="staff-btn"
-              style="color:#dc2626;border-color:#fecaca;background:#fff5f5;"
+              style="color:var(--danger-text);border-color:var(--danger-border);background:var(--danger-bg);"
               [attr.title]="'admin.staff.deleteDisable' | t"
               (click)="deleteStaff(staff)"
             >
@@ -272,7 +272,7 @@
             </button>
           </div>
           <form class="modal-body" autocomplete="off" (submit)="$event.preventDefault()">
-            <p class="staff-form-hint" style="font-size:12px;color:#71717a;margin:0 0 12px;">
+            <p class="staff-form-hint" style="font-size:12px;color:var(--text-muted);margin:0 0 12px;">
               {{ 'admin.staff.formHint' | t }}
             </p>
             <div class="form-group">
@@ -295,7 +295,7 @@
               <label>
                 {{ 'login.password' | t }}
                 @if (isEditMode) {
-                  <span style="font-weight:500;color:#71717a;font-size:12px;">{{ 'admin.staff.passwordOptional' | t }}</span>
+                  <span style="font-weight:500;color:var(--text-muted);font-size:12px;">{{ 'admin.staff.passwordOptional' | t }}</span>
                 } @else {
                   <abbr [attr.title]="'common.required' | t">*</abbr>
                 }
@@ -321,7 +321,7 @@
               </div>
             </div>
             <div class="form-group">
-              <label>{{ 'common.phone' | t }} <span style="font-weight:500;color:#71717a;font-size:12px;">{{ 'admin.staff.phoneOptional' | t }}</span></label>
+              <label>{{ 'common.phone' | t }} <span style="font-weight:500;color:var(--text-muted);font-size:12px;">{{ 'admin.staff.phoneOptional' | t }}</span></label>
               <input type="tel" name="staffPhone" autocomplete="off" [(ngModel)]="currentStaff.phone" placeholder="05xxxxxxxx" />
             </div>
             <div class="form-group">
@@ -333,19 +333,19 @@
             </div>
             <div class="form-row">
               <div class="form-group">
-                <label>{{ 'common.status' | t }} <span style="font-weight:500;color:#71717a;font-size:12px;">{{ 'admin.staff.statusOptional' | t }}</span></label>
+                <label>{{ 'common.status' | t }} <span style="font-weight:500;color:var(--text-muted);font-size:12px;">{{ 'admin.staff.statusOptional' | t }}</span></label>
                 <select name="staffStatus" [(ngModel)]="currentStaff.status">
                   <option value="active">{{ 'common.active' | t }}</option>
                   <option value="inactive">{{ 'common.inactive' | t }}</option>
                 </select>
               </div>
               <div class="form-group">
-                <label>{{ 'common.joined' | t }} <span style="font-weight:500;color:#71717a;font-size:12px;">{{ 'admin.staff.joinOptional' | t }}</span></label>
+                <label>{{ 'common.joined' | t }} <span style="font-weight:500;color:var(--text-muted);font-size:12px;">{{ 'admin.staff.joinOptional' | t }}</span></label>
                 <input type="date" name="staffJoinDate" [(ngModel)]="currentStaff.joinDate" />
               </div>
             </div>
           </form>
-          <p *ngIf="staffModalError" style="margin:0 16px 12px;color:#dc2626;font-size:13px;">{{ staffModalError }}</p>
+          <p *ngIf="staffModalError" style="margin:0 16px 12px;color:var(--danger-text);font-size:13px;">{{ staffModalError }}</p>
           <div class="modal-footer">
             <button type="button" class="btn-cancel" (click)="closeStaffModal()" [disabled]="staffSaving">{{ 'common.cancel' | t }}</button>
             <button type="button" class="btn-save" (click)="saveStaff()" [disabled]="staffSaving">
@@ -370,16 +370,16 @@
       </div>
 
       <div class="stats-grid" style="margin-bottom:20px;grid-template-columns:repeat(auto-fit,minmax(180px,240px));">
-        <div class="stat-card" style="border-top:4px solid #0f766e;">
+        <div class="stat-card" style="border-top:4px solid var(--accent-primary);">
           <div class="stat-top">
-            <span class="stat-label" style="font-size:13px;font-weight:600;color:#0f766e;">{{ tDir('countLabel') | t }}</span>
+            <span class="stat-label" style="font-size:13px;font-weight:600;color:var(--accent-primary);">{{ tDir('countLabel') | t }}</span>
           </div>
-          <div class="stat-val" style="font-size:2.5rem;font-weight:800;color:#0f766e;">{{ doctorAccountsCount }}</div>
+          <div class="stat-val" style="font-size:2.5rem;font-weight:800;color:var(--accent-primary);">{{ doctorAccountsCount }}</div>
           <div class="stat-sub">{{ tDir('countSub') | t }}</div>
         </div>
       </div>
 
-      <p *ngIf="doctorLoadError" style="margin:0 0 12px;color:#dc2626;font-size:14px;">{{ doctorLoadError }}</p>
+      <p *ngIf="doctorLoadError" style="margin:0 0 12px;color:var(--danger-text);font-size:14px;">{{ doctorLoadError }}</p>
       <p style="margin:0 0 12px;font-size:13px;opacity:.8;">{{ 'secretary.clients.convertHint' | t }}</p>
 
       <div class="staff-search">
@@ -415,7 +415,7 @@
               <small>{{ doc.email }}</small><br>
               <small>{{ doc.phone }}</small>
               <br *ngIf="doc.loginPasswordVisible">
-              <small *ngIf="doc.loginPasswordVisible" style="color:#0f766e;">{{ 'admin.doctors.passwordPrefix' | t }} {{ doc.loginPasswordVisible }}</small>
+              <small *ngIf="doc.loginPasswordVisible" style="color:var(--accent-primary);">{{ 'admin.doctors.passwordPrefix' | t }} {{ doc.loginPasswordVisible }}</small>
             </div>
             <p class="staff-joined">{{ 'common.joined' | t }}: {{ doc.joinDate }}</p>
           </div>
@@ -461,7 +461,7 @@
             <button
               type="button"
               class="staff-btn"
-              style="color:#dc2626;border-color:#fecaca;background:#fff5f5;"
+              style="color:var(--danger-text);border-color:var(--danger-border);background:var(--danger-bg);"
               [attr.title]="'common.delete' | t"
               (click)="deleteDoctor(doc)"
             >
@@ -472,7 +472,7 @@
       </div>
 
       <!-- Exocad doctor name mapping (Arabic ↔ Exocad English) -->
-      <div class="card" style="margin-top:20px;padding:16px;border-top:3px solid #0d9488;">
+      <div class="card" style="margin-top:20px;padding:16px;border-top:3px solid var(--accent-primary);">
         <h3 style="margin:0 0 8px;font-size:16px;">ربط أسماء Exocad</h3>
         <p style="margin:0 0 12px;font-size:13px;opacity:.8;">
           مثال: عماد عيد → Emad Eid. الحالات الخارجة لا تتأثر. الفواتير تبقى على المطلوب.
@@ -482,20 +482,20 @@
             type="text"
             [(ngModel)]="exocadMapInternalName"
             placeholder="الاسم في النظام (عربي)"
-            style="flex:1;min-width:160px;padding:8px;border-radius:8px;border:1px solid #d4d4d8;"
+            style="flex:1;min-width:160px;padding:8px;border-radius:8px;border:1px solid var(--border-primary);"
           />
           <input
             type="text"
             [(ngModel)]="exocadMapExocadNames"
             placeholder="أسماء Exocad (مفصولة بفاصلة)"
-            style="flex:1;min-width:160px;padding:8px;border-radius:8px;border:1px solid #d4d4d8;"
+            style="flex:1;min-width:160px;padding:8px;border-radius:8px;border:1px solid var(--border-primary);"
           />
           <button type="button" class="export-btn" (click)="saveExocadDoctorMapping()">حفظ الربط</button>
         </div>
-        <p *ngIf="exocadMapMessage" style="font-size:13px;color:#0f766e;">{{ exocadMapMessage }}</p>
-        <div *ngFor="let m of exocadDoctorMappings" style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid #e4e4e7;font-size:13px;">
+        <p *ngIf="exocadMapMessage" style="font-size:13px;color:var(--accent-primary);">{{ exocadMapMessage }}</p>
+        <div *ngFor="let m of exocadDoctorMappings" style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--border-primary);font-size:13px;">
           <span><strong>{{ m.internalDoctorName }}</strong> ← {{ (m.exocadNames || []).join(', ') }}</span>
-          <button type="button" class="staff-btn" style="color:#dc2626;" (click)="deleteExocadDoctorMapping(m._id!)">حذف</button>
+          <button type="button" class="staff-btn" style="color:var(--danger-text);" (click)="deleteExocadDoctorMapping(m._id!)">حذف</button>
         </div>
       </div>
 
@@ -508,7 +508,7 @@
             </button>
           </div>
           <form class="modal-body" autocomplete="off" (submit)="$event.preventDefault()">
-            <p class="staff-form-hint" style="font-size:12px;color:#71717a;margin:0 0 12px;">
+            <p class="staff-form-hint" style="font-size:12px;color:var(--text-muted);margin:0 0 12px;">
               {{ tDir('formHint') | t }}
             </p>
             <div class="form-group">
@@ -531,7 +531,7 @@
               <label>
                 {{ 'login.password' | t }}
                 @if (isDoctorEditMode) {
-                  <span style="font-weight:500;color:#71717a;font-size:12px;">{{ 'admin.doctors.passwordVisibleHint' | t }}</span>
+                  <span style="font-weight:500;color:var(--text-muted);font-size:12px;">{{ 'admin.doctors.passwordVisibleHint' | t }}</span>
                 } @else {
                   <abbr [attr.title]="'common.required' | t">*</abbr>
                 }
@@ -555,16 +555,16 @@
                   {{ showDoctorPassword ? ('common.hide' | t) : ('common.show' | t) }}
                 </button>
               </div>
-              <p *ngIf="isDoctorEditMode && currentDoctor.loginPasswordVisible" style="margin:8px 0 0;font-size:12px;color:#0f766e;">
+              <p *ngIf="isDoctorEditMode && currentDoctor.loginPasswordVisible" style="margin:8px 0 0;font-size:12px;color:var(--accent-primary);">
                 {{ 'admin.doctors.passwordSaved' | t }} {{ currentDoctor.loginPasswordVisible }}
               </p>
             </div>
             <div class="form-group">
-              <label>{{ 'common.phone' | t }} <span style="font-weight:500;color:#71717a;font-size:12px;">{{ 'admin.staff.phoneOptional' | t }}</span></label>
+              <label>{{ 'common.phone' | t }} <span style="font-weight:500;color:var(--text-muted);font-size:12px;">{{ 'admin.staff.phoneOptional' | t }}</span></label>
               <input type="tel" name="doctorPhone" autocomplete="off" [(ngModel)]="currentDoctor.phone" placeholder="05xxxxxxxx" />
             </div>
           </form>
-          <p *ngIf="doctorModalError" style="margin:0 16px 12px;color:#dc2626;font-size:13px;">{{ doctorModalError }}</p>
+          <p *ngIf="doctorModalError" style="margin:0 16px 12px;color:var(--danger-text);font-size:13px;">{{ doctorModalError }}</p>
           <div class="modal-footer">
             <button type="button" class="btn-cancel" (click)="closeDoctorModal()" [disabled]="doctorSaving">{{ 'common.cancel' | t }}</button>
             <button type="button" class="btn-save" (click)="saveDoctor()" [disabled]="doctorSaving">
@@ -614,7 +614,7 @@
             <div class="page-title" *ngIf="reportDoctorFilter">{{ 'admin.reports.accountDetails' | t }}: {{ reportDoctorFilter }}</div>
           </div>
           <div *ngIf="reportDoctorFilter">
-            <button class="export-btn" (click)="reportDoctorFilter = ''" style="background-color: #4b5563;">
+            <button class="export-btn" (click)="reportDoctorFilter = ''" style="background-color: var(--border-secondary);">
               {{ 'admin.reports.backDoctors' | t }}
             </button>
           </div>
@@ -676,7 +676,7 @@
           </div>
         </div>
 
-        <p *ngIf="financialSaveError" style="margin:0 0 12px;color:#dc2626;font-size:14px;">
+        <p *ngIf="financialSaveError" style="margin:0 0 12px;color:var(--danger-text);font-size:14px;">
           {{ financialSaveError }}
         </p>
 
@@ -684,35 +684,35 @@
         <ng-container *ngIf="!reportDoctorFilter">
           <!-- عداد إجمالي فواتير كل الأطباء -->
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;">
-            <div style="background:linear-gradient(135deg,#1e3a5f,#1e40af);border-radius:16px;padding:20px 24px;box-shadow:0 4px 20px rgba(20,184,166,0.25);border:1px solid rgba(20,184,166,0.3);">
-              <div style="font-size:13px;color:#5eead4;margin-bottom:8px;font-weight:600;">{{ 'admin.reports.totalBills' | t }}</div>
-              <div style="font-size:24px;font-weight:800;color:#fff;">
+            <div class="stat-tile tone-total" style="border-radius:16px;padding:20px 24px;">
+              <div style="font-size:13px;color:var(--tone-text);margin-bottom:8px;font-weight:600;">{{ 'admin.reports.totalBills' | t }}</div>
+              <div style="font-size:24px;font-weight:800;color:var(--text-primary);">
                 {{ allDoctorsTotalDue | number:'1.0-0' }}
-                <span style="font-size:14px;font-weight:400;color:#5eead4;">EGP</span>
+                <span style="font-size:14px;font-weight:400;color:var(--tone-text);">EGP</span>
               </div>
             </div>
-            <div style="background:linear-gradient(135deg,#064e3b,#065f46);border-radius:16px;padding:20px 24px;box-shadow:0 4px 20px rgba(16,185,129,0.25);border:1px solid rgba(16,185,129,0.3);">
-              <div style="font-size:13px;color:#6ee7b7;margin-bottom:8px;font-weight:600;">{{ 'admin.reports.totalPaid' | t }}</div>
-              <div style="font-size:24px;font-weight:800;color:#fff;">
+            <div class="stat-tile tone-finished" style="border-radius:16px;padding:20px 24px;">
+              <div style="font-size:13px;color:var(--tone-text);margin-bottom:8px;font-weight:600;">{{ 'admin.reports.totalPaid' | t }}</div>
+              <div style="font-size:24px;font-weight:800;color:var(--text-primary);">
                 {{ allDoctorsTotalPaid | number:'1.0-0' }}
-                <span style="font-size:14px;font-weight:400;color:#6ee7b7;">EGP</span>
+                <span style="font-size:14px;font-weight:400;color:var(--tone-text);">EGP</span>
               </div>
             </div>
-            <div style="background:linear-gradient(135deg,#7f1d1d,#991b1b);border-radius:16px;padding:20px 24px;box-shadow:0 4px 20px rgba(239,68,68,0.25);border:1px solid rgba(239,68,68,0.3);">
-              <div style="font-size:13px;color:#fca5a5;margin-bottom:8px;font-weight:600;">{{ 'admin.reports.totalDue' | t }}</div>
-              <div style="font-size:24px;font-weight:800;color:#fff;">
+            <div class="stat-tile tone-urgent" style="border-radius:16px;padding:20px 24px;">
+              <div style="font-size:13px;color:var(--tone-text);margin-bottom:8px;font-weight:600;">{{ 'admin.reports.totalDue' | t }}</div>
+              <div style="font-size:24px;font-weight:800;color:var(--text-primary);">
                 {{ allDoctorsTotalRemaining | number:'1.0-0' }}
-                <span style="font-size:14px;font-weight:400;color:#fca5a5;">EGP</span>
+                <span style="font-size:14px;font-weight:400;color:var(--tone-text);">EGP</span>
               </div>
             </div>
-            <div style="background:linear-gradient(135deg,#312e81,#4338ca);border-radius:16px;padding:20px 24px;box-shadow:0 4px 20px rgba(99,102,241,0.25);border:1px solid rgba(99,102,241,0.3);">
-              <div style="font-size:13px;color:#99f6e4;margin-bottom:8px;font-weight:600;">{{ 'admin.reports.doctorsCases' | t }}</div>
-              <div style="font-size:24px;font-weight:800;color:#fff;">
+            <div class="stat-tile tone-pending" style="border-radius:16px;padding:20px 24px;">
+              <div style="font-size:13px;color:var(--tone-text);margin-bottom:8px;font-weight:600;">{{ 'admin.reports.doctorsCases' | t }}</div>
+              <div style="font-size:24px;font-weight:800;color:var(--text-primary);">
                 {{ filteredDoctorReportSummaries.length }}
-                <span style="font-size:14px;font-weight:400;color:#99f6e4;">{{ 'admin.reports.doctorUnit' | t }}</span>
+                <span style="font-size:14px;font-weight:400;color:var(--tone-text);">{{ 'admin.reports.doctorUnit' | t }}</span>
                 &nbsp;/&nbsp;
                 {{ allDoctorsTotalCases | number:'1.0-0' }}
-                <span style="font-size:14px;font-weight:400;color:#99f6e4;">{{ 'common.case' | t }}</span>
+                <span style="font-size:14px;font-weight:400;color:var(--tone-text);">{{ 'common.case' | t }}</span>
               </div>
             </div>
           </div>
@@ -732,13 +732,13 @@
               </thead>
               <tbody>
                 <tr *ngFor="let doc of filteredDoctorReportSummaries; let i = index" class="clickable-row" (click)="reportDoctorFilter = doc.doctorName">
-                  <td style="color:#9ca3af;font-size:13px;">{{ i + 1 }}</td>
+                  <td style="color:var(--text-muted);font-size:13px;">{{ i + 1 }}</td>
                   <td><strong>{{ doc.doctorName }}</strong></td>
                   <td>{{ doc.totalCases }}</td>
-                  <td><span style="color:#10b981;font-weight:600">{{ doc.totalDue | number:'1.0-0' }} EGP</span></td>
+                  <td><span style="color:var(--success-text);font-weight:600">{{ doc.totalDue | number:'1.0-0' }} EGP</span></td>
                   <td>{{ doc.totalPaid | number:'1.0-0' }} EGP</td>
                   <td>
-                    <span [style.color]="doc.remaining > 0 ? '#ef4444' : '#10b981'" style="font-weight:600">
+                    <span [style.color]="doc.remaining > 0 ? 'var(--danger-text)' : 'var(--success-text)'" style="font-weight:600">
                       {{ doc.remaining | number:'1.0-0' }} EGP
                     </span>
                   </td>
@@ -749,7 +749,7 @@
                   </td>
                 </tr>
                 <tr *ngIf="filteredDoctorReportSummaries.length === 0">
-                  <td colspan="7" style="text-align:center;padding:24px;color:#9ca3af;">{{ 'admin.reports.noResults' | t }}</td>
+                  <td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);">{{ 'admin.reports.noResults' | t }}</td>
                 </tr>
               </tbody>
             </table>
@@ -758,12 +758,12 @@
 
         <!-- 2. عرض تفاصيل الدكتور المختار مع حالاته -->
         <ng-container *ngIf="reportDoctorFilter">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; background:#161618; padding:12px 20px; border-radius:12px; border-left:4px solid #10b981;">
-            <h3 style="color:#fff; margin:0; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
-              <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:#10b981;"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; background:var(--bg-card); padding:12px 20px; border-radius:12px; border-left:4px solid var(--success-solid);">
+            <h3 style="color:var(--text-primary); margin:0; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
+              <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--success-text);"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
               {{ 'admin.reports.doctorAccountDetails' | t }}: {{ reportDoctorFilter }}
             </h3>
-            <button class="finish-btn" style="background:linear-gradient(135deg,#10b981,#059669); border:none; padding:8px 16px; font-weight:bold; display:flex; align-items:center; gap:8px; box-shadow:0 4px 12px rgba(16,185,129,0.2);" (click)="printDoctorReceipt()">
+            <button class="finish-btn" style="background:linear-gradient(135deg,var(--success-solid),var(--success-solid)); border:none; padding:8px 16px; font-weight:bold; display:flex; align-items:center; gap:8px; box-shadow:0 4px 12px color-mix(in srgb, var(--success-solid) 20%, transparent);" (click)="printDoctorReceipt()">
               <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6v-8z"/></svg>
               {{ 'admin.reports.printReceipt' | t }}
             </button>
@@ -771,25 +771,25 @@
 
           <!-- كروت ملخص حساب الطبيب المختار -->
           <div class="stats-grid" style="margin-bottom:24px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
-            <div class="stat-card" style="border-top:4px solid #14b8a6;">
+            <div class="stat-card" style="border-top:4px solid var(--accent-primary);">
               <div class="stat-label">{{ 'admin.reports.exitedCasesTotal' | t }}</div>
-              <div class="stat-value" style="color: #14b8a6;">{{ reportFilteredCases.length }}</div>
+              <div class="stat-value" style="color: var(--accent-primary);">{{ reportFilteredCases.length }}</div>
             </div>
-            <div class="stat-card" style="border-top:4px solid #10b981;">
+            <div class="stat-card" style="border-top:4px solid var(--success-solid);">
               <div class="stat-label">{{ 'admin.reports.grandTotal' | t }}</div>
-              <div class="stat-value" style="color: #10b981;">
+              <div class="stat-value" style="color: var(--success-text);">
                 {{ getDoctorTotalDue(reportDoctorFilter) | number:'1.0-0' }} EGP
               </div>
             </div>
-            <div class="stat-card" style="border-top:4px solid #f59e0b;">
+            <div class="stat-card" style="border-top:4px solid var(--warning-solid);">
               <div class="stat-label">{{ 'admin.reports.paidAmount' | t }}</div>
-              <div class="stat-value" style="color: #f59e0b;">
+              <div class="stat-value" style="color: var(--warning-text);">
                 {{ getDoctorTotalPaid(reportDoctorFilter) | number:'1.0-0' }} EGP
               </div>
             </div>
-            <div class="stat-card" style="border-top:4px solid #ef4444;">
+            <div class="stat-card" style="border-top:4px solid var(--danger-solid);">
               <div class="stat-label">{{ 'admin.reports.remainingDue' | t }}</div>
-              <div class="stat-value" style="color: #ef4444;">
+              <div class="stat-value" style="color: var(--danger-text);">
                 {{ (getDoctorTotalDue(reportDoctorFilter) - getDoctorTotalPaid(reportDoctorFilter)) | number:'1.0-0' }} EGP
               </div>
             </div>
@@ -798,7 +798,7 @@
           <!-- تخصيص أسعار الطبيب -->
           <div class="report-table-card report-doctor-prices" style="margin-bottom:24px; padding:20px;">
             <div class="report-section-title">
-              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:#14b8a6;"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--accent-primary);"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
               {{ 'admin.reports.customPrices' | t }}: {{ reportDoctorFilter }}
             </div>
             
@@ -813,18 +813,18 @@
               <button 
                 type="button" 
                 class="finish-btn" 
-                style="padding:8px 24px;font-size:14px;background:linear-gradient(135deg,#14b8a6,#0f766e);border:none;box-shadow:0 4px 12px rgba(15,118,110,0.2);" 
+                style="padding:8px 24px;font-size:14px;background:linear-gradient(135deg,var(--accent-primary),var(--accent-primary));border:none;box-shadow:0 4px 12px color-mix(in srgb, var(--accent-primary) 20%, transparent);" 
                 [disabled]="isPricingSaving"
                 (click)="saveDoctorCustomPrices()"
               >
                 {{ isPricingSaving ? ('common.saving' | t) : ('admin.reports.savePrices' | t) }}
               </button>
               
-              <span *ngIf="pricingSaveSuccess" style="color:#10b981;font-size:14px;display:flex;align-items:center;gap:4px;">
+              <span *ngIf="pricingSaveSuccess" style="color:var(--success-text);font-size:14px;display:flex;align-items:center;gap:4px;">
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
                 {{ 'admin.reports.pricesSaved' | t }}
               </span>
-              <span *ngIf="pricingSaveError" style="color:#ef4444;font-size:14px;">
+              <span *ngIf="pricingSaveError" style="color:var(--danger-text);font-size:14px;">
                 {{ pricingSaveError }}
               </span>
             </div>
@@ -834,7 +834,7 @@
           <div class="report-table-card report-doctor-payments" style="margin-bottom:24px; padding:20px;">
             <div class="report-section-title">
               <div style="display:flex;align-items:center;gap:8px;">
-                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:#10b981;"><path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--success-text);"><path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                 {{ 'admin.reports.paymentsTitle' | t }}: {{ reportDoctorFilter }}
               </div>
             </div>
@@ -861,7 +861,7 @@
                 <button 
                   type="button" 
                   class="finish-btn" 
-                  style="padding:10px 24px;font-size:14px;background:linear-gradient(135deg,#10b981,#059669);border:none;box-shadow:0 4px 12px rgba(16,185,129,0.2);display:flex;align-items:center;gap:6px;"
+                  style="padding:10px 24px;font-size:14px;background:linear-gradient(135deg,var(--success-solid),var(--success-solid));border:none;box-shadow:0 4px 12px color-mix(in srgb, var(--success-solid) 20%, transparent);display:flex;align-items:center;gap:6px;"
                   [disabled]="paymentSaving || !newPaymentAmount"
                   (click)="addDoctorPaymentOnAccount()"
                 >
@@ -871,7 +871,7 @@
               </div>
             </div>
 
-            <p *ngIf="paymentError" style="color:#ef4444;font-size:14px;margin-bottom:12px;">{{ paymentError }}</p>
+            <p *ngIf="paymentError" style="color:var(--danger-text);font-size:14px;margin-bottom:12px;">{{ paymentError }}</p>
 
             <!-- جدول الدفعات السابقة -->
             <div class="payments-table-wrap">
@@ -911,7 +911,7 @@
           <div class="report-table-card report-doctor-payments" style="margin-bottom:24px; padding:20px;">
             <div class="report-section-title">
               <div style="display:flex;align-items:center;gap:8px;">
-                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:#f59e0b;"><path d="M12 4v16m8-8H4"/></svg>
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--warning-text);"><path d="M12 4v16m8-8H4"/></svg>
                 {{ 'admin.reports.chargesTitle' | t }}: {{ reportDoctorFilter }}
               </div>
             </div>
@@ -938,7 +938,7 @@
                 <button
                   type="button"
                   class="finish-btn"
-                  style="padding:10px 24px;font-size:14px;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;box-shadow:0 4px 12px rgba(245,158,11,0.25);display:flex;align-items:center;gap:6px;"
+                  style="padding:10px 24px;font-size:14px;background:linear-gradient(135deg,var(--warning-solid),var(--warning-solid));border:none;box-shadow:0 4px 12px color-mix(in srgb, var(--warning-solid) 25%, transparent);display:flex;align-items:center;gap:6px;"
                   [disabled]="chargeSaving || !newChargeAmount"
                   (click)="addDoctorChargeOnAccount()"
                 >
@@ -947,7 +947,7 @@
               </div>
             </div>
 
-            <p *ngIf="chargeError" style="color:#ef4444;font-size:14px;margin-bottom:12px;">{{ chargeError }}</p>
+            <p *ngIf="chargeError" style="color:var(--danger-text);font-size:14px;margin-bottom:12px;">{{ chargeError }}</p>
 
             <div class="payments-table-wrap">
               <table class="payments-table">
@@ -962,7 +962,7 @@
                 <tbody>
                   <tr *ngFor="let p of getDoctorChargesList(reportDoctorFilter)">
                     <td>{{ formatDateEn(p.paymentDate) }}</td>
-                    <td class="payment-amount" style="color:#f59e0b;">+{{ p.amount | number:'1.0-0' }} EGP</td>
+                    <td class="payment-amount" style="color:var(--warning-text);">+{{ p.amount | number:'1.0-0' }} EGP</td>
                     <td class="payment-notes">{{ p.notes || '—' }}</td>
                     <td style="text-align:center;">
                       <button
@@ -1001,7 +1001,7 @@
                   <td>{{ c.exitedAtDisplay || ('common.unavailable' | t) }}</td>
                   <td>{{ translateCaseType(c.caseType) }}</td>
                   <td>
-                    <span style="font-weight:600;color:#10b981">{{ caseBillDisplay(c) | number:'1.0-0' }} EGP</span>
+                    <span style="font-weight:600;color:var(--success-text)">{{ caseBillDisplay(c) | number:'1.0-0' }} EGP</span>
                   </td>
                   <td>
                     <div class="salary-input-row">
@@ -1039,7 +1039,7 @@
                   </td>
                 </tr>
                 <tr *ngIf="reportFilteredCases.length === 0">
-                  <td colspan="6" style="text-align:center;padding:24px;color:#9ca3af;">{{ 'admin.reports.noCases' | t }}</td>
+                  <td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);">{{ 'admin.reports.noCases' | t }}</td>
                 </tr>
               </tbody>
             </table>
@@ -1154,14 +1154,14 @@
         </div>
 
         <div class="report-table-card wa-settings-card" style="padding:20px;max-width:720px;overflow:visible;margin-bottom:48px;">
-          <p style="margin:0 0 16px;color:#a1a1aa;font-size:14px;line-height:1.6;">
-            <strong style="color:#e4e4e7;">{{ 'admin.wa.introFree' | t }}</strong>
+          <p style="margin:0 0 16px;color:var(--text-muted);font-size:14px;line-height:1.6;">
+            <strong style="color:var(--text-secondary);">{{ 'admin.wa.introFree' | t }}</strong>
             {{ 'admin.wa.introFreeBody' | t }}<br>
-            <strong style="color:#e4e4e7;">{{ 'admin.wa.introPaid' | t }}</strong>
+            <strong style="color:var(--text-secondary);">{{ 'admin.wa.introPaid' | t }}</strong>
             {{ 'admin.wa.introPaidBody' | t }}
           </p>
 
-          <label class="remember-row" style="margin-bottom:14px;display:flex;gap:8px;align-items:center;color:#e4e4e7;">
+          <label class="remember-row" style="margin-bottom:14px;display:flex;gap:8px;align-items:center;color:var(--text-secondary);">
             <input type="checkbox" [(ngModel)]="waEnabled" />
             <span>{{ 'admin.wa.enable' | t }}</span>
           </label>
@@ -1189,13 +1189,13 @@
           <div class="control-card" style="margin-bottom:12px;">
             <label>{{ 'admin.wa.alertPhones' | t }}</label>
             <input type="text" [(ngModel)]="waAlertPhones" [attr.placeholder]="'admin.wa.alertPhonesPh' | t" />
-            <small style="color:#a1a1aa;">{{ 'admin.wa.alertPhonesHint' | t }}</small>
+            <small style="color:var(--text-muted);">{{ 'admin.wa.alertPhonesHint' | t }}</small>
           </div>
 
           <div class="control-card" style="margin-bottom:12px;">
             <label>{{ 'admin.wa.msgCompleted' | t }}</label>
             <textarea rows="3" [(ngModel)]="waMsgCompleted" style="width:100%;resize:vertical;"></textarea>
-            <small style="color:#a1a1aa;">
+            <small style="color:var(--text-muted);">
               {{ 'admin.wa.variables' | t }}
               {{ '{' }}lab{{ '}' }}
               {{ '{' }}patient{{ '}' }}
@@ -1217,11 +1217,11 @@
 
           <div
             class="control-card"
-            style="margin-bottom:16px;padding:16px;border:1px solid #2a2a2e;border-radius:12px;"
+            style="margin-bottom:16px;padding:16px;border:1px solid var(--border-primary);border-radius:12px;"
             *ngIf="waProvider === 'waweb'"
           >
             <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-              <strong style="color:#e4e4e7;">{{ 'admin.wa.linkTitle' | t }}</strong>
+              <strong style="color:var(--text-secondary);">{{ 'admin.wa.linkTitle' | t }}</strong>
               <span
                 class="staff-status-badge"
                 [class]="waWebConnected ? 'active' : 'inactive'"
@@ -1229,13 +1229,13 @@
                 {{ waWebStatusLabel }}
               </span>
             </div>
-            <p style="margin:0 0 12px;color:#a1a1aa;font-size:13px;line-height:1.5;">
+            <p style="margin:0 0 12px;color:var(--text-muted);font-size:13px;line-height:1.5;">
               {{ 'admin.wa.linkHint' | t }}
             </p>
             <div *ngIf="waWebQr" style="text-align:center;margin:12px 0;">
-              <img [src]="waWebQr" alt="WhatsApp QR" width="280" height="280" style="background:#fff;border-radius:8px;" />
+              <img [src]="waWebQr" alt="WhatsApp QR" width="280" height="280" style="background:var(--bg-card);border-radius:8px;" />
             </div>
-            <p *ngIf="waWebError" style="margin:0 0 10px;color:#f87171;font-size:13px;">{{ waWebError }}</p>
+            <p *ngIf="waWebError" style="margin:0 0 10px;color:var(--danger-text);font-size:13px;">{{ waWebError }}</p>
             <div style="display:flex;gap:10px;flex-wrap:wrap;">
               <button type="button" class="export-btn" (click)="startWhatsAppWeb(false)" [disabled]="waWebBusy">
                 {{ waWebBusy ? ('admin.wa.linking' | t) : (waWebConnected ? ('admin.wa.refreshStatus' | t) : ('admin.wa.linkQr' | t)) }}
@@ -1247,7 +1247,7 @@
                 {{ 'admin.wa.logout' | t }}
               </button>
             </div>
-            <p style="margin:10px 0 0;color:#a1a1aa;font-size:12px;line-height:1.5;">
+            <p style="margin:10px 0 0;color:var(--text-muted);font-size:12px;line-height:1.5;">
               {{ 'admin.wa.qrTip' | t }}
             </p>
           </div>
@@ -1298,16 +1298,16 @@
           </div>
 
           <p
-            style="margin:12px 0 0;padding:12px 14px;border-radius:10px;background:#422006;border:1px solid #b45309;color:#fde68a;font-size:13px;line-height:1.65;"
+            style="margin:12px 0 0;padding:12px 14px;border-radius:10px;background:var(--warning-bg);border:1px solid var(--warning-solid);color:var(--warning-text);font-size:13px;line-height:1.65;"
           >
             {{ 'admin.wa.testWarn' | t }}
             <ng-container *ngIf="waWebLinkedPhone">
               <br />
-              {{ 'admin.wa.linkedPhone' | t }} <strong dir="ltr" style="color:#fff;">{{ waWebLinkedPhone }}</strong>
+              {{ 'admin.wa.linkedPhone' | t }} <strong dir="ltr" style="color:var(--warning-text);">{{ waWebLinkedPhone }}</strong>
             </ng-container>
           </p>
 
-          <p *ngIf="waMsg" style="margin-top:14px;color:#38bdf8;font-size:14px;white-space:pre-line;">{{ waMsg }}</p>
+          <p *ngIf="waMsg" style="margin-top:14px;color:var(--stage-design-text);font-size:14px;white-space:pre-line;">{{ waMsg }}</p>
         </div>
       </ng-container>
 
@@ -1352,7 +1352,7 @@
           <button
             type="button"
             class="assistant-send-btn"
-            style="justify-self:start;width:auto;margin-top:10px;background:#0f766e;"
+            style="justify-self:start;width:auto;margin-top:10px;background:var(--accent-primary);"
             (click)="downloadJsonBackup()"
             [disabled]="archiveLoading"
           >
@@ -1362,7 +1362,7 @@
 
         <section class="financial-assistant-card" style="margin-top:14px;">
           <h3 class="financial-assistant-title">{{ 'admin.archive.resetTitle' | t }}</h3>
-          <p style="margin:0;color:#b42318;font-size:13px;line-height:1.6;">
+          <p style="margin:0;color:var(--danger-text);font-size:13px;line-height:1.6;">
             {{ 'admin.archive.resetBody1' | t }}
             <br />
             {{ 'admin.archive.resetBody2' | t }}
@@ -1374,7 +1374,7 @@
           <button
             type="button"
             class="assistant-send-btn"
-            style="justify-self:start;width:auto;background:#b42318;"
+            style="justify-self:start;width:auto;background:var(--danger-solid);"
             (click)="closeSelectedMonth()"
             [disabled]="archiveClosing"
           >
@@ -1384,7 +1384,7 @@
             <p class="financial-assistant-error">{{ archiveError }}</p>
           }
           @if (archiveSuccess) {
-            <p style="margin:0;color:#027a48;font-size:13px;font-weight:600;">{{ archiveSuccess }}</p>
+            <p style="margin:0;color:var(--success-text);font-size:13px;font-weight:600;">{{ archiveSuccess }}</p>
           }
         </section>
 
@@ -1415,7 +1415,7 @@
 
     <!-- Header: Logo centered, date top-left -->
     <div style="position:relative; margin-bottom:12px;">
-      <div style="font-size:0.78rem; color:#000;">
+      <div style="font-size:0.78rem; color:var(--text-primary);">
         {{ 'admin.reports.issueDate' | t }}: {{ currentPrintDate | date:'yyyy-MM-dd HH:mm' }}
       </div>
       <div style="text-align:center; margin-top:-18px;">
@@ -1424,7 +1424,7 @@
       </div>
     </div>
 
-    <div style="border-top:2px solid #000; border-bottom:1px dashed #000; padding:4px 0; margin-bottom:10px; text-align:center; font-weight:bold; font-size:0.9rem;">
+    <div style="border-top:2px solid var(--bg-primary); border-bottom:1px dashed var(--bg-primary); padding:4px 0; margin-bottom:10px; text-align:center; font-weight:bold; font-size:0.9rem;">
       {{ 'admin.reports.statementTitle' | t }} {{ reportDoctorFilter }}
     </div>
 
@@ -1432,8 +1432,8 @@
     <table class="receipt-table" style="margin-bottom:12px;">
       <thead>
         <tr>
-          <th style="text-align:right; padding:4px 2px; border-bottom:1px solid #000;">{{ 'admin.reports.statement' | t }}</th>
-          <th style="text-align:left;  padding:4px 2px; border-bottom:1px solid #000;">{{ 'admin.reports.value' | t }}</th>
+          <th style="text-align:right; padding:4px 2px; border-bottom:1px solid var(--bg-primary);">{{ 'admin.reports.statement' | t }}</th>
+          <th style="text-align:left;  padding:4px 2px; border-bottom:1px solid var(--bg-primary);">{{ 'admin.reports.value' | t }}</th>
         </tr>
       </thead>
       <tbody>
@@ -1449,22 +1449,22 @@
           <td style="text-align:right; padding:4px 2px;">{{ 'admin.reports.paidAmount' | t }}</td>
           <td style="text-align:left;  padding:4px 2px; font-weight:bold;">{{ getDoctorTotalPaid(reportDoctorFilter) | number:'1.0-0' }} EGP</td>
         </tr>
-        <tr style="border-top:1px solid #000;">
+        <tr style="border-top:1px solid var(--bg-primary);">
           <td style="text-align:right; padding:4px 2px; font-weight:bold;">{{ 'admin.reports.remainingDue' | t }}</td>
           <td style="text-align:left;  padding:4px 2px; font-weight:bold;">{{ (getDoctorTotalDue(reportDoctorFilter) - getDoctorTotalPaid(reportDoctorFilter)) | number:'1.0-0' }} EGP</td>
         </tr>
       </tbody>
     </table>
 
-    <div style="border-top:1px dashed #000; margin-bottom:8px;"></div>
+    <div style="border-top:1px dashed var(--bg-primary); margin-bottom:8px;"></div>
 
     <!-- Payments Table -->
     <div style="font-weight:bold; font-size:0.85rem; margin-bottom:4px; text-align:center;">{{ 'admin.reports.paymentsLog' | t }}</div>
     <table class="receipt-table" style="margin-bottom:12px;">
       <thead>
         <tr>
-          <th style="text-align:right; padding:4px 2px; border-bottom:1px solid #000;">{{ 'common.amount' | t }}</th>
-          <th style="text-align:left;  padding:4px 2px; border-bottom:1px solid #000;">{{ 'admin.reports.payDate' | t }}</th>
+          <th style="text-align:right; padding:4px 2px; border-bottom:1px solid var(--bg-primary);">{{ 'common.amount' | t }}</th>
+          <th style="text-align:left;  padding:4px 2px; border-bottom:1px solid var(--bg-primary);">{{ 'admin.reports.payDate' | t }}</th>
         </tr>
       </thead>
       <tbody>
@@ -1479,7 +1479,7 @@
     </table>
 
     <!-- Final Total Remaining -->
-    <div style="border-top:2px solid #000; padding-top:6px; margin-bottom:10px;">
+    <div style="border-top:2px solid var(--bg-primary); padding-top:6px; margin-bottom:10px;">
       <table style="width:100%; border-collapse:collapse;">
         <tr>
           <td style="font-size:1rem; font-weight:bold; text-align:right; padding:2px;">{{ 'admin.reports.remainingTotal' | t }}</td>
@@ -1488,7 +1488,7 @@
       </table>
     </div>
 
-    <div style="border-top:1px dashed #000; padding-top:8px; text-align:center; font-size:0.8rem;">
+    <div style="border-top:1px dashed var(--bg-primary); padding-top:8px; text-align:center; font-size:0.8rem;">
       {{ 'admin.reports.thanks' | t }}
     </div>
 

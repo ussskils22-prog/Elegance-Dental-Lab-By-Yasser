@@ -66,13 +66,7 @@ body.dark-theme {
   --accent-green: #4ade80;
   --accent-red: #f87171;
   --accent-amber: #fbbf24;
-
-  --badge-green-bg: rgba(74, 222, 128, 0.15);
-  --badge-green-text: #4ade80;
-  --badge-red-bg: rgba(248, 113, 113, 0.15);
-  --badge-red-text: #f87171;
-  --badge-amber-bg: rgba(251, 191, 36, 0.15);
-  --badge-amber-text: #fbbf24;
+  /* --badge-* come from the stage aliases further down */
 }
 
 /* Only apply OS dark preference when the user has not forced light theme */
@@ -115,8 +109,245 @@ body {
   overflow-y: auto;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-family: 'IBM Plex Sans Arabic', 'Tajawal', 'Segoe UI', system-ui, sans-serif;
+  font-family: var(--font-sans);
   transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ============================================================
+   STAGE TOKENS — one color per case stage, same meaning everywhere.
+   Light = warm beige paper, Dark = near-black. Spec:
+   docs/superpowers/specs/2026-11-23-unified-design-system-design.md
+   ============================================================ */
+:root {
+  --font-sans: 'Cairo', 'IBM Plex Sans Arabic', 'Segoe UI', system-ui, sans-serif;
+
+  --stage-total-bg: var(--bg-card);
+  --stage-total-border: var(--border-primary);
+  --stage-total-text: var(--text-secondary);
+  --stage-total-solid: var(--text-secondary);
+
+  --stage-pending-bg: #efe8da;
+  --stage-pending-border: #e0d6c3;
+  --stage-pending-text: #57534e;
+  --stage-pending-solid: #57534e;
+
+  --stage-design-bg: #e6eefa;
+  --stage-design-border: #c3d5ef;
+  --stage-design-text: #1d4f8f;
+  --stage-design-solid: #1d4f8f;
+
+  --stage-khart-bg: #eeebfa;
+  --stage-khart-border: #d4cdf2;
+  --stage-khart-text: #4b3f9e;
+  --stage-khart-solid: #4b3f9e;
+
+  --stage-revision-bg: #fbece5;
+  --stage-revision-border: #f1c7b4;
+  --stage-revision-text: #993c1d;
+  --stage-revision-solid: #993c1d;
+
+  --stage-finishing-bg: #fbf0dc;
+  --stage-finishing-border: #ecd3a3;
+  --stage-finishing-text: #8a5a0b;
+  --stage-finishing-solid: #8a5a0b;
+
+  --stage-finished-bg: #e6f3ea;
+  --stage-finished-border: #bfdcc8;
+  --stage-finished-text: #2f6b45;
+  --stage-finished-solid: #2f6b45;
+
+  --stage-exited-bg: #ece7dd;
+  --stage-exited-border: #ddd5c6;
+  --stage-exited-text: #78716c;
+  --stage-exited-solid: #78716c;
+
+  --stage-urgent-bg: #fbe9e7;
+  --stage-urgent-border: #f0c2bc;
+  --stage-urgent-text: #b42318;
+  --stage-urgent-solid: #b42318;
+}
+
+body.dark-theme {
+  --stage-total-bg: #1c2027;
+  --stage-total-border: #2a2d33;
+  --stage-total-text: #9aa0a8;
+  --stage-total-solid: #9aa0a8;
+
+  --stage-pending-bg: #22252b;
+  --stage-pending-border: #2f333a;
+  --stage-pending-text: #c3c8cf;
+  --stage-pending-solid: #c3c8cf;
+
+  --stage-design-bg: #172535;
+  --stage-design-border: #203a57;
+  --stage-design-text: #9cc4fb;
+  --stage-design-solid: #9cc4fb;
+
+  --stage-khart-bg: #221d36;
+  --stage-khart-border: #3a3160;
+  --stage-khart-text: #b8aef5;
+  --stage-khart-solid: #b8aef5;
+
+  --stage-revision-bg: #2c1c16;
+  --stage-revision-border: #55301f;
+  --stage-revision-text: #f0997b;
+  --stage-revision-solid: #f0997b;
+
+  --stage-finishing-bg: #2a2213;
+  --stage-finishing-border: #4a3a1a;
+  --stage-finishing-text: #eec06c;
+  --stage-finishing-solid: #eec06c;
+
+  --stage-finished-bg: #13281f;
+  --stage-finished-border: #1d4433;
+  --stage-finished-text: #5fd6a0;
+  --stage-finished-solid: #5fd6a0;
+
+  --stage-exited-bg: #1d1f23;
+  --stage-exited-border: #2a2d33;
+  --stage-exited-text: #8b929b;
+  --stage-exited-solid: #8b929b;
+
+  --stage-urgent-bg: #2e1717;
+  --stage-urgent-border: #5a2626;
+  --stage-urgent-text: #f87171;
+  --stage-urgent-solid: #f87171;
+}
+
+/* OS dark preference when the user has not picked a theme — must mirror body.dark-theme */
+@media (prefers-color-scheme: dark) {
+  body:not(.light-theme):not(.dark-theme) {
+    --accent-primary: #2dd4bf;
+    --accent-secondary: #134e4a;
+    --accent-blue: #5eead4;
+    --accent-green: #4ade80;
+    --accent-red: #f87171;
+    --accent-amber: #fbbf24;
+
+    --stage-total-bg: #1c2027;
+    --stage-total-border: #2a2d33;
+    --stage-total-text: #9aa0a8;
+    --stage-total-solid: #9aa0a8;
+
+    --stage-pending-bg: #22252b;
+    --stage-pending-border: #2f333a;
+    --stage-pending-text: #c3c8cf;
+    --stage-pending-solid: #c3c8cf;
+
+    --stage-design-bg: #172535;
+    --stage-design-border: #203a57;
+    --stage-design-text: #9cc4fb;
+    --stage-design-solid: #9cc4fb;
+
+    --stage-khart-bg: #221d36;
+    --stage-khart-border: #3a3160;
+    --stage-khart-text: #b8aef5;
+    --stage-khart-solid: #b8aef5;
+
+    --stage-revision-bg: #2c1c16;
+    --stage-revision-border: #55301f;
+    --stage-revision-text: #f0997b;
+    --stage-revision-solid: #f0997b;
+
+    --stage-finishing-bg: #2a2213;
+    --stage-finishing-border: #4a3a1a;
+    --stage-finishing-text: #eec06c;
+    --stage-finishing-solid: #eec06c;
+
+    --stage-finished-bg: #13281f;
+    --stage-finished-border: #1d4433;
+    --stage-finished-text: #5fd6a0;
+    --stage-finished-solid: #5fd6a0;
+
+    --stage-exited-bg: #1d1f23;
+    --stage-exited-border: #2a2d33;
+    --stage-exited-text: #8b929b;
+    --stage-exited-solid: #8b929b;
+
+    --stage-urgent-bg: #2e1717;
+    --stage-urgent-border: #5a2626;
+    --stage-urgent-text: #f87171;
+    --stage-urgent-solid: #f87171;
+  }
+}
+
+/* Badge aliases now follow stage meaning. Declared on body (not only :root) so
+   var() resolves against body's theme — incl. OS-dark with no theme class. */
+:root,
+body {
+  --badge-green-bg: var(--stage-finished-bg);
+  --badge-green-text: var(--stage-finished-text);
+  --badge-amber-bg: var(--stage-finishing-bg);
+  --badge-amber-text: var(--stage-finishing-text);
+  --badge-red-bg: var(--stage-urgent-bg);
+  --badge-red-text: var(--stage-urgent-text);
+
+  /* Semantic roles (not stages): reuse the stage palette so meaning stays one-to-one */
+  --success-bg: var(--stage-finished-bg);
+  --success-border: var(--stage-finished-border);
+  --success-text: var(--stage-finished-text);
+  --success-solid: var(--stage-finished-solid);
+  --danger-bg: var(--stage-urgent-bg);
+  --danger-border: var(--stage-urgent-border);
+  --danger-text: var(--stage-urgent-text);
+  --danger-solid: var(--stage-urgent-solid);
+  --warning-bg: var(--stage-finishing-bg);
+  --warning-border: var(--stage-finishing-border);
+  --warning-text: var(--stage-finishing-text);
+  --warning-solid: var(--stage-finishing-solid);
+  --neutral-bg: var(--stage-pending-bg);
+  --neutral-border: var(--stage-pending-border);
+  --neutral-text: var(--stage-pending-text);
+
+  /* Brand teal: tints and text on solid fills */
+  --accent-tint-bg: var(--accent-secondary);
+  --accent-tint-border: color-mix(in srgb, var(--accent-primary) 35%, transparent);
+  --accent-tint-text: var(--accent-primary);
+  --accent-hover: color-mix(in srgb, var(--accent-primary) 82%, var(--text-primary));
+  --on-accent: var(--bg-card); /* text on a solid teal fill */
+  --on-tone: var(--bg-card);   /* text on any solid stage/semantic fill */
+}
+
+/* Tone helpers: put .tone-<stage> on an element, style it with var(--tone-*) */
+.tone-total     { --tone-bg: var(--stage-total-bg);     --tone-border: var(--stage-total-border);     --tone-text: var(--stage-total-text);     --tone-solid: var(--stage-total-solid); }
+.tone-pending   { --tone-bg: var(--stage-pending-bg);   --tone-border: var(--stage-pending-border);   --tone-text: var(--stage-pending-text);   --tone-solid: var(--stage-pending-solid); }
+.tone-design    { --tone-bg: var(--stage-design-bg);    --tone-border: var(--stage-design-border);    --tone-text: var(--stage-design-text);    --tone-solid: var(--stage-design-solid); }
+.tone-khart     { --tone-bg: var(--stage-khart-bg);     --tone-border: var(--stage-khart-border);     --tone-text: var(--stage-khart-text);     --tone-solid: var(--stage-khart-solid); }
+.tone-revision  { --tone-bg: var(--stage-revision-bg);  --tone-border: var(--stage-revision-border);  --tone-text: var(--stage-revision-text);  --tone-solid: var(--stage-revision-solid); }
+.tone-finishing { --tone-bg: var(--stage-finishing-bg); --tone-border: var(--stage-finishing-border); --tone-text: var(--stage-finishing-text); --tone-solid: var(--stage-finishing-solid); }
+.tone-finished  { --tone-bg: var(--stage-finished-bg);  --tone-border: var(--stage-finished-border);  --tone-text: var(--stage-finished-text);  --tone-solid: var(--stage-finished-solid); }
+.tone-exited    { --tone-bg: var(--stage-exited-bg);    --tone-border: var(--stage-exited-border);    --tone-text: var(--stage-exited-text);    --tone-solid: var(--stage-exited-solid); }
+.tone-urgent    { --tone-bg: var(--stage-urgent-bg);    --tone-border: var(--stage-urgent-border);    --tone-text: var(--stage-urgent-text);    --tone-solid: var(--stage-urgent-solid); }
+
+/* Stat tile: tinted card, stage-colored label, plain bold number */
+.stat-tile {
+  background: var(--tone-bg, var(--stage-total-bg));
+  border: 1px solid var(--tone-border, var(--stage-total-border));
+  border-radius: 14px;
+}
+.stat-tile .stat-label,
+.stat-tile__label {
+  color: var(--tone-text, var(--stage-total-text));
+  font-weight: 600;
+}
+.stat-tile .stat-value,
+.stat-tile__value {
+  color: var(--text-primary);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Stage pill: small badge on a case */
+.stage-pill {
+  display: inline-flex;
+  align-items: center;
+  background: var(--tone-bg);
+  color: var(--tone-text);
+  border: 1px solid var(--tone-border);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 app-root {

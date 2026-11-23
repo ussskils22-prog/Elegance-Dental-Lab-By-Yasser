@@ -2,7 +2,7 @@
 :host {
   --primary: var(--accent-primary);
   --primary-mid: var(--accent-blue);
-  --primary-dark: #134e4a;
+  --primary-dark: var(--accent-hover);
   --accent: var(--accent-primary);
   --page-bg: var(--bg-primary);
   --card: var(--bg-card);
@@ -14,12 +14,7 @@
   --radius-control: 12px;
   display: block;
   min-height: 100vh;
-  font-family:
-    'IBM Plex Sans Arabic',
-    'Tajawal',
-    'Segoe UI',
-    system-ui,
-    sans-serif;
+  font-family: var(--font-sans);
 }
 
 .login-page {
@@ -54,7 +49,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   direction: ltr;
-  background: var(--bg-card, #fff);
+  background: var(--bg-card);
   border-radius: var(--radius-card);
   box-shadow: 0 24px 60px rgba(15, 38, 79, 0.14);
   overflow: hidden;
@@ -64,42 +59,42 @@
 
 @media (prefers-color-scheme: dark) {
   body.dark-theme .login-card {
-    background: #161618 !important;
+    background: var(--bg-card) !important;
     box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
   }
 }
 
 body.dark-theme .login-card,
 .dark-theme .login-card {
-  background: #161618 !important;
+  background: var(--bg-card) !important;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
 }
 
 body.dark-theme .title,
 .dark-theme .title {
-  color: #fafafa !important;
+  color: var(--text-primary) !important;
 }
 
 body.dark-theme .subtitle,
 .dark-theme .subtitle {
-  color: #a1a1aa !important;
+  color: var(--text-muted) !important;
 }
 
 body.dark-theme .field label,
 .dark-theme .field label {
-  color: #e4e4e7 !important;
+  color: var(--text-secondary) !important;
 }
 
 body.dark-theme .input-wrap input,
 .dark-theme .input-wrap input {
-  background: #0a0a0b !important;
-  color: #fafafa !important;
-  border-color: #2a2a2e !important;
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-primary) !important;
 }
 
 body.dark-theme .input-wrap input::placeholder,
 .dark-theme .input-wrap input::placeholder {
-  color: #71717a !important;
+  color: var(--text-muted) !important;
 }
 
 .form-panel {
@@ -225,7 +220,7 @@ body.dark-theme .input-wrap input::placeholder,
 }
 
 .input-wrap input::placeholder {
-  color: #9aa8c2;
+  color: var(--text-muted);
 }
 
 .input-action {
@@ -238,7 +233,7 @@ body.dark-theme .input-wrap input::placeholder,
   height: 2.2rem;
   border: none;
   background: transparent;
-  color: #6b7a95;
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 0;
 }
@@ -265,7 +260,7 @@ body.dark-theme .input-wrap input::placeholder,
   display: flex;
   width: 1.35rem;
   height: 1.35rem;
-  color: #8a9bb8;
+  color: var(--text-muted);
   pointer-events: none;
 }
 
@@ -283,7 +278,7 @@ body.dark-theme .input-wrap input::placeholder,
   border-radius: 14px;
   font-size: 1.05rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--on-accent);
   background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
   cursor: pointer;
   box-shadow: 0 8px 24px rgba(12, 61, 140, 0.28);
@@ -309,7 +304,7 @@ body.dark-theme .input-wrap input::placeholder,
   margin-top: 1.5rem;
   padding-top: 0.25rem;
   font-size: 0.78rem;
-  color: #8b97b0;
+  color: var(--text-muted);
 }
 
 .version {
@@ -340,14 +335,14 @@ body.dark-theme .input-wrap input::placeholder,
   flex-direction: column;
   justify-content: flex-end;
   padding: clamp(1.75rem, 4vw, 2.75rem);
-  color: #fff;
+  color: #fff; /* hex-ok: text over the dark hero photo */
   overflow: hidden;
 }
 
 .hero-bg {
   position: absolute;
   inset: 0;
-  background-color: #050505;
+  background-color: #050505; /* hex-ok: backdrop behind the login hero photo */
   background-image: url('../../../assets/login-hero.jpg');
   background-size: cover;
   background-position: center center;
@@ -437,16 +432,16 @@ body.dark-theme .input-wrap input::placeholder,
   justify-content: space-between;
   padding: 12px 14px;
   border-radius: 14px;
-  background: #f0fdfa;
-  border: 1px solid #99f6e4;
-  color: #1e3a8a;
+  background: var(--accent-tint-bg);
+  border: 1px solid var(--accent-tint-border);
+  color: var(--stage-design-text);
   box-shadow: 0 8px 24px rgba(10, 10, 11, 0.12);
 }
 
 .access-banner--warn {
-  background: #fff7ed;
-  border-color: #fed7aa;
-  color: #9a3412;
+  background: var(--warning-bg);
+  border-color: var(--warning-border);
+  color: var(--warning-text);
 }
 
 .access-banner-text {
@@ -486,9 +481,9 @@ body.dark-theme .input-wrap input::placeholder,
 }
 
 .access-btn--primary {
-  background: #115e59;
-  border-color: #115e59;
-  color: #fff;
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: var(--on-accent);
 }
 
 .access-btn--install {
@@ -499,19 +494,19 @@ body.dark-theme .input-wrap input::placeholder,
 }
 
 .access-banner--install {
-  background: #ecfdf5;
-  border-color: #6ee7b7;
-  color: #065f46;
+  background: var(--success-bg);
+  border-color: var(--success-text);
+  color: var(--success-text);
 }
 
 .access-banner--install .access-btn--primary {
-  background: #059669;
-  border-color: #059669;
+  background: var(--success-solid);
+  border-color: var(--success-solid);
 }
 
 .access-banner--warn .access-btn--primary {
-  background: #c2410c;
-  border-color: #c2410c;
+  background: var(--warning-solid);
+  border-color: var(--warning-solid);
 }
 
 .ios-install-overlay {
@@ -528,8 +523,8 @@ body.dark-theme .input-wrap input::placeholder,
 .ios-install-sheet {
   width: 100%;
   max-width: 420px;
-  background: #fff;
-  color: #0a0a0b;
+  background: var(--bg-card);
+  color: var(--text-primary);
   border-radius: 18px 18px 14px 14px;
   padding: 20px 18px 16px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
@@ -544,7 +539,7 @@ body.dark-theme .input-wrap input::placeholder,
 .ios-install-note {
   margin: 0 0 14px;
   font-size: 0.9rem;
-  color: #3a3a40;
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
@@ -570,8 +565,8 @@ body.dark-theme .input-wrap input::placeholder,
   width: 28px;
   height: 28px;
   border-radius: 999px;
-  background: #059669;
-  color: #fff;
+  background: var(--success-solid);
+  color: var(--on-accent);
   font-weight: 800;
   display: inline-flex;
   align-items: center;
@@ -584,7 +579,7 @@ body.dark-theme .input-wrap input::placeholder,
   height: 18px;
   vertical-align: -3px;
   margin-inline-start: 4px;
-  color: #0f766e;
+  color: var(--accent-primary);
 }
 
 .ios-install-sheet .access-btn--install {
@@ -593,13 +588,13 @@ body.dark-theme .input-wrap input::placeholder,
 
 body.dark-theme .ios-install-sheet,
 .dark-theme .ios-install-sheet {
-  background: #0a0a0b;
-  color: #e4e4e7;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
 }
 
 body.dark-theme .ios-install-note,
 .dark-theme .ios-install-note {
-  color: #a1a1aa;
+  color: var(--text-muted);
 }
 
 .remember-row {
@@ -637,5 +632,5 @@ body.dark-theme .ios-install-note,
 
 .footer-sep {
   margin: 0 0.35rem;
-  color: #8b97b0;
+  color: var(--text-muted);
 }

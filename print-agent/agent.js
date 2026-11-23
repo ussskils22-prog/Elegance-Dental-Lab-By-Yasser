@@ -154,7 +154,6 @@ const RECEIPT_PRINTER_NAME = config.RECEIPT_PRINTER_NAME || 'XP-Q808K';
 let receiptPrinterOk = false;
 const RECONNECT_DELAY = 3000; // ms
 const POLL_INTERVAL_MS = Number(config.POLL_INTERVAL_MS) || 20000;
-const PRINT_CONFIRM_TIMEOUT_MS = Number(config.PRINT_CONFIRM_TIMEOUT_MS) || 90000;
 const PRINTER_CHECK_MS = Number(config.PRINTER_CHECK_MS) || 10000;
 
 console.log('🖨️  Elegance Print Agent starting...');
@@ -162,8 +161,8 @@ console.log(`   Server  : ${SERVER_URL}`);
 console.log(`   Printer : ${PRINTER_NAME}`);
 console.log(`   Receipt : ${RECEIPT_PRINTER_NAME}`);
 console.log(`   Poll    : every ${POLL_INTERVAL_MS / 1000}s`);
-console.log(`   Confirm : ${PRINT_CONFIRM_TIMEOUT_MS / 1000}s spooler timeout`);
-console.log(`   Printer check: every ${PRINTER_CHECK_MS / 1000}s`);
+console.log('   Handoff : Sumatra return (no spooler wait — keeps the HP fast)');
+console.log(`   Receipt check: every ${Math.max(PRINTER_CHECK_MS, 30000) / 1000}s`);
 
 // ── Keep Windows from sleeping while agent runs ───────────
 function enableKeepAwake() {
@@ -262,7 +261,6 @@ let currentJobId = null;
 let isProcessingQueue = false;
 let networkDown = false;
 let printerDown = false;
-let lastPrinterOk = null;
 
 function normalizeJobId(jobId) {
   return String(jobId);
@@ -276,6 +274,16 @@ function isPrinterIssueError(message) {
 const startedIds = new Set();
 /** Serialize SumatraPDF — concurrent prints jam the HP P1102 spooler */
 let printPdfChain = Promise.resolve();
+
+/** One Sumatra at a time. A previous failure must not skip the next sheet. */
+function runSerializedPrint(task) {
+  const run = printPdfChain.catch(() => {}).then(task);
+  printPdfChain = run.then(
+    () => undefined,
+    () => undefined
+  );
+  return run;
+}
 const JOB_LOCK_DIR = path.join(__dirname, 'daemon', 'job-locks');
 
 /**
@@ -388,7 +396,7 @@ async function getPrinterHealth(printerName) {
   const script = `
 $ErrorActionPreference = 'Stop'
 $name = '${escapePsSingleQuoted(name)}'
-$p = Get-CimInstance -ClassName Win32_Printer | Where-Object { $_.Name -eq $name } | Select-Object -First 1
+$p = Get-CimInstance -ClassName Win32_Printer -Filter "Name='$name'" | Select-Object -First 1
 if (-not $p) {
   (@{ ok = $false; error = "Printer not found: $name"; offline = $true; status = -1; detectedError = -1 }) | ConvertTo-Json -Compress
   exit 0
@@ -530,6 +538,13 @@ async function processQueue() {
         continue;
       }
 
+      const isReceipt = String(job.printData?.jobKind || '') === 'receipt';
+      const printerName = isReceipt ? RECEIPT_PRINTER_NAME : PRINTER_NAME;
+      // Build the ticket while the claim round-trip is in flight so Sumatra starts sooner.
+      const htmlPromise = (
+        isReceipt ? Promise.resolve(buildReceiptHtml(job.printData)) : buildPrintHtml(job.printData)
+      ).catch((err) => err);
+
       // Atomic server claim — if another agent already owns this job, skip (no second sheet)
       const claimed = await claimJob(job.jobId);
       if (!claimed) {
@@ -540,23 +555,21 @@ async function processQueue() {
         continue;
       }
 
-      const isReceipt = String(job.printData?.jobKind || '') === 'receipt';
-      const printerName = isReceipt ? RECEIPT_PRINTER_NAME : PRINTER_NAME;
       if (isReceipt && !String(printerName || '').trim()) {
         throw new Error('RECEIPT_PRINTER_NAME is empty in config.json');
       }
-      const html = isReceipt ? buildReceiptHtml(job.printData) : await buildPrintHtml(job.printData);
+      const htmlOrErr = await htmlPromise;
+      if (htmlOrErr instanceof Error) throw htmlOrErr;
+      const html = htmlOrErr;
       const pdfPath = path.join(os.tmpdir(), `print_job_${job.jobId}.pdf`);
       const t0 = Date.now();
       await generatePdf(html, pdfPath, isReceipt ? 'receipt' : 'sheet');
       console.log(`   ✅ PDF generated in ${Date.now() - t0}ms: ${pdfPath}`);
 
       console.log(`   🖨️  Sending PDF to printer [${printerName}]...`);
-      await new Promise((resolve, reject) => {
-        printPdfChain = printPdfChain
-          .then(() => withTimeout(printPdf(pdfPath, printerName), 20000, 'printPdf'))
-          .then(resolve, reject);
-      });
+      // Wait for this Sumatra to exit before the next one. A timeout here used to
+      // start a second Sumatra while the first was still talking to the P1102, and the queue stayed empty.
+      await runSerializedPrint(() => printPdf(pdfPath, printerName));
       console.log(`   📤 Sent to Windows spooler [${printerName}]`);
 
       const confirm = await waitForPrintConfirmation(printerName, new Set());
@@ -574,11 +587,14 @@ async function processQueue() {
         console.warn('   ⚠️  Ignoring failure after local completion');
       } else if (isPrinterIssueError(err.message)) {
         printerDown = true;
-        // Allow a later retry after printer recovers
+        // Allow a later retry after printer recovers. The file lock must go too,
+        // or catch-up skips this job forever and the HP queue stays empty.
         startedIds.delete(job.jobId);
+        releaseJobLock(job.jobId);
         await reportStatus(job.jobId, 'pending', `Waiting for printer: ${err.message}`);
         console.log('   ⏳ Job held as pending — will print when printer/agent is back');
       } else {
+        // Keep the lock. Sumatra may already have accepted the sheet, and a retry would print twice.
         await reportStatus(job.jobId, 'failed', err.message);
       }
     } finally {
@@ -709,23 +725,8 @@ async function fetchAndEnqueuePending(reason) {
       return true;
     }
 
-    // If printer is down, hold jobs on server as pending — don't burn them as failed
-    const health = await getPrinterHealth(PRINTER_NAME);
-    if (!health.ok) {
-      printerDown = true;
-      lastPrinterOk = false;
-      console.warn(
-        `⏳ Printer not ready (${health.error || 'unknown'}) — holding ${jobs.length} unfinished job(s) until printer is back`
-      );
-      return true;
-    }
-
-    if (printerDown || lastPrinterOk === false) {
-      console.log('🖨️  Printer ready — releasing held print jobs...');
-      printerDown = false;
-    }
-    lastPrinterOk = true;
-
+    // Do not probe Win32_Printer here. That WMI query stalls the HP P1102 and
+    // the sheet never reaches the queue. Sumatra itself reports a dead printer.
     let added = 0;
     for (const job of jobs) {
       const ok = enqueueJob(job, `poll:${reason}`, { fromServerCatchUp: true });
@@ -780,30 +781,9 @@ async function checkReceiptPrinter(logChange) {
 }
 checkReceiptPrinter(true);
 setInterval(() => checkReceiptPrinter(false), Math.max(PRINTER_CHECK_MS, 30000));
-
-// Watch printer USB/power — when it comes back, print everything waiting
-setInterval(async () => {
-  try {
-    const health = await getPrinterHealth(PRINTER_NAME);
-    const ok = Boolean(health.ok);
-    if (lastPrinterOk === false && ok) {
-      console.log('🖨️  Printer came back online — catching up held jobs...');
-      printerDown = false;
-      lastPrinterOk = true;
-      catchUpBurst('printer-restore');
-    } else if (lastPrinterOk === true && !ok) {
-      printerDown = true;
-      lastPrinterOk = false;
-      console.warn(`⚠️  Printer went offline: ${health.error || 'not ready'}`);
-    } else if (lastPrinterOk === null) {
-      lastPrinterOk = ok;
-      printerDown = !ok;
-      console.log(ok ? `   Printer status: ready` : `   Printer status: NOT ready (${health.error || ''})`);
-    }
-  } catch (err) {
-    console.warn('⚠️  Printer health check failed:', err.message);
-  }
-}, Math.max(PRINTER_CHECK_MS, 30000));
+// No periodic Win32_Printer poll for the sheet printer. It jammed the P1102
+// so Sumatra returned while the Windows queue stayed empty. Pending sheets
+// are picked up by the normal poll and printed immediately.
 
 // Catch-up on boot / agent restart (laptop was off, service just started)
 catchUpBurst('startup');

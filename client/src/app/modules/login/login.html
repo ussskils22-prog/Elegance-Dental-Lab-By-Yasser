@@ -195,7 +195,7 @@
           <button type="submit" class="btn-login" [disabled]="submitting">
             {{ (submitting ? 'login.submitting' : 'login.submit') | t }}
           </button>
-          <p *ngIf="loginError" style="margin-top:10px;color:#dc2626;font-size:13px;">{{ loginError }}</p>
+          <p *ngIf="loginError" style="margin-top:10px;color:var(--danger-text);font-size:13px;">{{ loginError }}</p>
         </form>
 
         <footer class="form-footer">

@@ -14,15 +14,15 @@
   height: 42px;
   border: none;
   border-radius: 12px;
-  background: #eef1f6;
-  color: #2a2a2e;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 0;
 }
 
 .app-menu-btn:hover {
-  background: #e4e4e7;
-  color: #0f766e;
+  background: var(--tag-bg);
+  color: var(--accent-primary);
 }
 
 .app-menu-btn svg {
@@ -39,9 +39,9 @@
   max-width: min(340px, calc(100vw - 16px));
   padding: 10px;
   border-radius: 14px;
-  border: 1px solid #d4d4d8;
-  background: #ffffff !important;
-  color: #0a0a0b !important;
+  border: 1px solid var(--border-primary);
+  background: var(--bg-card) !important;
+  color: var(--text-primary) !important;
   box-shadow: 0 16px 40px rgba(10, 10, 11, 0.2);
   animation: app-menu-in 0.14s ease;
   text-align: start;
@@ -59,7 +59,7 @@
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.02em;
-  color: #3a3a40 !important;
+  color: var(--text-secondary) !important;
   opacity: 1 !important;
   visibility: visible !important;
 }
@@ -73,7 +73,7 @@
   gap: 10px;
   border: none;
   background: transparent;
-  color: #0a0a0b !important;
+  color: var(--text-primary) !important;
   text-align: start;
   font-family: inherit;
   font-size: 15px;
@@ -103,14 +103,14 @@
 
 .app-menu-item:hover,
 .app-menu-item:focus-visible {
-  background: #f0fdfa;
-  color: #115e59 !important;
+  background: var(--accent-tint-bg);
+  color: var(--accent-hover) !important;
   outline: none;
 }
 
 .app-menu-item.active {
-  background: #ccfbf1;
-  color: #0f766e !important;
+  background: var(--accent-tint-bg);
+  color: var(--accent-primary) !important;
 }
 
 .app-menu-check {
@@ -120,8 +120,8 @@
   width: 22px;
   height: 22px;
   border-radius: 6px;
-  background: #0f766e;
-  color: #ffffff !important;
+  background: var(--accent-primary);
+  color: var(--on-accent) !important;
   font-size: 13px;
   font-weight: 900;
   flex-shrink: 0;
@@ -130,7 +130,7 @@
 .app-menu-sep {
   height: 1px;
   margin: 6px 4px;
-  background: #e4e4e7;
+  background: var(--tag-bg);
 }
 
 @keyframes app-menu-in {
@@ -145,48 +145,48 @@
 }
 
 body.dark-theme .app-menu-btn {
-  background: #161618;
-  color: #e4e4e7;
+  background: var(--bg-card);
+  color: var(--text-secondary);
 }
 
 body.dark-theme .app-menu-btn:hover {
-  background: #2a2a2e;
-  color: #5eead4;
+  background: var(--border-primary);
+  color: var(--accent-primary);
 }
 
 body.dark-theme .app-menu-panel {
-  background: #0a0a0b !important;
-  border-color: #3a3a40;
-  color: #fafafa !important;
+  background: var(--bg-primary) !important;
+  border-color: var(--border-secondary);
+  color: var(--text-primary) !important;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
 }
 
 body.dark-theme .app-menu-section {
-  color: #d4d4d8 !important;
+  color: var(--text-secondary) !important;
 }
 
 body.dark-theme .app-menu-item {
-  color: #fafafa !important;
+  color: var(--text-primary) !important;
 }
 
 body.dark-theme .app-menu-item:hover,
 body.dark-theme .app-menu-item:focus-visible {
-  background: #1e3a5f;
-  color: #5eead4 !important;
+  background: var(--accent-tint-bg);
+  color: var(--accent-primary) !important;
 }
 
 body.dark-theme .app-menu-item.active {
-  background: #134e4a;
-  color: #5eead4 !important;
+  background: var(--accent-hover);
+  color: var(--accent-primary) !important;
 }
 
 body.dark-theme .app-menu-check {
-  background: #14b8a6;
-  color: #042f2e !important;
+  background: var(--accent-primary);
+  color: var(--on-accent) !important;
 }
 
 body.dark-theme .app-menu-sep {
-  background: #2a2a2e;
+  background: var(--border-primary);
 }
 
 @media (max-width: 640px) {

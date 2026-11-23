@@ -598,7 +598,7 @@
               }
 
               @if (!hasWorkTypesWithQuantity) {
-                <p class="wt-error" style="color:#a1a1aa;margin:8px 0 0;">
+                <p class="wt-error" style="color:var(--text-muted);margin:8px 0 0;">
                   {{ 'doctor.toothHint' | t }}
                 </p>
               }
@@ -721,7 +721,7 @@
     <div class="modal-backdrop" role="presentation" (click)="skipPinSetup()">
       <div class="modal" role="dialog" aria-modal="true" (click)="$event.stopPropagation()" style="max-width:420px;">
         <h2 class="modal-title">{{ 'doctor.pinTitle' | t }}</h2>
-        <p style="margin:0 0 12px;color:#71717a;font-size:14px;line-height:1.5;">
+        <p style="margin:0 0 12px;color:var(--text-muted);font-size:14px;line-height:1.5;">
           {{ 'doctor.pinDesc' | t }}
         </p>
         <label class="form-field">
@@ -733,7 +733,7 @@
           <input type="password" inputmode="numeric" maxlength="6" [(ngModel)]="pinConfirm" placeholder="••••" />
         </label>
         @if (pinError) {
-          <p style="color:#dc2626;font-size:13px;">{{ pinError }}</p>
+          <p style="color:var(--danger-text);font-size:13px;">{{ pinError }}</p>
         }
         <div class="modal-actions">
           <button type="button" class="btn-secondary" (click)="skipPinSetup()" [disabled]="pinSaving">{{ 'doctor.pinLater' | t }}</button>

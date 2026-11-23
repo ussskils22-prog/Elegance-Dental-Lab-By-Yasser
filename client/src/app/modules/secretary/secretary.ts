@@ -496,12 +496,12 @@ export class Secretary implements OnInit, OnDestroy {
     const exited = allCases.filter((c) => this.caseBucket(c) === 'exited').length;
 
     return [
-      { label: this.lang.t('stats.total'), value: allCases.length, color: 'purple' as const },
-      { label: this.lang.t('stats.new'), value: pending, color: 'amber' as const },
-      { label: this.lang.t('stats.design'), value: design, color: 'blue' as const },
-      { label: this.lang.t('stats.finishing'), value: finishing, color: 'teal' as const },
-      { label: this.lang.t('stats.finished'), value: finished, color: 'emerald' as const },
-      { label: this.lang.t('stats.exited'), value: exited, color: 'rose' as const },
+      { label: this.lang.t('stats.total'), value: allCases.length, tone: 'total' as const },
+      { label: this.lang.t('stats.new'), value: pending, tone: 'pending' as const },
+      { label: this.lang.t('stats.design'), value: design, tone: 'design' as const },
+      { label: this.lang.t('stats.finishing'), value: finishing, tone: 'finishing' as const },
+      { label: this.lang.t('stats.finished'), value: finished, tone: 'finished' as const },
+      { label: this.lang.t('stats.exited'), value: exited, tone: 'exited' as const },
     ];
   });
 
