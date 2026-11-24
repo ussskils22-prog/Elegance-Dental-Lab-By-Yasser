@@ -154,6 +154,8 @@ const RECEIPT_PRINTER_NAME = config.RECEIPT_PRINTER_NAME || 'XP-Q808K';
 let receiptPrinterOk = false;
 const RECONNECT_DELAY = 3000; // ms
 const POLL_INTERVAL_MS = Number(config.POLL_INTERVAL_MS) || 20000;
+/** Printed on receipts and sheets — set per lab in config.json (LAB_NAME). */
+const LAB_NAME = String(config.LAB_NAME || 'Elegance Dental Lab').trim() || 'Elegance Dental Lab';
 const PRINTER_CHECK_MS = Number(config.PRINTER_CHECK_MS) || 10000;
 
 console.log('🖨️  Elegance Print Agent starting...');
@@ -832,7 +834,7 @@ function buildReceiptHtml(data) {
 </style>
 </head>
 <body>
-  <h1>Elegance Dental Lab</h1>
+  <h1>${escapeHtml(LAB_NAME)}</h1>
   <div class="center">إيصال تحصيل</div>
   <div class="line"></div>
   <div class="row"><span>الدكتور</span><span>${doctor}</span></div>
@@ -1329,7 +1331,7 @@ async function buildPrintHtml(c) {
     </div>
   </div>
   <div class="footer">
-    <span class="footer-lab">Elegance Dental Lab</span>
+    <span class="footer-lab">${escapeHtml(LAB_NAME)}</span>
     <span class="footer-date">تاريخ الطباعة: ${escapeHtml(printDate)}</span>
   </div>
   </div>

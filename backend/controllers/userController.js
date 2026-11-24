@@ -251,6 +251,11 @@ exports.convertClientRole = async (req, res) => {
     }
 
     const role = normalizeClientRole(req.body?.role);
+    // Turning an account into a doctor/lab adds one to the list: admin only.
+    const { canAddClient } = require('../services/clientDirectoryPolicy');
+    if (!canAddClient(req.user?.role, role)) {
+      return res.status(403).json({ success: false, message: 'تحويل الحساب لدكتور أو معمل من صلاحية الأدمن بس' });
+    }
     const user = await User.findById(req.params.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -305,6 +310,11 @@ exports.ensureClientAccount = async (req, res) => {
     const role = normalizeClientRole(req.body?.role);
     if (!fullName) {
       return res.status(400).json({ message: 'الاسم مطلوب' });
+    }
+    // Doctors/labs are added by the admin only; others may only link to an existing one.
+    const { canAddClient, findClientAccount, notInListMessage } = require('../services/clientDirectoryPolicy');
+    if (!canAddClient(req.user?.role, role) && !(await findClientAccount(fullName, role))) {
+      return res.status(403).json({ success: false, message: notInListMessage(role, fullName) });
     }
 
     const result = await ensureClientAccount(fullName, role);

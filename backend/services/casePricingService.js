@@ -95,24 +95,9 @@ function resolvePrices(custom, labDefaults) {
   return base;
 }
 
-/** Normalize doctor name for matching (titles stripped). */
-function normalizeDoctorKey(name) {
-  return String(name || '')
-    .trim()
-    .replace(/\s+/g, ' ')
-    .toLowerCase()
-    .replace(/^(د\.|د|dr\.|dr|doctor|أ\.|ا\.)\s*/i, '')
-    .replace(/[^\p{L}\p{N}\s]/gu, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function doctorKeysMatch(a, b) {
-  const ka = normalizeDoctorKey(a);
-  const kb = normalizeDoctorKey(b);
-  if (!ka || !kb) return false;
-  return ka === kb || ka.includes(kb) || kb.includes(ka);
-}
+// Doctor identity: exact normalized match only (see utils/doctorName.js).
+// The old "one name contains the other" rule merged different doctors.
+const { normalizeDoctorKey, doctorKeysMatch } = require('../utils/doctorName');
 
 /** True when every part is redo/mod/empty/unknown (mixed New+Redo is false). */
 function isExcludedWorkCaseType(caseType) {

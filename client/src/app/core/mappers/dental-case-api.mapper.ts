@@ -463,6 +463,8 @@ export function mapApiCaseToDentalCase(doc: Record<string, unknown>): DentalCase
     receivedDateRaw: receivedDateMeta || undefined,
     createdAt: createdAt ? String(createdAt) : undefined,
     deliveryDate: deliveryDisplay,
+    deliveryDateRaw: deliveryDate,
+    deliveryTimeRaw: deliveryTime,
     enteredBy,
     requesterType,
     instructions: instructionsFromMeta || instructionsLines.join('\n'),

@@ -445,9 +445,12 @@ function scheduleDailyWhatsAppSummary() {
     await reloadWhatsAppConfig();
     if (!providerConfigured()) return;
     const hour = getConfig().dailyHour ?? 18;
+    // Server runs in UTC; the configured hour is lab (Cairo) time.
     const now = new Date();
-    if (now.getHours() === hour && now.getMinutes() < 5) {
-      const key = now.toISOString().slice(0, 10);
+    const { cairoParts, cairoDayKey } = require('../utils/cairoTime');
+    const p = cairoParts(now);
+    if (p.hour === hour && p.minute < 5) {
+      const key = cairoDayKey(now);
       if (scheduleDailyWhatsAppSummary._lastRun === key) return;
       scheduleDailyWhatsAppSummary._lastRun = key;
       await sendDailyReadySummaries();

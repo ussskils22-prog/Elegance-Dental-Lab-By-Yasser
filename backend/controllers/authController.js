@@ -134,6 +134,11 @@ exports.registerDoctor = async (req, res) => {
 
     const { fullName, email, phone, password, role: rawRole } = req.body;
     const role = normalizeClientRole(rawRole);
+    // Doctors and labs are added by the admin only; reception may add students.
+    const { canAddClient } = require('../services/clientDirectoryPolicy');
+    if (!canAddClient(req.user?.role, role)) {
+      return res.status(403).json({ success: false, message: 'إضافة دكتور أو معمل جديد من صلاحية الأدمن بس' });
+    }
     const user = await createStaffUser({
       fullName,
       email,

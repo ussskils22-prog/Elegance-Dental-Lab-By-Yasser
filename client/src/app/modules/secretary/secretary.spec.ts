@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { commonTestProviders, lenientMock } from '../../testing/test-providers';
 import { of } from 'rxjs';
 
 import { Secretary } from './secretary';
@@ -14,19 +14,22 @@ describe('Secretary', () => {
     await TestBed.configureTestingModule({
       imports: [Secretary],
       providers: [
-        provideHttpClient(),
+        ...commonTestProviders(),
         {
           provide: CaseApiService,
-          useValue: {
+          useValue: lenientMock({
             getAllCases: () => of({ success: true, data: [] }),
             createCase: () => of({ success: true }),
             updateCase: () => of({ success: true }),
             deleteCase: () => of({ success: true }),
-          },
+            getDeliveryAlerts: () => of({ success: true, data: { overdue: [] } }),
+            getOperationsReport: () => of({ success: true, data: null }),
+            checkDoctorName: () => of({ action: 'ok', similar: [] }),
+          }),
         },
         {
           provide: AuthService,
-          useValue: { performLogout: () => {} },
+          useValue: lenientMock({ performLogout: () => {}, getToken: () => null }),
         },
       ],
     })

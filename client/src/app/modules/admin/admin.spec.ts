@@ -1,6 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
-import { provideRouter } from '@angular/router';
+import { commonTestProviders, lenientMock } from '../../testing/test-providers';
 import { NEVER, of } from 'rxjs';
 
 import { Admin } from './admin';
@@ -18,42 +17,41 @@ describe('Admin', () => {
     await TestBed.configureTestingModule({
       imports: [Admin],
       providers: [
-        provideRouter([]),
-        provideHttpClient(),
+        ...commonTestProviders(),
         {
           provide: AuthService,
-          useValue: {
+          useValue: lenientMock({
             performLogout: () => {},
             logout: () => of(undefined),
             registerStaff: () => of(undefined),
-          },
+          }),
         },
         {
           provide: UserApiService,
-          useValue: {
+          useValue: lenientMock({
             getAllUsers: () => of({ success: true, data: [] }),
             updateUser: () => of({ success: true }),
-          },
+          }),
         },
         {
           provide: CaseApiService,
-          useValue: {
+          useValue: lenientMock({
             getAllCases: () => of({ data: [] }),
             getFinancialReport: () => of({ data: [] }),
-          },
+          }),
         },
         {
           provide: AdminDashboardService,
-          useValue: {
+          useValue: lenientMock({
             calculateMetrics: () => ({
               totalRevenue: 0,
               staffEfficiency: 0,
             }),
-          },
+          }),
         },
         {
           provide: SocketService,
-          useValue: {
+          useValue: lenientMock({
             connect: () => {},
             onCaseCreated: () => NEVER,
             onCaseAssigned: () => NEVER,
@@ -63,7 +61,7 @@ describe('Admin', () => {
             onCaseReleased: () => NEVER,
             onCaseUpdated: () => NEVER,
             onCaseDeleted: () => NEVER,
-          },
+          }),
         },
       ],
     })

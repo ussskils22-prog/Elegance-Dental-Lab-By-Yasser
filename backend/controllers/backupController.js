@@ -1,3 +1,4 @@
+const { cairoParts } = require('../utils/cairoTime');
 const DentalCase = require('../models/DentalCase');
 const DoctorPayment = require('../models/DoctorPayment');
 const AuditLog = require('../models/AuditLog');
@@ -9,7 +10,7 @@ const Material = require('../models/Material');
  */
 exports.exportBackup = async (req, res) => {
   try {
-    const year = req.query.year ? Number(req.query.year) : new Date().getFullYear();
+    const year = req.query.year ? Number(req.query.year) : cairoParts(new Date()).year;
     const month = req.query.month ? Number(req.query.month) : null;
     if (!Number.isFinite(year)) {
       return res.status(400).json({ success: false, message: 'year required' });
@@ -20,8 +21,8 @@ exports.exportBackup = async (req, res) => {
       const raw = doc?.stageTimestamps?.exited || doc?.updatedAt || doc?.createdAt;
       if (!raw) return false;
       const d = new Date(raw);
-      if (d.getFullYear() !== year) return false;
-      if (month && d.getMonth() + 1 !== month) return false;
+      if (cairoParts(d).year !== year) return false;
+      if (month && cairoParts(d).month !== month) return false;
       return true;
     };
     const exitedCases = cases.filter(inPeriod);
@@ -30,8 +31,8 @@ exports.exportBackup = async (req, res) => {
     const paymentsInPeriod = payments.filter((p) => {
       const d = p.paymentDate ? new Date(p.paymentDate) : null;
       if (!d) return false;
-      if (d.getFullYear() !== year) return false;
-      if (month && d.getMonth() + 1 !== month) return false;
+      if (cairoParts(d).year !== year) return false;
+      if (month && cairoParts(d).month !== month) return false;
       return true;
     });
 

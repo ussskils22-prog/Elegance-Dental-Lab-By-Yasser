@@ -1,3 +1,4 @@
+const { cairoParts } = require('../utils/cairoTime');
 const DentalCase = require('../models/DentalCase');
 const User = require('../models/User');
 const PrintJob = require('../models/PrintJob');
@@ -183,11 +184,11 @@ function buildHelpAnswer() {
 }
 
 function answerFromCases(question, q, rows, now) {
-  const currentMonth = now.getMonth() + 1;
-  const currentYear = now.getFullYear();
+  const currentMonth = cairoParts(now).month;
+  const currentYear = cairoParts(now).year;
   const exitedRows = rows.filter((r) => r.currentStage === 'exited');
   const monthRange = (year, month) =>
-    exitedRows.filter((r) => r.exitedAt.getFullYear() === year && r.exitedAt.getMonth() + 1 === month);
+    exitedRows.filter((r) => cairoParts(r.exitedAt).year === year && cairoParts(r.exitedAt).month === month);
 
   if (
     q.includes('مساعده') ||
@@ -577,9 +578,9 @@ exports.getAiAssistantAnswer = async (req, res) => {
     if (hasPeriod) {
       rows = rows.filter((r) => {
         if (r.currentStage === 'exited') {
-          return r.exitedAt.getFullYear() === yearParam && r.exitedAt.getMonth() + 1 === monthParam;
+          return cairoParts(r.exitedAt).year === yearParam && cairoParts(r.exitedAt).month === monthParam;
         }
-        return r.createdAt.getFullYear() === yearParam && r.createdAt.getMonth() + 1 === monthParam;
+        return cairoParts(r.createdAt).year === yearParam && cairoParts(r.createdAt).month === monthParam;
       });
     }
 

@@ -488,3 +488,22 @@ body:not(.dark-theme) .app-menu-item,
 body:not(.dark-theme) .app-menu-lang-label {
   color: #0a0a0b !important;
 }
+
+/* "Did you mean …?" hint under client-name fields (global: keeps secretary.css under its style budget) */
+.name-typo-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 0.82rem;
+  color: var(--warning-text);
+}
+.name-typo-use {
+  border: 1px solid var(--warning-border);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  border-radius: 6px;
+  padding: 1px 8px;
+  font: inherit;
+  cursor: pointer;
+}

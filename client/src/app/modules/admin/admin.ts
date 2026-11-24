@@ -2981,6 +2981,71 @@ export class Admin implements OnInit, OnDestroy {
     });
   }
 
+  // ── Possible duplicate names (typos / second spellings) ───────────────
+  duplicateGroups: { name: string; cases: number }[][] = [];
+  duplicatesLoading = false;
+  duplicatesLoaded = false;
+  duplicatesMsg = '';
+
+  loadDuplicates(): void {
+    this.duplicatesLoading = true;
+    this.duplicatesMsg = '';
+    this.caseApi.getDoctorDuplicates().subscribe({
+      next: (res: { groups?: { name: string; cases: number }[][] }) => {
+        this.duplicateGroups = res?.groups || [];
+        this.duplicatesLoading = false;
+        this.duplicatesLoaded = true;
+      },
+      error: () => {
+        this.duplicatesLoading = false;
+        this.duplicatesMsg = 'تعذّر تحميل الأسامي المكررة';
+      },
+    });
+  }
+
+  /** Merge every other name in the group into `keep` — preview first, then confirm. */
+  mergeDuplicateGroup(group: { name: string; cases: number }[], keep: string): void {
+    const others = group.map((g) => g.name).filter((n) => n !== keep);
+    if (!others.length) return;
+    const from = others[0];
+    this.caseApi.mergeDoctorNames(from, keep, false).subscribe({
+      next: (res: { data?: { cases: number; exitedCases: number; payments: number; priceRows: number } }) => {
+        const p = res?.data;
+        if (!p) return;
+        const ok = confirm(
+          `دمج «${from}» في «${keep}»:
+` +
+            `• ${p.cases} حالة (منها ${p.exitedCases} خارجة — فواتيرها مش هتتغير)
+` +
+            `• ${p.payments} دفعة
+• ${p.priceRows} قائمة أسعار
+
+` +
+            `الاسم «${from}» هيختفي وكل حاجة هتبقى باسم «${keep}». متأكد؟`
+        );
+        if (!ok) return;
+        this.caseApi.mergeDoctorNames(from, keep, true).subscribe({
+          next: () => {
+            this.duplicatesMsg = `تم دمج «${from}» في «${keep}»`;
+            if (others.length > 1) {
+              // more names in the same group: continue with the next one
+              this.mergeDuplicateGroup(group.filter((g) => g.name !== from), keep);
+            } else {
+              this.loadDuplicates();
+              this.loadStaffFromApi();
+            }
+          },
+          error: (err: { error?: { message?: string } }) => {
+            this.duplicatesMsg = err?.error?.message || 'تعذّر الدمج';
+          },
+        });
+      },
+      error: (err: { error?: { message?: string } }) => {
+        this.duplicatesMsg = err?.error?.message || 'تعذّر تجهيز الدمج';
+      },
+    });
+  }
+
   deleteDoctor(doc: StaffMember): void {
     if (!doc.id) return;
     const kindLabel = this.clientPositionLabel();

@@ -370,9 +370,10 @@ export class RequesterComponent implements OnInit, OnDestroy {
         this.saveInProgress.set(false);
         this.flash(this.lang.t('requester.toast.sent'));
       },
-      error: () => {
+      error: (err: { error?: { message?: string } }) => {
         this.saveInProgress.set(false);
-        this.flash(this.lang.t('requester.toast.fail'));
+        // Show the server's reason (e.g. doctor not in the admin's list), not a generic failure.
+        this.flash(err?.error?.message || this.lang.t('requester.toast.fail'));
       },
     });
   }

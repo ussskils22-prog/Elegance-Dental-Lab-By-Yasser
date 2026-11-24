@@ -62,6 +62,7 @@ router.post(
 
 router.get('/financial-report', authorize('admin'), caseController.getFinancialReport);
 router.get('/material-stats', authorize('admin'), caseController.getExitedMaterialStats);
+router.get('/operations-report', authorize('admin', 'secretary'), caseController.getOperationsReport);
 router.get(
   '/delivery-alerts',
   authorize('admin', 'secretary'),
@@ -77,6 +78,11 @@ router.get(
   authorize('doctor', 'student', 'lab', 'admin'),
   caseController.getDoctorExitedMaterials
 );
+
+// Doctor name typo guard + duplicate finder (must be before /:id)
+router.get('/doctor-name-check', authorize('admin', 'secretary'), caseController.doctorNameCheck);
+router.get('/doctor-duplicates', authorize('admin'), caseController.doctorDuplicates);
+router.post('/doctor-merge', authorize('admin'), caseController.doctorMerge);
 
 // Station barcode/QR scan (must be before /:id)
 router.post(

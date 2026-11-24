@@ -12,6 +12,9 @@ export interface DentalCase {
   branch?: string;
   receivedDate: string;
   deliveryDate: string;
+  /** Stored form values (YYYY-MM-DD, HH:mm 24h) — use these when editing, not the 12h display. */
+  deliveryDateRaw?: string;
+  deliveryTimeRaw?: string;
   enteredBy: string;
   requesterType?: 'doctor' | 'student' | 'lab';
   instructions: string;

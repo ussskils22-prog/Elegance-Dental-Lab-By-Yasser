@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { commonTestProviders } from '../../testing/test-providers';
 import { signal } from '@angular/core';
 import { of } from 'rxjs';
 
@@ -14,7 +14,7 @@ describe('Login', () => {
     await TestBed.configureTestingModule({
       imports: [Login],
       providers: [
-        provideRouter([]),
+        ...commonTestProviders(),
         {
           provide: AuthService,
           useValue: {

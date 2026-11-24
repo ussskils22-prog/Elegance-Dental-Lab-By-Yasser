@@ -4,6 +4,7 @@ const { authenticate, authorize } = require('../middleware/auth');
 const printController = require('../controllers/printController');
 
 const { verifyToken } = require('../config/jwt');
+const rateLimit = require('express-rate-limit');
 
 function agentSecret(req, res, next) {
   const secret = req.headers['x-agent-secret'];
@@ -28,7 +29,19 @@ function optionalAuth(req, res, next) {
 }
 
 // Create print job — optional auth (requester desk / logged-in staff)
-router.post('/job', optionalAuth, printController.createPrintJob);
+/**
+ * The public requester desk may send print jobs without logging in. Cap anonymous
+ * jobs so nobody on the internet can flood the lab printer. Logged-in users are not limited here.
+ */
+const anonymousPrintLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => Boolean(req.user),
+  message: { success: false, message: 'طلبات طباعة كتير من غير تسجيل دخول — حاول بعد شوية أو سجّل دخول' },
+});
+router.post('/job', optionalAuth, anonymousPrintLimiter, printController.createPrintJob);
 
 // Print Agent updates job status (AGENT_SECRET)
 router.patch('/job/:id/status', agentSecret, printController.updateJobStatus);

@@ -1,6 +1,6 @@
 import { signal } from '@angular/core';
+import { commonTestProviders } from './testing/test-providers';
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
 
 import { App } from './app';
 import { AuthService } from './core/services/auth.service';
@@ -10,7 +10,7 @@ describe('App', () => {
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [
-        provideHttpClient(),
+        ...commonTestProviders(),
         {
           provide: AuthService,
           useValue: {

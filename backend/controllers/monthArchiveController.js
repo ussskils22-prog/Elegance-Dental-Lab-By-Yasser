@@ -1,3 +1,4 @@
+const { cairoParts, cairoMonthRange } = require('../utils/cairoTime');
 const DentalCase = require('../models/DentalCase');
 const User = require('../models/User');
 const PrintJob = require('../models/PrintJob');
@@ -51,15 +52,14 @@ function toCsv(rows, columns) {
 }
 
 function monthBounds(year, month) {
-  const start = new Date(year, month - 1, 1, 0, 0, 0, 0);
-  const end = new Date(year, month, 1, 0, 0, 0, 0);
+  const { start, endExclusive: end } = cairoMonthRange(year, month);
   return { start, end };
 }
 
 function inMonth(date, year, month) {
   if (!date) return false;
   const d = new Date(date);
-  return d.getFullYear() === year && d.getMonth() + 1 === month;
+  return cairoParts(d).year === year && cairoParts(d).month === month;
 }
 
 function classifyCaseTypeUnits(caseType, quantity) {

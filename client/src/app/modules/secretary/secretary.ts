@@ -8,6 +8,8 @@ import type { Observable } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { type ClientAccountKind } from '../../core/auth/client-account';
 import { CaseApiService, type CaseBill } from '../../core/services/case-api.service';
+import { renderOperationsReportHtml, type OperationsReport } from './operations-report';
+import { rankNameSuggestions, sameDoctorName, spacingOnlyMatch } from '../../core/utils/doctor-name';
 import { SharedCasesService, type DentalCase } from '../../core/services/shared-cases.service';
 import { UserApiService } from '../../core/services/user-api.service';
 import {
@@ -440,21 +442,59 @@ export class Secretary implements OnInit, OnDestroy {
     Math.max(0, this.cases().length - this.listVisibleCount())
   );
 
-  /** حالات لم تخرج خلال 4 أيام من تاريخ الدخول */
-  readonly overdueCases = computed(() => {
-    this.lang.lang();
+  /**
+   * Bell = cases past their delivery deadline and still in the lab (server rule in
+   * utils/caseDeadlines.js). Ready cases waiting for pickup are not "late".
+   */
+  readonly overdueCases = signal<{ id: string; doctor: string; patient: string; hoursOverdue: number }[]>([]);
+
+  private lastAlertsAt = 0;
+
+  /** Throttled: case reloads fire on every socket event, the late list does not need that. */
+  private refreshDeliveryAlerts(): void {
     const now = Date.now();
-    const fourDaysMs = 4 * 24 * 60 * 60 * 1000;
-    return this.sharedCases
-      .cases()
-      .filter((c) => c.status !== 'exited')
-      .map((c) => {
-        const receivedAt = this.parseCaseReceivedDate(c);
-        return { id: c.id, doctor: c.doctor || this.lang.t('common.unknown'), patient: c.patient || '—', receivedAt };
-      })
-      .filter((item) => item.receivedAt != null && now - item.receivedAt! >= fourDaysMs)
-      .sort((a, b) => (a.receivedAt || 0) - (b.receivedAt || 0));
-  });
+    if (now - this.lastAlertsAt < 60_000) return;
+    this.lastAlertsAt = now;
+    this.caseApi.getDeliveryAlerts().subscribe({
+      next: (res: { data?: { overdue?: { id: string; doctorName?: string; patientName?: string; hoursOverdue?: number }[] } }) => {
+        const rows = res?.data?.overdue || [];
+        this.overdueCases.set(
+          rows.map((r) => ({
+            id: r.id,
+            doctor: r.doctorName || this.lang.t('common.unknown'),
+            patient: r.patientName || '—',
+            hoursOverdue: Number(r.hoursOverdue) || 0,
+          }))
+        );
+      },
+      error: () => {},
+    });
+  }
+
+  /** Opens a print-ready operations report (late, due soon, stuck, ready for pickup). */
+  printOperationsReport(): void {
+    const win = window.open('', '_blank');
+    if (!win) {
+      this.flash('المتصفح منع فتح نافذة الطباعة — اسمح بالنوافذ المنبثقة');
+      return;
+    }
+    win.document.write('<p dir="rtl" style="font-family:sans-serif">جاري تجهيز التقرير…</p>');
+    this.caseApi.getOperationsReport().subscribe({
+      next: (res: { data?: OperationsReport }) => {
+        if (res?.data) {
+          win.document.open();
+          win.document.write(renderOperationsReportHtml(res.data, this.brandTitle));
+          win.document.close();
+          win.focus();
+          setTimeout(() => win.print(), 300);
+        }
+      },
+      error: () => {
+        win.close();
+        this.flash('تعذّر تجهيز تقرير التشغيل');
+      },
+    });
+  }
 
   private parseCaseReceivedDate(c: { receivedDateRaw?: string; receivedDate?: string; date?: string }): number | null {
     const raw = c.receivedDateRaw || '';
@@ -700,9 +740,22 @@ export class Secretary implements OnInit, OnDestroy {
     if (!normalizedInput) {
       return unique.slice(0, 10);
     }
-    return unique.filter(doc => 
-      this.normalizeArabic(doc).includes(normalizedInput)
-    );
+    // Contains-matches first, then names that look like a typo of what was typed
+    // ("محمد حالد" → "محمد خالد", "م حمد خالد" → "محمد خالد").
+    return rankNameSuggestions(input, unique, 10);
+  });
+
+  /**
+   * Persistent "did you mean …?" under the name field: shown when what was typed is not
+   * an existing name but closely matches one (works even after the dropdown closes).
+   */
+  readonly doctorTypoHint = computed(() => {
+    const input = (this.doctorSearchQuery() || '').trim();
+    if (input.length < 3) return null;
+    const unique = this.uniqueDoctors();
+    if (unique.some((n) => sameDoctorName(n, input))) return null;
+    const top = rankNameSuggestions(input, unique, 1)[0];
+    return top && !sameDoctorName(top, input) ? top : null;
   });
 
   onDoctorInputChange(): void {
@@ -1326,7 +1379,7 @@ export class Secretary implements OnInit, OnDestroy {
   }
 
   private namesMatch(a: string, b: string): boolean {
-    return a.trim().toLowerCase() === b.trim().toLowerCase();
+    return sameDoctorName(a, b);
   }
 
   private nameHasRoleAccount(name: string, kind: ClientAccountKind): boolean {
@@ -1774,6 +1827,7 @@ export class Secretary implements OnInit, OnDestroy {
   }
 
   private reloadCasesFromBackend(silent = false, after?: () => void): void {
+    this.refreshDeliveryAlerts();
     if (!silent) this.casesLoading.set(true);
     this.caseApi
       .getAllCases(1, 800, {
@@ -1907,6 +1961,8 @@ export class Secretary implements OnInit, OnDestroy {
       return;
     }
     this.dialogMode.set('create');
+    this.doctorNameConfirmed = '';
+    this.doctorNameAtOpen = '';
     this.createRequesterType = normalizeRequesterType(type);
     this.formRequesterType.set(this.createRequesterType);
     this.editingId = null;
@@ -1934,6 +1990,8 @@ export class Secretary implements OnInit, OnDestroy {
       this.flash(this.lang.t('secretary.month.readonly'));
       return;
     }
+    this.doctorNameConfirmed = '';
+    this.doctorNameAtOpen = String(c?.doctor || '').trim();
     if (c.status === 'exited' && this.auth.getSession()?.role !== 'admin') {
       this.openPasswordProtection('edit', c);
       return;
@@ -1967,8 +2025,9 @@ export class Secretary implements OnInit, OnDestroy {
       size: c.size,
       quantity: c.quantity,
       date: this.parseArabicDateToYmd(c.receivedDateRaw || c.receivedDate || c.date),
-      deliveryDate: dateMatch ? dateMatch[1] : '',
-      deliveryTime: dateMatch && dateMatch[2] ? dateMatch[2].trim().slice(0, 5) : '',
+      // Prefer the stored 24h values: re-parsing the 12h display ("10:30 م") turned 22:30 into 10:30.
+      deliveryDate: c.deliveryDateRaw || (dateMatch ? dateMatch[1] : ''),
+      deliveryTime: c.deliveryDateRaw ? c.deliveryTimeRaw || '' : dateMatch && dateMatch[2] ? dateMatch[2].trim().slice(0, 5) : '',
       caseType: currentCaseType,
       exitedAt: c.status === 'exited' ? this.parseArabicDateToYmd(c.exitedAtRaw || '') : '',
     };
@@ -2376,6 +2435,50 @@ export class Secretary implements OnInit, OnDestroy {
     });
   }
 
+  /** Doctor name the secretary already confirmed for this dialog (typo gate). */
+  private doctorNameConfirmed = '';
+  /** Doctor name the case had when the edit dialog opened (unchanged names skip the check). */
+  private doctorNameAtOpen = '';
+
+  /**
+   * Before saving, ask the server whether the typed doctor name looks like a typo of an
+   * existing doctor. Returns true when save may continue now; false when it will resume
+   * (or was cancelled) after the check.
+   */
+  private passDoctorNameGate(docName: string): boolean {
+    if (!docName || docName === this.doctorNameConfirmed || docName === this.doctorNameAtOpen) return true;
+    this.saveInProgress.set(true);
+    this.caseApi.checkDoctorName(docName).subscribe({
+      next: (r) => {
+        this.saveInProgress.set(false);
+        const similar = r?.action === 'similar' ? r.similar || [] : [];
+        if (similar.length) {
+          // OK keeps exactly what was typed; Cancel goes back so the secretary fixes the
+          // name herself (we never swap the doctor silently on a reflex click).
+          const list = similar.map((n) => `«${n}»`).join('، ');
+          const keep = window.confirm(
+            `اسم الدكتور «${docName}» قريب من دكتور موجود: ${list}.\n\n` +
+              `OK = احفظ باسم «${docName}» (دكتور جديد فعلًا)\n` +
+              `Cancel = ارجع أصلّح الاسم`
+          );
+          if (!keep) {
+            this.flash(`راجع اسم الدكتور — يمكن تقصد ${list}`);
+            return;
+          }
+        }
+        this.doctorNameConfirmed = docName;
+        this.save();
+      },
+      error: () => {
+        // Check unavailable: don't block the lab — save as typed.
+        this.saveInProgress.set(false);
+        this.doctorNameConfirmed = docName;
+        this.save();
+      },
+    });
+    return false;
+  }
+
   save(): void {
     const d = this.formDraft;
     const existing =
@@ -2417,8 +2520,24 @@ export class Secretary implements OnInit, OnDestroy {
       this.flash(this.lang.t('secretary.toast.needWorkPhase'));
       return;
     }
+    // Same letters, different spaces ("م حمد خالد") → use the stored spelling automatically.
+    const spacingFix = spacingOnlyMatch(d.doctor, this.uniqueDoctors());
+    if (spacingFix) {
+      d.doctor = spacingFix;
+      this.doctorSearchQuery.set(spacingFix);
+      this.flash(`اتصحّح الاسم لـ «${spacingFix}»`);
+    }
     let patientName = d.patient.trim();
     const docName = d.doctor.trim();
+    // Doctors and labs come from the admin's list only; reception adds students freely.
+    const listOnly = !this.isAdminUser() && (requesterType === 'doctor' || requesterType === 'lab');
+    if (listOnly && docName !== this.doctorNameAtOpen && !this.nameHasRoleAccount(docName, requesterType)) {
+      const kind = requesterType === 'lab' ? 'المعمل' : 'الدكتور';
+      this.flash(`${kind} «${docName}» مش في القائمة — اختار من القائمة، ولو ${kind} جديد اطلب من الأدمن يضيفه`);
+      return;
+    }
+    if (!listOnly && !this.passDoctorNameGate(docName)) return;
+    const confirmNewDoctor = docName === this.doctorNameConfirmed;
 
     const formPayload = {
       requesterType,
@@ -2502,7 +2621,7 @@ export class Secretary implements OnInit, OnDestroy {
         .pipe(
           switchMap((created) => {
             createdAccount = created;
-            return this.caseApi.createCase(buildCreateCasePayload(formPayload));
+            return this.caseApi.createCase({ ...buildCreateCasePayload(formPayload), confirmNewDoctor });
           }),
           switchMap((res: {
             case?: { caseNumber?: string; _id?: string; id?: string };
@@ -2552,7 +2671,10 @@ export class Secretary implements OnInit, OnDestroy {
       this.ensureFormAccount(docName, requesterType)
         .pipe(
           switchMap(() =>
-            this.caseApi.updateCase(this.editingId!, buildCreateCasePayload(formPayload, plyPreserveMeta))
+            this.caseApi.updateCase(this.editingId!, {
+              ...(buildCreateCasePayload(formPayload, plyPreserveMeta) as Record<string, unknown>),
+              confirmNewDoctor,
+            })
           )
         )
         .subscribe({

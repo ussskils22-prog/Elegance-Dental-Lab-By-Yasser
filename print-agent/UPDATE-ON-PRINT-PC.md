@@ -13,6 +13,8 @@
 - الايجنت يشتغل لوحده بعد ما تسجّل دخول ويندوز
 - اللوجات: `daemon\user-agent.out.log` و `daemon\agent-live.log`
 
+`config.json` **مش موجود في الـ repo** (فيه السر). أول مرة: انسخ `config.example.json` باسم `config.json` واملاه. لو الجهاز عنده `config.json` قديم سيبه زي ما هو وغيّر بس `PRINT_AGENT_SECRET` لما السر يتغير.
+
 `config.json` لازم فيه:
 - `SERVER_URL` = Railway
 - `PRINT_AGENT_SECRET` = نفس env السيرفر

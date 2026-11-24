@@ -1,3 +1,4 @@
+const { cairoParts, cairoMonthRange } = require('../utils/cairoTime');
 const DentalCase = require('../models/DentalCase');
 const AuditLog = require('../models/AuditLog');
 const Notification = require('../models/Notification');
@@ -78,8 +79,21 @@ async function sweepUrgentLabCases() {
   return labUrgentSweep;
 }
 
+const { checkDoctorName, listKnownDoctorNames } = require('../services/doctorDirectory');
+const { arabicLooseRegex } = require('../utils/searchRegex');
+const { canAddClient, mustPickFromList, notInListMessage, findClientAccount } = require('../services/clientDirectoryPolicy');
+const { normalizeDoctorKey: sameNameKey } = require('../utils/doctorName');
+const { generateOperationsReport } = require('../services/operationsReport');
+const { findSimilarDoctorNames } = require('../utils/doctorName');
+
+// Doctor-name typo check is advisory: screens call GET /cases/doctor-name-check and ask
+// "did you mean …?" before saving. The server does not block saves, because similar names
+// (سامي/سامح, منة/منى) are often different real doctors and intake must never stall.
+
 async function maybeEnsureClientAccount(req, name, requesterType) {
   if (!name || isClientPortalRole(req.user?.role)) return null;
+  // Doctors and labs are added by the admin only; reception may still auto-add students.
+  if (!canAddClient(req.user?.role, requesterType)) return null;
   try {
     return await ensureClientAccount(name, requesterType, { retag: false });
   } catch (err) {
@@ -472,7 +486,18 @@ exports.createCase = async (req, res) => {
       normalizeOriginalEntry(parseNotesMeta(notesFinal).originalEntry) ||
       normalizeOriginalEntry(buildOriginalEntry(caseType, createMeta));
     const referringDoctor = referringDoctorFromNotes(notesFinal);
-    const accountEnsure = await maybeEnsureClientAccount(
+    let listAccount = null;
+    if (referringDoctor && mustPickFromList(req.user?.role, normalizedRequesterType)) {
+      listAccount = await findClientAccount(referringDoctor, normalizedRequesterType);
+      if (!listAccount) {
+        return res.status(422).json({
+          success: false,
+          code: 'CLIENT_NOT_IN_LIST',
+          message: notInListMessage(normalizedRequesterType, referringDoctor),
+        });
+      }
+    }
+    const accountEnsure = listAccount ? { user: listAccount, action: 'existing' } : await maybeEnsureClientAccount(
       req,
       referringDoctor,
       normalizedRequesterType
@@ -595,6 +620,9 @@ exports.retagRequesterByName = async (req, res) => {
     if (!fullName) {
       return res.status(400).json({ message: 'الاسم مطلوب' });
     }
+    if (!canAddClient(req.user?.role, requesterType) && !(await findClientAccount(fullName, requesterType))) {
+      return res.status(403).json({ success: false, message: 'تحويل الاسم لدكتور أو معمل جديد من صلاحية الأدمن بس' });
+    }
 
     let account = { action: 'skipped', updatedCases: 0 };
     try {
@@ -655,10 +683,9 @@ exports.getAllCases = async (req, res) => {
       const now = new Date();
       const yy = parseInt(year, 10);
       const mm = parseInt(month, 10);
-      const y = Number.isFinite(yy) ? yy : now.getFullYear();
-      const m = Number.isFinite(mm) && mm >= 1 && mm <= 12 ? mm : now.getMonth() + 1;
-      const start = new Date(y, m - 1, 1);
-      const end = new Date(y, m, 1);
+      const y = Number.isFinite(yy) ? yy : cairoParts(now).year;
+      const m = Number.isFinite(mm) && mm >= 1 && mm <= 12 ? mm : cairoParts(now).month;
+      const { start, endExclusive: end } = cairoMonthRange(y, m);
       pushAnd(filter, {
         $or: [
           { currentStage: { $ne: 'exited' } },
@@ -669,14 +696,15 @@ exports.getAllCases = async (req, res) => {
     if (status) filter.status = status;
     if (priority) filter.priority = priority;
 
-    if (search) {
+    const searchRe = arabicLooseRegex(search);
+    if (searchRe) {
       pushAnd(filter, {
         $or: [
-          { patientName: { $regex: search, $options: 'i' } },
-          { caseNumber: { $regex: search, $options: 'i' } },
-          { patientEmail: { $regex: search, $options: 'i' } },
-          { patientPhone: { $regex: search, $options: 'i' } },
-          { referringDoctor: { $regex: search, $options: 'i' } },
+          { patientName: searchRe },
+          { caseNumber: searchRe },
+          { patientEmail: searchRe },
+          { patientPhone: searchRe },
+          { referringDoctor: searchRe },
         ],
       });
     }
@@ -851,8 +879,8 @@ exports.getExitedMaterialStats = async (req, res) => {
       if (!raw) return false;
       const d = new Date(raw);
       if (Number.isNaN(d.getTime())) return false;
-      if (hasYear && d.getFullYear() !== year) return false;
-      if (hasMonth && d.getMonth() + 1 !== month) return false;
+      if (hasYear && cairoParts(d).year !== year) return false;
+      if (hasMonth && cairoParts(d).month !== month) return false;
       return true;
     };
 
@@ -928,45 +956,20 @@ exports.getExitedMaterialStats = async (req, res) => {
 /** Active cases past / near delivery due date (admin + secretary). */
 exports.getDeliveryAlerts = async (req, res) => {
   try {
-    const now = new Date();
-    const soonMs = 24 * 60 * 60 * 1000;
-    const cases = await DentalCase.find({
-      currentStage: { $nin: ['exited'] },
-      status: { $ne: 'cancelled' },
-    })
-      .select('caseNumber patientName caseType currentStage dueDate notes referringDoctor priority createdAt')
-      .lean();
-
-    const overdue = [];
-    const dueSoon = [];
-    for (const doc of cases) {
-      const meta = parseNotesMeta(doc.notes || '');
-      if (!meta.deliveryDate) continue;
-      const due = new Date(String(meta.deliveryDate));
-      if (Number.isNaN(due.getTime())) continue;
-      const row = {
-        id: String(doc._id),
-        caseNumber: String(doc.caseNumber || ''),
-        patientName: String(doc.patientName || ''),
-        doctorName: String(meta.doctor || meta.doctorName || doc.referringDoctor || ''),
-        currentStage: String(doc.currentStage || ''),
-        dueDate: due.toISOString(),
-        priority: String(doc.priority || 'normal'),
-        hoursOverdue: Math.round((now.getTime() - due.getTime()) / 3600000),
-      };
-      if (due.getTime() < now.getTime()) overdue.push(row);
-      else if (due.getTime() - now.getTime() <= soonMs) dueSoon.push(row);
-    }
-    overdue.sort((a, b) => b.hoursOverdue - a.hoursOverdue);
-    dueSoon.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
-
+    // One rule for "late" shared with the operations report (utils/caseDeadlines.js):
+    // ready (completed) cases waiting for pickup are not late.
+    const report = await generateOperationsReport();
     res.status(200).json({
       success: true,
       data: {
-        overdue,
-        dueSoon,
-        overdueCount: overdue.length,
-        dueSoonCount: dueSoon.length,
+        overdue: report.overdue,
+        dueSoon: report.dueSoon,
+        stuck: report.stuck,
+        readyWaiting: report.readyWaiting,
+        overdueCount: report.counts.overdue,
+        dueSoonCount: report.counts.dueSoon,
+        stuckCount: report.counts.stuck,
+        readyWaitingCount: report.counts.readyWaiting,
       },
     });
   } catch (error) {
@@ -975,6 +978,15 @@ exports.getDeliveryAlerts = async (req, res) => {
       message: 'Failed to compute delivery alerts',
       error: error.message,
     });
+  }
+};
+
+/** GET /cases/operations-report — late, due soon, stuck, and ready-for-pickup cases. */
+exports.getOperationsReport = async (req, res) => {
+  try {
+    res.status(200).json({ success: true, data: await generateOperationsReport() });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'تعذّر تجهيز تقرير التشغيل' });
   }
 };
 
@@ -1059,8 +1071,8 @@ exports.getFinancialReport = async (req, res) => {
       .filter(Boolean)
       .filter((row) => {
         const rowDate = row.exitedAt ? new Date(row.exitedAt) : new Date(row.receivedAt);
-        if (year && Number(year) !== rowDate.getFullYear()) return false;
-        if (month && Number(month) !== rowDate.getMonth() + 1) return false;
+        if (year && Number(year) !== cairoParts(rowDate).year) return false;
+        if (month && Number(month) !== cairoParts(rowDate).month) return false;
         if (doctor && !row.doctorName.toLowerCase().includes(String(doctor).toLowerCase().trim()))
           return false;
         return true;
@@ -1171,8 +1183,8 @@ exports.getDoctorAccountSummary = async (req, res) => {
           : doc.createdAt
             ? new Date(doc.createdAt)
             : new Date();
-      if (year && Number.isFinite(year) && exitedAt.getFullYear() !== year) continue;
-      if (month && Number.isFinite(month) && exitedAt.getMonth() + 1 !== month) continue;
+      if (year && Number.isFinite(year) && cairoParts(exitedAt).year !== year) continue;
+      if (month && Number.isFinite(month) && cairoParts(exitedAt).month !== month) continue;
 
       // Prefer case-doctor merged prices (same as financial report), fall back to query doctor.
       const casePrices = mergePricesForDoctor(pricings, caseDoctor) || prices;
@@ -1222,8 +1234,8 @@ exports.getDoctorAccountSummary = async (req, res) => {
       if (!year && !month) return true;
       const d = p.paymentDate ? new Date(p.paymentDate) : null;
       if (!d) return false;
-      if (year && Number.isFinite(year) && d.getFullYear() !== year) return false;
-      if (month && Number.isFinite(month) && d.getMonth() + 1 !== month) return false;
+      if (year && Number.isFinite(year) && cairoParts(d).year !== year) return false;
+      if (month && Number.isFinite(month) && cairoParts(d).month !== month) return false;
       return true;
     };
     const isChargeEntry = (p) => {
@@ -2340,6 +2352,8 @@ exports.updateCase = async (req, res) => {
       return res.status(404).json({ message: 'Case not found' });
     }
 
+    const previousDoctorKey = sameNameKey(dentalCase.referringDoctor || referringDoctorFromNotes(dentalCase.notes));
+    const previousRequesterType = dentalCase.requesterType || 'doctor';
     const incoming = req.body && typeof req.body === 'object' ? req.body : {};
     const providedKeys = Object.keys(incoming).filter((k) => incoming[k] !== undefined);
     const requesterRetagOnly =
@@ -2368,6 +2382,14 @@ exports.updateCase = async (req, res) => {
           referringDoctorFromNotes(dentalCase.notes) ||
           ''
       ).trim();
+      if (
+        displayName &&
+        mustPickFromList(req.user?.role, nextType) &&
+        (nextType !== previousRequesterType || sameNameKey(displayName) !== previousDoctorKey) &&
+        !(await findClientAccount(displayName, nextType))
+      ) {
+        return res.status(422).json({ success: false, code: 'CLIENT_NOT_IN_LIST', message: notInListMessage(nextType, displayName) });
+      }
       const nextNotes = setRequesterTypeInNotes(
         dentalCase.notes || '',
         nextType,
@@ -2611,6 +2633,19 @@ exports.updateCase = async (req, res) => {
           dentalCase?.caseNumber,
           priceErr?.message || priceErr
         );
+      }
+    }
+
+    {
+      const nextName = dentalCase.referringDoctor || referringDoctorFromNotes(dentalCase.notes);
+      const nextType = dentalCase.requesterType || 'doctor';
+      const changed = sameNameKey(nextName) !== previousDoctorKey || nextType !== previousRequesterType;
+      if (nextName && changed && mustPickFromList(req.user?.role, nextType)) {
+        const listed = await findClientAccount(nextName, nextType);
+        if (!listed) {
+          return res.status(422).json({ success: false, code: 'CLIENT_NOT_IN_LIST', message: notInListMessage(nextType, nextName) });
+        }
+        dentalCase.referringDoctorId = listed._id;
       }
     }
 
@@ -2862,6 +2897,15 @@ exports.reopenCase = async (req, res) => {
 
     if (!dentalCase) {
       return res.status(404).json({ message: 'Case not found' });
+    }
+
+    // Exited cases are financial history (frozen bill/revenue). Reopening one would let it
+    // exit again with a new price in a different month. Use a new Redo/Modification case.
+    if (isExitedCase(dentalCase)) {
+      return res.status(409).json({
+        success: false,
+        message: 'الحالة خارجة ومتسجّلة في الحسابات — مينفعش تتفتح تاني. اعمل حالة جديدة (إعادة/تعديل) مربوطة بيها.',
+      });
     }
 
     const oldStage = dentalCase.currentStage;
@@ -3144,5 +3188,69 @@ exports.getCaseBill = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Failed to load case bill', error: error.message });
+  }
+};
+
+/** GET /cases/doctor-name-check?name=… — "did you mean …?" while typing a doctor name. */
+exports.doctorNameCheck = async (req, res) => {
+  try {
+    const name = String(req.query.name || '').trim();
+    const decision = await checkDoctorName(name, false);
+    res.status(200).json({ success: true, ...decision });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'تعذّر فحص اسم الدكتور' });
+  }
+};
+
+/** GET /cases/doctor-duplicates — groups of doctor names that look like the same person. */
+exports.doctorDuplicates = async (req, res) => {
+  try {
+    const names = await listKnownDoctorNames();
+    const counts = await DentalCase.aggregate([
+      { $group: { _id: '$referringDoctor', cases: { $sum: 1 } } },
+    ]);
+    const caseCount = new Map(counts.map((c) => [String(c._id || '').trim(), c.cases]));
+    // Candidates: typos (similar spelling) AND names where one contains the other
+    // ("فرزات" / "سامي فرزات") — the old matching treated those as one doctor.
+    const { normalizeDoctorKey } = require('../utils/doctorName');
+    const containsEachOther = (a, b) => {
+      const ka = normalizeDoctorKey(a);
+      const kb = normalizeDoctorKey(b);
+      return ka && kb && ka !== kb && (ka.split(' ').every((w) => kb.split(' ').includes(w)) || kb.split(' ').every((w) => ka.split(' ').includes(w)));
+    };
+    const used = new Set();
+    const groups = [];
+    for (const name of names) {
+      if (used.has(name)) continue;
+      const pool = names.filter((n) => !used.has(n) && n !== name);
+      const similar = [...new Set([...findSimilarDoctorNames(name, pool, { limit: 10 }), ...pool.filter((n) => containsEachOther(name, n))])];
+      if (!similar.length) continue;
+      const members = [name, ...similar];
+      members.forEach((m) => used.add(m));
+      groups.push(members.map((m) => ({ name: m, cases: caseCount.get(m) || 0 })));
+    }
+    res.status(200).json({ success: true, groups });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'تعذّر تجميع الأسماء المكررة' });
+  }
+};
+
+/** POST /cases/doctor-merge {from, into, apply} — admin: preview (apply=false) or merge two client names. */
+exports.doctorMerge = async (req, res) => {
+  try {
+    const { mergeClientNames } = require('../services/doctorMerge');
+    const from = String(req.body?.from || '').trim();
+    const into = String(req.body?.into || '').trim();
+    const apply = req.body?.apply === true;
+    const summary = await mergeClientNames({
+      from,
+      into,
+      apply,
+      admin: { _id: req.user.id, fullName: req.user.fullName },
+      source: 'admin: possible duplicates',
+    });
+    res.status(200).json({ success: true, data: summary });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, message: error.status ? error.message : 'تعذّر دمج الأسماء' });
   }
 };

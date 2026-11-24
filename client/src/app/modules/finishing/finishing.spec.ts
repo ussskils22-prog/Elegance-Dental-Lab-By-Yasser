@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
+import { commonTestProviders } from '../../testing/test-providers';
 
 import { Finishing } from './finishing';
 
@@ -10,7 +10,7 @@ describe('Finishing', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [Finishing],
-      providers: [provideHttpClient()],
+      providers: [...commonTestProviders()],
     })
     .compileComponents();
 

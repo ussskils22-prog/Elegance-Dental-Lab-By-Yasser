@@ -16,3 +16,6 @@ Thumbs.db
 
 .vercel
 .superpowers/
+
+# Print agent local config holds PRINT_AGENT_SECRET — never commit it
+print-agent/config.json

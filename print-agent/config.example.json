@@ -1,0 +1,14 @@
+{
+  "PRINT_CONFIRM_TIMEOUT_MS": 90000,
+  "PRINT_AGENT_SECRET": "PUT_THE_SAME_VALUE_AS_RAILWAY_PRINT_AGENT_SECRET",
+  "PRINTER_CHECK_MS": 10000,
+  "SERVER_URL": "https://elegance-dental-lab-by-yasser-production-5940.up.railway.app",
+  "PRINTER_NAME": "HP LaserJet Professional P1102",
+  "RECEIPT_PRINTER_NAME": "XP-Q808K",
+  "POLL_INTERVAL_MS": 20000,
+  "CONTROL_PORT": 17891,
+  "AUTO_START_AGENT": true,
+  "SCAN_AGENT_DIR": "../scan-agent",
+  "AUTO_START_SCANNERS": [],
+  "LAB_NAME": "Elegance Dental Lab"
+}

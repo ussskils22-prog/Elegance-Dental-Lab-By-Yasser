@@ -1,3 +1,4 @@
+const { cairoParts, cairoMonthRange } = require('../utils/cairoTime');
 const DentalCase = require('../models/DentalCase');
 const DoctorPayment = require('../models/DoctorPayment');
 const Material = require('../models/Material');
@@ -17,8 +18,7 @@ function monthRange(year, month) {
   const y = Number(year);
   const m = Number(month);
   if (!y || !m) return null;
-  const start = new Date(y, m - 1, 1, 0, 0, 0, 0);
-  const end = new Date(y, m, 0, 23, 59, 59, 999);
+  const { start, endInclusive: end } = cairoMonthRange(y, m);
   return { start, end };
 }
 
@@ -26,8 +26,8 @@ function yearRange(year) {
   const y = Number(year);
   if (!y) return null;
   return {
-    start: new Date(y, 0, 1, 0, 0, 0, 0),
-    end: new Date(y, 11, 31, 23, 59, 59, 999),
+    start: cairoMonthRange(y, 1).start,
+    end: cairoMonthRange(y, 12).endInclusive,
   };
 }
 
@@ -37,7 +37,7 @@ function resolveRange(query) {
   if (year) return yearRange(year);
   // default: current month
   const now = new Date();
-  return monthRange(now.getFullYear(), now.getMonth() + 1);
+  return monthRange(cairoParts(now).year, cairoParts(now).month);
 }
 
 function caseExitDate(doc) {
@@ -130,10 +130,10 @@ exports.getFinanceSummary = async (req, res) => {
     const cogs = round2(consumes.reduce((s, m) => s + (Number(m.costImpact) || 0), 0));
 
     // Payroll — use month sheet totals (paid or draft count as accrued cost for that month)
-    const y = start.getFullYear();
+    const y = cairoParts(start).year;
     const months =
-      start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()
-        ? [start.getMonth() + 1]
+      (cairoParts(start).month - 1) === (cairoParts(end).month - 1) && cairoParts(start).year === cairoParts(end).year
+        ? [cairoParts(start).month]
         : Array.from({ length: 12 }, (_, i) => i + 1);
 
     const payrollQuery =
@@ -369,8 +369,8 @@ exports.deletePayrollEmployee = async (req, res) => {
 
 exports.listPayroll = async (req, res) => {
   try {
-    const year = Number(req.query.year) || new Date().getFullYear();
-    const month = Number(req.query.month) || new Date().getMonth() + 1;
+    const year = Number(req.query.year) || cairoParts(new Date()).year;
+    const month = Number(req.query.month) || cairoParts(new Date()).month;
     const rows = await PayrollPayment.find({ year, month }).sort({ employeeName: 1 }).lean();
     return res.json({ success: true, year, month, rows });
   } catch (error) {
@@ -444,8 +444,8 @@ exports.upsertPayroll = async (req, res) => {
 
 exports.generatePayrollDrafts = async (req, res) => {
   try {
-    const year = Number(req.body?.year) || new Date().getFullYear();
-    const month = Number(req.body?.month) || new Date().getMonth() + 1;
+    const year = Number(req.body?.year) || cairoParts(new Date()).year;
+    const month = Number(req.body?.month) || cairoParts(new Date()).month;
     const employees = await PayrollEmployee.find({
       isActive: true,
       payrollEnabled: true,

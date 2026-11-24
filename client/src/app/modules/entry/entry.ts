@@ -639,6 +639,44 @@ export class EntryComponent implements OnInit, OnDestroy {
     this.clearPlySelection();
   }
 
+  /** Doctor name already checked/confirmed in this dialog (typo advisory). */
+  private doctorNameConfirmed = '';
+
+  /**
+   * Advisory "did you mean …?" check before creating a case for a typed doctor name.
+   * Returns true to continue now; false when save() will be called again after the check.
+   */
+  private passDoctorNameCheck(docName: string): boolean {
+    if (!docName || docName === this.doctorNameConfirmed) return true;
+    this.caseApi.checkDoctorName(docName).subscribe({
+      next: (r) => {
+        const similar = r?.action === 'similar' ? r.similar || [] : [];
+        if (similar.length) {
+          const list = similar.map((n) => `«${n}»`).join('، ');
+          const keep = window.confirm(
+            `اسم الدكتور «${docName}» قريب من دكتور موجود: ${list}.
+
+` +
+              `OK = احفظ باسم «${docName}» (دكتور جديد فعلًا)
+` +
+              `Cancel = ارجع أصلّح الاسم`
+          );
+          if (!keep) {
+            this.flash(`راجع اسم الدكتور — يمكن تقصد ${list}`);
+            return;
+          }
+        }
+        this.doctorNameConfirmed = docName;
+        this.save();
+      },
+      error: () => {
+        this.doctorNameConfirmed = docName;
+        this.save();
+      },
+    });
+    return false;
+  }
+
   save(): void {
     const d = this.formDraft;
 
@@ -684,6 +722,8 @@ export class EntryComponent implements OnInit, OnDestroy {
     const ply = this.intakeType === 'scan' ? this.selectedPlyFile : null;
     const plyLink = this.intakeType === 'scan' && !ply ? this.plyScanLink.trim() : '';
 
+    if (!this.passDoctorNameCheck(draft.doctor)) return;
+    this.doctorNameConfirmed = '';
     this.closeDialog();
     this.saveInProgress.set(true);
 
@@ -709,9 +749,10 @@ export class EntryComponent implements OnInit, OnDestroy {
           );
           this.loadTodayJobs();
         },
-        error: () => {
+        error: (err: { error?: { message?: string } }) => {
           this.saveInProgress.set(false);
-          this.flash(this.lang.t('entry.toast.saveFail'));
+          // Show the server's reason (e.g. doctor not in the admin's list), not a generic failure.
+          this.flash(err?.error?.message || this.lang.t('entry.toast.saveFail'));
         },
       });
   }

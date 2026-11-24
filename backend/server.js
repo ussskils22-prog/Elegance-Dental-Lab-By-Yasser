@@ -35,6 +35,9 @@ const errorHandler = require('./middleware/errorHandler');
 
 // Initialize Express app
 const app = express();
+// Railway (and Vercel's /api rewrite) sit in front of us: trust one proxy hop so req.ip is the
+// real client and rate limits are per user, not one shared bucket for everyone.
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 
 // On Vercel the module is imported per cold start and must not call listen().
@@ -251,6 +254,7 @@ const startServer = async ({ listen = true } = {}) => {
       try {
         const { scheduleDailyWhatsAppSummary, reloadWhatsAppConfig } = require('./services/whatsappService');
         scheduleDailyWhatsAppSummary();
+        require('./services/operationsReport').scheduleOperationsReport();
         reloadWhatsAppConfig()
           .then((cfg) => {
             if (cfg?.enabled && cfg.provider === 'waweb') {

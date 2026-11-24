@@ -56,6 +56,20 @@ export class CaseApiService {
   }
 
   /** Active cases overdue / due within 24h */
+  /** Admin: groups of client names that look like the same person. */
+  getDoctorDuplicates(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/doctor-duplicates`);
+  }
+
+  /** Admin: preview (apply=false) or merge one client name into another. */
+  mergeDoctorNames(from: string, into: string, apply: boolean): Observable<any> {
+    return this.http.post(`${this.apiUrl}/doctor-merge`, { from, into, apply });
+  }
+
+  getOperationsReport(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/operations-report`);
+  }
+
   getDeliveryAlerts(): Observable<any> {
     return this.http.get(`${this.apiUrl}/delivery-alerts`);
   }
@@ -90,6 +104,14 @@ export class CaseApiService {
   // Create new case
   createCase(data: any): Observable<any> {
     return this.http.post(this.apiUrl, data);
+  }
+
+  /** "Did you mean …?" check for a typed doctor name (secretary/admin). */
+  checkDoctorName(name: string): Observable<{ action?: 'ok' | 'similar'; existing?: string | null; similar?: string[] }> {
+    return this.http.get<{ action?: 'ok' | 'similar'; existing?: string | null; similar?: string[] }>(
+      `${this.apiUrl}/doctor-name-check`,
+      { params: { name } }
+    );
   }
 
   updateCase(id: string, data: unknown): Observable<any> {
