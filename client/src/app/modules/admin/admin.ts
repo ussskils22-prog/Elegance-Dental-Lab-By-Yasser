@@ -44,6 +44,10 @@ export interface StaffMember {
   position: string;
   status: 'active' | 'inactive';
   joinDate: string;
+  /** Doctors / students / labs: no case in the last 30 days (still can log in and be picked). */
+  idle?: boolean;
+  /** Doctors / students / labs: date of the newest case (yyyy-mm-dd), '' if none. */
+  lastCaseAt?: string;
 }
 
 export interface PatientCase {
@@ -545,9 +549,14 @@ export class Admin implements OnInit, OnDestroy {
     );
   }
 
-  /** عدد الحسابات الشغالة فعلًا — الحساب الموقوف ما يتحسبش */
+  /** عدد الحسابات الشغالة فعلًا — الموقوف والخامل (ما بعتش حالة من 30 يوم) ما يتحسبوش */
   get doctorAccountsCount(): number {
-    return this.directoryMembers().filter((m) => m.status !== 'inactive').length;
+    return this.directoryMembers().filter((m) => m.status !== 'inactive' && !m.idle).length;
+  }
+
+  /** حسابات ما بعتتش ولا حالة من 30 يوم */
+  get idleAccountsCount(): number {
+    return this.directoryMembers().filter((m) => m.status !== 'inactive' && m.idle).length;
   }
 
   /** عدد الحسابات الموقوفة (بيظهر صغير جنب العداد) */
@@ -2861,6 +2870,8 @@ export class Admin implements OnInit, OnDestroy {
       position: this.roleToPositionLabel(role),
       status: u['isActive'] === false ? 'inactive' : 'active',
       joinDate,
+      idle: u['idle'] === true,
+      lastCaseAt: u['lastCaseAt'] ? String(u['lastCaseAt']).slice(0, 10) : '',
     };
   }
 
@@ -3050,6 +3061,50 @@ export class Admin implements OnInit, OnDestroy {
       },
       error: (err: { error?: { message?: string } }) => {
         this.duplicatesMsg = err?.error?.message || 'تعذّر تجهيز الدمج';
+      },
+    });
+  }
+
+  purgingStopped = false;
+
+  /** حذف كل الحسابات الموقوفة (دكاتره وطلبة ومعامل) — الحالات والفلوس بتفضل بالاسم */
+  purgeStoppedAccounts(): void {
+    if (this.purgingStopped) return;
+    this.purgingStopped = true;
+    this.doctorLoadError = '';
+    this.userApi.purgeStoppedClients(false).subscribe({
+      next: (preview: { count?: number; accounts?: { name: string }[] }) => {
+        const count = preview?.count ?? 0;
+        if (!count) {
+          this.purgingStopped = false;
+          alert('مفيش حسابات موقوفة');
+          return;
+        }
+        const names = (preview.accounts ?? []).slice(0, 15).map((a) => '• ' + a.name).join('\n');
+        const more = count > 15 ? `\n… و${count - 15} كمان` : '';
+        const ok = confirm(
+          `هيتحذف ${count} حساب موقوف (دكاتره وطلبة ومعامل):\n${names}${more}\n\n` +
+            'الحالات والدفعات القديمة هتفضل موجودة بالاسم، بس الحساب نفسه هيتمسح ومينفعش يرجع. متأكد؟'
+        );
+        if (!ok) {
+          this.purgingStopped = false;
+          return;
+        }
+        this.userApi.purgeStoppedClients(true).subscribe({
+          next: (r: { count?: number }) => {
+            this.purgingStopped = false;
+            alert(`اتحذف ${r?.count ?? count} حساب`);
+            this.loadStaffFromApi();
+          },
+          error: (err: { error?: { message?: string } }) => {
+            this.purgingStopped = false;
+            this.doctorLoadError = err?.error?.message || 'تعذر حذف الحسابات الموقوفة';
+          },
+        });
+      },
+      error: (err: { error?: { message?: string } }) => {
+        this.purgingStopped = false;
+        this.doctorLoadError = err?.error?.message || 'تعذر تحميل الحسابات الموقوفة';
       },
     });
   }

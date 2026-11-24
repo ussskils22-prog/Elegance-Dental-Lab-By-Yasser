@@ -42,6 +42,11 @@ export class UserApiService {
     return this.http.put(`${this.apiUrl}/${id}/status`, { status });
   }
 
+  /** Admin: list (apply=false) or delete (apply=true) all stopped doctor / student / lab accounts. */
+  purgeStoppedClients(apply: boolean): Observable<any> {
+    return this.http.post(`${this.apiUrl}/clients/purge-stopped`, { apply });
+  }
+
   // Delete user (soft delete)
   deleteUser(id: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/${id}`);

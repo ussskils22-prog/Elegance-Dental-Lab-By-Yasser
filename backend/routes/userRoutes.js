@@ -49,6 +49,9 @@ router.post(
   userController.ensureClientAccount
 );
 
+// Admin: delete all stopped doctor / student / lab accounts (dry run unless apply=true)
+router.post('/clients/purge-stopped', authorize('admin'), userController.purgeStoppedClients);
+
 // Get user by ID
 router.get('/:id', authorize('admin', 'secretary'), userController.getUserById);
 

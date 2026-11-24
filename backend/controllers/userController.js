@@ -23,9 +23,21 @@ exports.getAllUsers = async (req, res) => {
       .select('-password -loginPasswordVisible')
       .sort({ fullName: 1 });
 
+    // Doctors / students / labs: newest case date, so the admin sees who is idle (no case in 30 days).
+    const { lastCaseDates, isIdle } = require('../services/clientActivity');
+    const lastCase = await lastCaseDates(users);
+    const data = users.map((u) => {
+      const row = u.toObject();
+      if (isClientPortalRole(u.role)) {
+        row.lastCaseAt = lastCase.get(String(u._id)) || null;
+        row.idle = isIdle({ lastCaseAt: row.lastCaseAt, createdAt: u.createdAt });
+      }
+      return row;
+    });
+
     res.status(200).json({
       success: true,
-      data: users,
+      data,
     });
   } catch (error) {
     res.status(500).json({
@@ -174,6 +186,18 @@ exports.updateUserStatus = async (req, res) => {
       message: 'Failed to update user status',
       error: error.message,
     });
+  }
+};
+
+// Admin: delete every stopped doctor / student / lab account (even with history).
+// Body { apply: false } only lists them; { apply: true } deletes. Cases keep the name.
+exports.purgeStoppedClients = async (req, res) => {
+  try {
+    const { purgeStoppedClients } = require('../services/clientActivity');
+    const r = await purgeStoppedClients({ apply: req.body?.apply === true });
+    res.status(200).json({ success: true, ...r });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to delete stopped accounts', error: error.message });
   }
 };
 

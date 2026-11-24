@@ -375,7 +375,11 @@
             <span class="stat-label" style="font-size:13px;font-weight:600;color:var(--accent-primary);">{{ tDir('countLabel') | t }}</span>
           </div>
           <div class="stat-val" style="font-size:2.5rem;font-weight:800;color:var(--accent-primary);">{{ doctorAccountsCount }}</div>
+          <div *ngIf="idleAccountsCount" style="font-size:12px;opacity:.7;" title="ما بعتوش ولا حالة من 30 يوم — بيرجعوا شغالين لوحدهم مع أول حالة">+ {{ idleAccountsCount }} خامل</div>
           <div *ngIf="inactiveAccountsCount" style="font-size:12px;opacity:.7;">+ {{ inactiveAccountsCount }} موقوف</div>
+          <button *ngIf="inactiveAccountsCount" type="button" class="action-btn" style="margin-top:6px;" [disabled]="purgingStopped" (click)="purgeStoppedAccounts()">
+            {{ purgingStopped ? 'جاري…' : 'احذف الموقوفين' }}
+          </button>
           <div class="stat-sub">{{ tDir('countSub') | t }}</div>
         </div>
       </div>
@@ -428,7 +432,8 @@
         >
           <div class="staff-header">
             <div class="staff-avatar" [class]="doc.status">{{ doc.name.charAt(0) }}</div>
-            <div class="staff-status-badge" [class]="doc.status">{{ doc.status }}</div>
+            <div *ngIf="doc.status === 'active' && doc.idle; else statusBadge" class="staff-status-badge" style="background:var(--warning-bg);color:var(--warning-text);">خامل</div>
+            <ng-template #statusBadge><div class="staff-status-badge" [class]="doc.status">{{ doc.status }}</div></ng-template>
           </div>
           <div class="staff-body">
             <h3 class="staff-name">{{ doc.name }}</h3>
@@ -440,6 +445,7 @@
               <small *ngIf="doc.loginPasswordVisible" style="color:var(--accent-primary);">{{ 'admin.doctors.passwordPrefix' | t }} {{ doc.loginPasswordVisible }}</small>
             </div>
             <p class="staff-joined">{{ 'common.joined' | t }}: {{ doc.joinDate }}</p>
+            <p class="staff-joined" *ngIf="doc.status === 'active' && doc.idle">{{ doc.lastCaseAt ? 'آخر حالة: ' + doc.lastCaseAt : 'لسه ما بعتش حالات' }}</p>
           </div>
           <div class="staff-actions" (click)="$event.stopPropagation()" (keydown)="$event.stopPropagation()">
             <button
