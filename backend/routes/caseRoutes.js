@@ -20,18 +20,7 @@ const createCaseValidation = [
   body('notes').optional().isString(),
 ];
 
-const updateCaseValidation = [
-  body('patientName').optional().trim().notEmpty(),
-  body('patientEmail').optional().isEmail(),
-  body('patientPhone').optional().trim().notEmpty(),
-  body('requesterType').optional().isIn(['doctor', 'student', 'lab']),
-  body('salaryAmount').optional().isFloat({ min: 0 }),
-  body('notes').optional().isString(),
-  body('caseType').optional().trim().notEmpty(),
-  body('priority').optional().isIn(['low', 'normal', 'high', 'urgent']),
-  body('dueDate').optional().isISO8601(),
-  body('stageTimestamps').optional().isObject(),
-];
+const { updateCaseValidation } = require('./caseValidation');
 
 const moveStageValidation = [
   body('stage').isIn(['waiting', 'secretary', 'design', 'khart', 'finishing', 'completed', 'exited']),

@@ -223,11 +223,24 @@ export function buildDesignerNotesMeta(meta: CaseMeta): string {
   return stringifyMeta(meta);
 }
 
+/** "2:00 م" / "14:00" / "2:00 PM" → "14:00"; '' when it is not a time. */
+function normalizeTimeHHmm(raw: string): string {
+  const m = String(raw || '').trim().match(/^(\d{1,2}):(\d{2})\s*(ص|م|am|pm)?/i);
+  if (!m) return '';
+  let h = Math.min(23, Math.max(0, parseInt(m[1], 10)));
+  const min = Math.min(59, Math.max(0, parseInt(m[2], 10)));
+  const ap = String(m[3] || '').toLowerCase();
+  if ((ap === 'م' || ap === 'pm') && h < 12) h += 12;
+  if ((ap === 'ص' || ap === 'am') && h === 12) h = 0;
+  return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
+}
+
 export function buildDueIso(form: SecretaryCaseFormPayload): string {
   if (form.deliveryDate && /^\d{4}-\d{2}-\d{2}$/.test(form.deliveryDate)) {
-    const raw = (form.deliveryTime && form.deliveryTime.trim()) || '18:00';
-    const tm = raw.length === 5 ? `${raw}:00` : raw;
-    return new Date(`${form.deliveryDate}T${tm}`).toISOString();
+    // A malformed time ("2:00 م") used to build an invalid date → "Invalid value" on save.
+    const hhmm = normalizeTimeHHmm(form.deliveryTime || '') || '18:00';
+    const d = new Date(`${form.deliveryDate}T${hhmm}:00`);
+    if (!Number.isNaN(d.getTime())) return d.toISOString();
   }
   const d = new Date();
   d.setDate(d.getDate() + 7);
