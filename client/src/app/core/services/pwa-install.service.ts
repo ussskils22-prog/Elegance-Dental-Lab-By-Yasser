@@ -47,13 +47,17 @@ export class PwaInstallService {
       this.preparingInstall.set(true);
     }
 
-    window.addEventListener('beforeinstallprompt', (e) => {
+    const takePrompt = (e: Event) => {
       e.preventDefault();
       this.deferredPrompt = e as BeforeInstallPromptEvent;
       this.canInstall.set(true);
       this.preparingInstall.set(false);
       if (!dismissed) this.showInstallHint.set(true);
-    });
+    };
+    // The event may have fired before this service existed (captured in index.html).
+    const early = (window as unknown as { __deferredInstallPrompt?: Event }).__deferredInstallPrompt;
+    if (early) takePrompt(early);
+    window.addEventListener('beforeinstallprompt', takePrompt);
 
     window.addEventListener('appinstalled', () => {
       this.deferredPrompt = null;

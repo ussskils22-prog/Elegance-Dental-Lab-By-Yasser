@@ -375,6 +375,7 @@
             <span class="stat-label" style="font-size:13px;font-weight:600;color:var(--accent-primary);">{{ tDir('countLabel') | t }}</span>
           </div>
           <div class="stat-val" style="font-size:2.5rem;font-weight:800;color:var(--accent-primary);">{{ doctorAccountsCount }}</div>
+          <div *ngIf="inactiveAccountsCount" style="font-size:12px;opacity:.7;">+ {{ inactiveAccountsCount }} موقوف</div>
           <div class="stat-sub">{{ tDir('countSub') | t }}</div>
         </div>
       </div>

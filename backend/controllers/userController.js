@@ -186,6 +186,20 @@ exports.deleteUser = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
+    // Doctors / students / labs: really delete an account only when nothing hangs on it
+    // (e.g. an empty duplicate after a merge). With history it must be deactivated instead.
+    const { isClientPortalRole } = require('../utils/clientRoles');
+    if (isClientPortalRole(user.role)) {
+      const { clientUsage, deleteDecision } = require('../services/clientUsage');
+      const decision = deleteDecision(await clientUsage(user));
+      if (!decision.allowed) {
+        return res.status(409).json({ success: false, message: decision.message });
+      }
+      await User.deleteOne({ _id: user._id });
+      return res.status(200).json({ success: true, deleted: true, message: 'تم حذف الحساب' });
+    }
+
+    // Staff accounts keep the old behaviour (deactivate).
     user.isActive = false;
     await user.save();
 

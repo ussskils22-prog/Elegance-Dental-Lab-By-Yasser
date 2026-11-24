@@ -545,9 +545,14 @@ export class Admin implements OnInit, OnDestroy {
     );
   }
 
-  /** إجمالي أكونتات الدكاترة المسجّلة */
+  /** عدد الحسابات الشغالة فعلًا — الحساب الموقوف ما يتحسبش */
   get doctorAccountsCount(): number {
-    return this.directoryMembers().length;
+    return this.directoryMembers().filter((m) => m.status !== 'inactive').length;
+  }
+
+  /** عدد الحسابات الموقوفة (بيظهر صغير جنب العداد) */
+  get inactiveAccountsCount(): number {
+    return this.directoryMembers().filter((m) => m.status === 'inactive').length;
   }
 
   private clientPositionLabel(): string {
@@ -3027,11 +3032,14 @@ export class Admin implements OnInit, OnDestroy {
         this.caseApi.mergeDoctorNames(from, keep, true).subscribe({
           next: () => {
             this.duplicatesMsg = `تم دمج «${from}» في «${keep}»`;
+            const remaining = group.filter((g) => g.name !== from);
             if (others.length > 1) {
               // more names in the same group: continue with the next one
-              this.mergeDuplicateGroup(group.filter((g) => g.name !== from), keep);
+              this.mergeDuplicateGroup(remaining, keep);
             } else {
-              this.loadDuplicates();
+              // Remove only this group in place so the page stays where you are
+              // (a full reload jumped back to the top).
+              this.duplicateGroups = this.duplicateGroups.filter((g) => g !== group && !g.some((x) => x.name === from));
               this.loadStaffFromApi();
             }
           },
@@ -3051,11 +3059,14 @@ export class Admin implements OnInit, OnDestroy {
     const kindLabel = this.clientPositionLabel();
     const ok = confirm(`هل أنت متأكد من حذف حساب ${kindLabel} ${doc.name} نهائياً؟`);
     if (!ok) return;
+    this.doctorLoadError = '';
     this.userApi.deleteUser(doc.id).subscribe({
       next: () => this.loadStaffFromApi(),
-      error: (err) => {
-        console.error(err);
-        this.doctorLoadError = 'تعذر حذف الحساب';
+      error: (err: { error?: { message?: string } }) => {
+        // e.g. "الحساب ده عليه 12 حالة — أوقفه بدل ما تحذفه…"
+        const msg = err?.error?.message || 'تعذر حذف الحساب';
+        this.doctorLoadError = msg;
+        alert(msg);
       },
     });
   }

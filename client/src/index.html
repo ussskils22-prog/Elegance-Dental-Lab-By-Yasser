@@ -18,6 +18,14 @@
 </head>
 <body>
   <script>
+    // Chrome fires beforeinstallprompt once, often before Angular has started. Keep it so the
+    // install banner can show on the first visit (PwaInstallService picks it up).
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      window.__deferredInstallPrompt = e;
+    });
+  </script>
+  <script>
     (function () {
       if (!('serviceWorker' in navigator)) return;
       var reloading = false;

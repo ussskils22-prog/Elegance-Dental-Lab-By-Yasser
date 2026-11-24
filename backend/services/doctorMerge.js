@@ -119,10 +119,19 @@ async function mergeClientNames({ from, into, apply = false, admin = null, sourc
       for (const row of rest) await row.deleteOne();
     }
   }
+  // The duplicate's account is now empty (cases and payments moved): delete it so it stops
+  // cluttering the directory. If anything still hangs on it, only deactivate.
+  const { clientUsage, deleteDecision } = require('./clientUsage');
+  summary.accountsDeleted = [];
   for (const u of fromUsers) {
     if (intoUser && String(u._id) === String(intoUser._id)) continue;
-    u.isActive = false;
-    await u.save();
+    if (deleteDecision(await clientUsage(u)).allowed) {
+      await User.deleteOne({ _id: u._id });
+      summary.accountsDeleted.push(u.fullName);
+    } else {
+      u.isActive = false;
+      await u.save();
+    }
   }
   summary.applied = true;
   return summary;
