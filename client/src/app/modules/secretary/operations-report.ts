@@ -20,16 +20,25 @@ export interface OperationsReport {
 const esc = (s: unknown): string =>
   String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
-const cairo = (iso: string | null): string =>
-  iso
-    ? new Date(iso).toLocaleString('ar-EG', {
-        timeZone: 'Africa/Cairo',
-        day: '2-digit',
-        month: '2-digit',
-        hour: 'numeric',
-        minute: '2-digit',
-      })
-    : '—';
+/** Cairo time with English digits, e.g. "25/11 4:00 م". */
+const cairo = (iso: string | null): string => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  const p: Record<string, string> = {};
+  for (const part of new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Africa/Cairo',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(d)) {
+    p[part.type] = part.value;
+  }
+  const h = Number(p['hour']);
+  return `${p['day']}/${p['month']} ${h % 12 || 12}:${p['minute']} ${h < 12 ? 'ص' : 'م'}`;
+};
 
 function table(title: string, rows: OperationsReportRow[], extraHead: string, extra: (r: OperationsReportRow) => string): string {
   const body = rows.length

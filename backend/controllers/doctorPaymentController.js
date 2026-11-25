@@ -64,6 +64,8 @@ exports.addPayment = async (req, res) => {
       }
     }
 
+    const { normalizePaymentMethod } = require('../utils/paymentMethod');
+    const paymentMethod = type === 'payment' ? normalizePaymentMethod(req.body?.paymentMethod) : '';
     let payment = await DoctorPayment.create({
       doctorName: normalizedName,
       amount: Number(amount),
@@ -71,6 +73,7 @@ exports.addPayment = async (req, res) => {
       notes: normalizedNotes,
       entryType: type,
       caseId: req.body?.caseId || null,
+      paymentMethod,
     });
 
     // Force-repair if schema/default left it as payment despite charge intent
@@ -116,6 +119,7 @@ exports.addPayment = async (req, res) => {
     data.notes = normalizedNotes;
 
     // Case-linked payment: mark the case paid once linked payments cover the bill
+    let receiptCase = null;
     if (type === 'payment' && payment.caseId) {
       try {
         const DentalCase = require('../models/DentalCase');
@@ -133,6 +137,12 @@ exports.addPayment = async (req, res) => {
           const covers = due > 0 ? paidTotal + 0.009 >= due : paidTotal > 0;
           data.casePaidTotal = paidTotal;
           data.caseDue = due;
+          receiptCase = {
+            caseNumber: String(dentalCase.caseNumber || ''),
+            patientName: String(dentalCase.patientName || ''),
+            totalDue: due,
+            paidTotal,
+          };
           if (covers && dentalCase.paymentStatus !== 'paid') {
             dentalCase.paymentStatus = 'paid';
             dentalCase.paidAt = payment.paymentDate || new Date();
@@ -164,7 +174,13 @@ exports.addPayment = async (req, res) => {
             amount: Number(amount),
             notes: normalizedNotes,
             paymentDate: payment.paymentDate,
-            receiptNo: String(payment._id),
+            receiptNo: receiptCase?.caseNumber || String(payment._id),
+            // The receipt already prints case + patient: show only what the secretary typed
+            receiptNote: req.body?.receiptNote !== undefined ? String(req.body.receiptNote || '').trim() : undefined,
+            paymentMethod,
+            patientName: receiptCase?.patientName || '',
+            totalDue: receiptCase?.totalDue,
+            paidTotal: receiptCase?.paidTotal,
           },
           req.user?.id
         );

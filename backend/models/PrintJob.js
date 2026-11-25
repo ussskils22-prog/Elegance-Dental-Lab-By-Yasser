@@ -16,6 +16,12 @@ const printJobSchema = new mongoose.Schema(
       jobKind:    { type: String, enum: ['sheet', 'receipt'], default: 'sheet' },
       amount:     { type: Number, default: 0 },
       receiptNote:{ type: String, default: '' },
+      /** Receipt only: patient, how it was paid, and the case totals after this payment */
+      patientName:   { type: String, default: '' },
+      paymentMethod: { type: String, default: '' },
+      totalDue:      { type: Number, default: null },
+      paidTotal:     { type: Number, default: null },
+      remaining:     { type: Number, default: null },
       intakeType: { type: String, enum: ['', 'impression', 'scan'], default: '' },
       /** FDI tooth chart selections for print sheet highlighting */
       teeth: [

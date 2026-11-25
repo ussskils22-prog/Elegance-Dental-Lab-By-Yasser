@@ -6,11 +6,12 @@
 const { classifyCase, metaOf } = require('../utils/caseDeadlines');
 const { cairoParts, cairoDayKey } = require('../utils/cairoTime');
 
+// The lab works with 4 stages: جديدة → ديزاين → فينيش → جاهزة (milling counts as فينيش).
 const STAGE_AR = {
-  waiting: 'انتظار',
-  secretary: 'سكرتارية',
+  waiting: 'جديدة',
+  secretary: 'جديدة',
   design: 'ديزاين',
-  khart: 'خرط',
+  khart: 'فينيش',
   finishing: 'فينيش',
   completed: 'جاهزة',
 };
@@ -124,4 +125,4 @@ function scheduleOperationsReport() {
   setInterval(tick, 60 * 1000);
 }
 
-module.exports = { buildOperationsReport, formatReportText, generateOperationsReport, scheduleOperationsReport };
+module.exports = { STAGE_AR, buildOperationsReport, formatReportText, generateOperationsReport, scheduleOperationsReport };

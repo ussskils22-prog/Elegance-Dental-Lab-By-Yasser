@@ -7,7 +7,7 @@ import { catchError, concatMap, forkJoin, from, map, of, Subscription, switchMap
 import type { Observable } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { type ClientAccountKind } from '../../core/auth/client-account';
-import { CaseApiService, type CaseBill } from '../../core/services/case-api.service';
+import { CaseApiService, type CaseBill, type PaymentMethod } from '../../core/services/case-api.service';
 import { renderOperationsReportHtml, type OperationsReport } from './operations-report';
 import { rankNameSuggestions, sameDoctorName, spacingOnlyMatch } from '../../core/utils/doctor-name';
 import { SharedCasesService, type DentalCase } from '../../core/services/shared-cases.service';
@@ -64,6 +64,7 @@ function emptyDraft(): CaseDraft {
   return {
     doctor: '',
     patient: '',
+    branch: '',
     patientPhone: '',
     studentPrice: 0,
     workType: '',
@@ -2017,6 +2018,7 @@ export class Secretary implements OnInit, OnDestroy {
     this.formDraft = {
       doctor: c.doctor,
       patient: c.patient,
+      branch: String((c as { branch?: string }).branch || '').trim(),
       patientPhone: c.patientPhone || '',
       studentPrice: Number(c.salaryAmount || 0),
       workType: c.workType,
@@ -2544,6 +2546,8 @@ export class Secretary implements OnInit, OnDestroy {
       studentPrice: requesterType === 'student' ? Number(d.studentPrice || 0) : 0,
       doctor: docName,
       patient: patientName,
+      // Branch (doctors only, optional): printed on the case sheet
+      branch: requesterType === 'doctor' ? String(d.branch || '').trim() : '',
       patientEmail: existing?.patientEmail?.trim() || undefined,
       patientPhone: d.patientPhone?.trim(),
       workType: d.workType.trim(),
@@ -2598,7 +2602,7 @@ export class Secretary implements OnInit, OnDestroy {
       const printDraft = {
         doctor: docName,
         patient: patientName,
-        branch: '',
+        branch: formPayload.branch,
         caseType: (['New', 'Modification', 'Redo', 'Empty'].includes(String(d.caseType))
           ? d.caseType
           : 'New') as 'New' | 'Modification' | 'Redo' | 'Empty',
@@ -3256,6 +3260,12 @@ export class Secretary implements OnInit, OnDestroy {
   billError = '';
   collectAmount: number | null = null;
   collectNotes = '';
+  collectMethod: PaymentMethod = 'cash';
+  readonly paymentMethods: { value: PaymentMethod; label: string }[] = [
+    { value: 'cash', label: 'كاش' },
+    { value: 'vodafone_cash', label: 'فودافون كاش' },
+    { value: 'instapay', label: 'إنستا باي' },
+  ];
   collectSaving = false;
 
   /** Show "unpaid" only on finished/exited cases; "paid" whenever paid. */
@@ -3272,6 +3282,7 @@ export class Secretary implements OnInit, OnDestroy {
     this.billLoading = true;
     this.collectAmount = null;
     this.collectNotes = '';
+    this.collectMethod = 'cash';
     this.caseApi.getCaseBill(c.id).subscribe({
       next: (res) => {
         this.billLoading = false;
@@ -3315,7 +3326,7 @@ export class Secretary implements OnInit, OnDestroy {
     const note = [`حالة ${b.caseNumber}`, b.patientName ? `المريض ${b.patientName}` : '', this.collectNotes.trim()]
       .filter(Boolean)
       .join(' — ');
-    this.caseApi.collectCasePayment(b, amount, note).subscribe({
+    this.caseApi.collectCasePayment(b, amount, note, this.collectMethod, this.collectNotes.trim()).subscribe({
       next: (res) => {
         this.collectSaving = false;
         const status = String(res?.data?.casePaymentStatus || '');

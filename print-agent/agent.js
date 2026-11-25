@@ -813,36 +813,45 @@ function printPdf(pdfPath, printerName) {
 }
 
 function buildReceiptHtml(data) {
-  const doctor = escapeHtml(data.doctor || '');
-  const amount = Number(data.amount) || 0;
-  const when = escapeHtml(data.printDate || '');
-  const note = escapeHtml(data.receiptNote || data.workDetail || '');
-  const receiptNo = escapeHtml(String(data.caseNumber || '').slice(-8));
-  const money = amount.toLocaleString('ar-EG', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const money = (n) =>
+    (Number(n) || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  const row = (label, value, cls = '') =>
+    value === '' || value === null || value === undefined
+      ? ''
+      : `<div class="row ${cls}"><span>${label}</span><span>${escapeHtml(value)}</span></div>`;
+  const hasTotals = data.totalDue !== null && data.totalDue !== undefined && Number(data.totalDue) > 0;
+  const note = String(data.receiptNote || '').trim();
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8"/>
 <style>
   @page { size: 80mm 150mm; margin: 4mm; }
+  * { box-sizing: border-box; }
   body { font-family: Tahoma, sans-serif; width: 72mm; margin: 0; color: #000; font-size: 13px; }
-  h1 { font-size: 16px; text-align: center; margin: 0 0 4px; }
+  h1 { font-size: 16px; text-align: center; margin: 0 0 2px; }
   .center { text-align: center; }
-  .line { border-top: 1px dashed #000; margin: 8px 0; }
+  .line { border-top: 1px dashed #000; margin: 7px 0; }
   .row { display: flex; justify-content: space-between; gap: 8px; margin: 4px 0; }
-  .amount { font-size: 22px; font-weight: 700; text-align: center; margin: 8px 0; }
+  .row span:last-child { font-weight: 700; text-align: left; direction: ltr; unicode-bidi: isolate; }
+  .big { font-size: 17px; }
+  .paid { font-size: 18px; border: 1.5px solid #000; padding: 4px 6px; margin: 6px 1mm; }
 </style>
 </head>
 <body>
   <h1>${escapeHtml(LAB_NAME)}</h1>
   <div class="center">إيصال تحصيل</div>
   <div class="line"></div>
-  <div class="row"><span>الدكتور</span><span>${doctor}</span></div>
-  <div class="row"><span>التاريخ</span><span>${when}</span></div>
-  ${receiptNo ? `<div class="row"><span>رقم</span><span>${receiptNo}</span></div>` : ''}
+  ${row('الدكتور', data.doctor || '')}
+  ${row('المريض', data.patientName || '')}
+  ${row('التاريخ', data.printDate || '')}
+  ${row('رقم الحالة', data.caseNumber || '')}
   <div class="line"></div>
-  <div class="amount">${money} ج.م</div>
-  ${note ? `<div class="center">${note}</div>` : ''}
+  ${hasTotals ? row('المبلغ الأصلي (ج.م)', money(data.totalDue)) : ''}
+  ${row('المدفوع (ج.م)', money(data.amount), 'paid')}
+  ${hasTotals ? row('المتبقي (ج.م)', money(data.remaining), 'big') : ''}
+  ${row('طريقة الدفع', data.paymentMethod || '')}
+  ${note ? `<div class="line"></div><div class="center">${escapeHtml(note)}</div>` : ''}
   <div class="line"></div>
   <div class="center">شكراً لتعاملكم معنا</div>
 </body>

@@ -35,6 +35,12 @@ const DoctorPaymentSchema = new mongoose.Schema({
   notes: {
     type: String,
     default: ''
+  },
+  /** cash | vodafone_cash | instapay — '' for older payments */
+  paymentMethod: {
+    type: String,
+    enum: ['', 'cash', 'vodafone_cash', 'instapay'],
+    default: ''
   }
 }, { timestamps: true });
 

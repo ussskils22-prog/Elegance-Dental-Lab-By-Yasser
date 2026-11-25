@@ -10,7 +10,6 @@ import { mapApiCaseToDentalCase } from '../../core/mappers/dental-case-api.mappe
 import {
   buildCasePayloadFromPrintForm,
   buildPrintData,
-  formatWorkTypeForPrint,
 } from '../../core/utils/print-job.util';
 import { Subscription, switchMap } from 'rxjs';
 import { SocketService } from '../../core/services/socket.service';
@@ -390,101 +389,5 @@ export class RequesterComponent implements OnInit, OnDestroy {
   private flash(msg: string): void {
     this.toast.set(msg);
     setTimeout(() => this.toast.set(null), 3500);
-  }
-
-  formatWorkTypeForDisplay(wt: string): string {
-    return formatWorkTypeForPrint(wt);
-  }
-
-  printCaseCard(c: any): void {
-    const now = new Date();
-    const printDate = now.toLocaleDateString('en-GB') + '  ' + now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    const workTypeDisplay = this.formatWorkTypeForDisplay(c.workType);
-    const quantity = c.caseType === 'Empty' ? 0 : (c.quantity || 0);
-
-    const html = `<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head>
-  <meta charset="UTF-8">
-  <title>ريكويست</title>
-  <style>
-    @page { size: A4; margin: 0mm 20mm 15mm 20mm; }
-    html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-    html { height: 100%; }
-    body { margin: 0; padding: 0; background: #fff; color: #000; font-size: 19px; }
-    .section { margin: 22px 0; }
-    .section-title { font-size: 17px; font-weight: bold; border-right: 4px solid #000; padding-right: 12px; margin-bottom: 12px; color: #222; }
-    .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; font-size: 18px; }
-    .row:last-child { border-bottom: none; }
-    .label { color: #666; }
-    .value { font-weight: bold; text-align: left; }
-    .footer { margin-top: 30px; padding-top: 14px; border-top: 2px solid #000; display: flex; justify-content: flex-end; font-size: 15px; color: #555; }
-    .footer-brand { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
-    .footer-brand-name { font-weight: bold; font-size: 16px; color: #222; }
-    .footer-date { font-size: 13px; color: #666; }
-    .teeth-section { margin-top: 36px; }
-    .teeth-title { font-size: 17px; font-weight: bold; border-right: 4px solid #000; padding-right: 12px; margin-bottom: 14px; color: #222; }
-    .teeth-table { width: 100%; border-collapse: collapse; font-size: 17px; }
-    .teeth-table th { background: #2980b9; color: #fff; text-align: center; padding: 8px 0; font-size: 18px; font-weight: bold; width: 50%; }
-    .teeth-table td { text-align: center; padding: 10px 2px; font-size: 18px; font-weight: bold; width: 6.25%; }
-    .teeth-table .divider td { border-top: 2px solid #333; padding: 0; height: 0; }
-    .center-line { border-right: 2px solid #333; }
-  </style>
-</head>
-<body>
-
-  <div class="section">
-    <div class="section-title">بيانات الطبيب والمريض</div>
-    <div class="row"><span class="label">الطبيب</span><span class="value">${c.doctor || '—'}</span></div>
-    <div class="row"><span class="label">المريض</span><span class="value">${c.patient || '—'}</span></div>
-    <div class="row"><span class="label">الفرع</span><span class="value">${c.branch || '—'}</span></div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">تفاصيل العمل</div>
-    <div class="row"><span class="label">نوع العمل</span><span class="value">${workTypeDisplay || '—'}</span></div>
-    ${c.workDetail ? `<div class="row"><span class="label">ملاحظات</span><span class="value">${c.workDetail}</span></div>` : ''}
-    <div class="row"><span class="label">اللون</span><span class="value">${c.color || '—'}</span></div>
-    <div class="row"><span class="label">إجمالي العدد</span><span class="value">${quantity}</span></div>
-  </div>
-
-  <div class="teeth-section">
-    <div class="teeth-title">مخطط الأسنان</div>
-    <table class="teeth-table" dir="ltr">
-      <thead>
-        <tr><th colspan="8">R</th><th colspan="8">L</th></tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>8</td><td>7</td><td>6</td><td>5</td><td>4</td><td>3</td><td>2</td><td class="center-line">1</td>
-          <td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td>
-        </tr>
-        <tr class="divider"><td colspan="16"></td></tr>
-        <tr>
-          <td>8</td><td>7</td><td>6</td><td>5</td><td>4</td><td>3</td><td>2</td><td class="center-line">1</td>
-          <td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="footer">
-    <div class="footer-brand">
-      <span class="footer-brand-name">Elegance Dental Lab</span>
-      <span class="footer-date">تاريخ الطباعة: ${printDate}</span>
-    </div>
-  </div>
-  <script>
-    window.onload = function() { window.print(); window.onafterprint = function() { window.close(); }; };
-  </script>
-</body>
-</html>`;
-
-    const popup = window.open('', '_blank', 'width=800,height=900,toolbar=0,menubar=0,scrollbars=0');
-    if (popup) {
-      popup.document.write(html);
-      popup.document.close();
-    }
   }
 }

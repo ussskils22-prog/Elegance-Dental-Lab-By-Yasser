@@ -161,19 +161,28 @@ exports.queueCashReceipt = async function queueCashReceipt(payload, userId) {
   const amount = Number(payload?.amount) || 0;
   if (!doctor || !(amount > 0)) return null;
 
-  const when = payload?.paymentDate ? new Date(payload.paymentDate) : new Date();
-  const printDate = when.toLocaleString('ar-EG', { timeZone: 'Africa/Cairo' });
+  const { paymentMethodLabel, receiptDateText } = require('../utils/paymentMethod');
+  const printDate = receiptDateText(payload?.paymentDate || new Date());
+  const patientName = String(payload?.patientName || '').trim();
+  const totalDue = Number(payload?.totalDue);
+  const paidTotal = Number(payload?.paidTotal);
+  const hasCaseTotals = Number.isFinite(totalDue) && totalDue > 0 && Number.isFinite(paidTotal);
   const job = await PrintJob.create({
     printData: {
       doctor,
-      patient: 'إيصال تحصيل',
+      patient: patientName || 'إيصال تحصيل',
+      patientName,
       workType: 'تحصيل',
       workDetail: String(payload?.notes || '').trim(),
       caseNumber: String(payload?.receiptNo || '').trim(),
       printDate,
       jobKind: 'receipt',
       amount,
-      receiptNote: String(payload?.notes || '').trim(),
+      paymentMethod: paymentMethodLabel(payload?.paymentMethod),
+      ...(hasCaseTotals
+        ? { totalDue, paidTotal, remaining: Math.max(0, Math.round((totalDue - paidTotal) * 100) / 100) }
+        : {}),
+      receiptNote: String(payload?.receiptNote !== undefined ? payload.receiptNote : payload?.notes || '').trim(),
     },
     status: 'pending',
     createdBy: userId || null,

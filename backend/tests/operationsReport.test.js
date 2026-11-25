@@ -32,3 +32,16 @@ describe('buildOperationsReport', () => {
     expect(text).toContain('واقفة أكتر من يومين في نفس المرحلة (1)');
   });
 });
+
+describe('stage names — the lab uses 4 stages', () => {
+  const { STAGE_AR } = require('../services/operationsReport');
+  test('new / design / finish / ready', () => {
+    expect(STAGE_AR.waiting).toBe('جديدة');
+    expect(STAGE_AR.secretary).toBe('جديدة');
+    expect(STAGE_AR.design).toBe('ديزاين');
+    expect(STAGE_AR.khart).toBe('فينيش');
+    expect(STAGE_AR.finishing).toBe('فينيش');
+    expect(STAGE_AR.completed).toBe('جاهزة');
+    expect(new Set(Object.values(STAGE_AR)).size).toBe(4);
+  });
+});

@@ -251,16 +251,27 @@ export class CaseApiService {
   }
 
   /** Record a cash payment linked to a case (marks it paid when covered + prints receipt). */
-  collectCasePayment(bill: CaseBill, amount: number, notes: string = ''): Observable<any> {
+  collectCasePayment(
+    bill: CaseBill,
+    amount: number,
+    notes: string = '',
+    paymentMethod: PaymentMethod = 'cash',
+    receiptNote: string = ''
+  ): Observable<any> {
     return this.http.post(`${this.rootApiUrl}/doctor-payments`, {
       doctorName: bill.doctorName,
       amount,
       notes,
       entryType: 'payment',
       caseId: bill.caseId,
+      paymentMethod,
+      receiptNote,
     });
   }
 }
+
+/** How the doctor paid (printed on the receipt). */
+export type PaymentMethod = 'cash' | 'vodafone_cash' | 'instapay';
 
 export interface CaseBill {
   caseId: string;
