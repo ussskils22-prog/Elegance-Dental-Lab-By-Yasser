@@ -60,7 +60,7 @@ const setupSocket = (server) => {
         const device = await verifyDeviceToken(deviceToken);
         if (device && device.kind === 'print') {
           socket.isPrintAgent = true;
-          socket.agentCaps = parseCaps(socket.handshake.auth.caps);
+          socket.agentCaps = capsOrLegacy(socket.handshake.auth.caps);
           return next();
         }
         return next(new Error('Invalid device token'));
@@ -71,7 +71,7 @@ const setupSocket = (server) => {
         if (agentSecret === process.env.PRINT_AGENT_SECRET) {
           socket.isPrintAgent = true;
           // Capabilities declared by the agent ("sheet,receipt"). Old agents send none → sheets only.
-          socket.agentCaps = parseCaps(socket.handshake.auth.caps);
+          socket.agentCaps = capsOrLegacy(socket.handshake.auth.caps);
           return next();
         }
         return next(new Error('Invalid agent secret'));
@@ -99,47 +99,24 @@ const setupSocket = (server) => {
     // ── Print Agent connection ──────────────────────────
     if (socket.isPrintAgent) {
       socket.join('print-agents');
-      printAgentConnections.set(socket.id, { connectedAt: new Date(), caps: socket.agentCaps || [] });
+      // caps null = old agent that never declared them (keeps the old "sheets only" rule)
+      printAgentConnections.set(socket.id, { connectedAt: new Date(), caps: socket.agentCaps ?? null });
 
-      // Agent tells us when its receipt printer appears/disappears
+      // Agent tells us when its sheet / receipt printer is connected or unplugged
       socket.on('print:agent-caps', (data) => {
         const row = printAgentConnections.get(socket.id);
-        if (row) row.caps = parseCaps(data && data.caps);
+        if (!row) return;
+        row.caps = parseCaps(data && data.caps);
+        // A printer just got connected on that PC: hand it what is waiting
+        if (row.caps.includes('sheet') || row.caps.includes('receipt')) void sendPendingJobsTo(socket);
       });
       console.log(
         `🖨️  Print Agent connected (${printAgentConnections.size} online) — joined print-agents room`
       );
       broadcastPrintAgentStatus();
 
-      // Catch-up: only unclaimed / stale jobs (never actively claimed by another agent)
-      (async () => {
-        try {
-          const PrintJob = require('../models/PrintJob');
-          const staleBefore = new Date(Date.now() - 5 * 60 * 1000);
-          const canReceipt = (socket.agentCaps || []).includes('receipt');
-          const pendingJobs = await PrintJob.find({
-            paperConfirmed: { $ne: 'yes' },
-            // Receipts only to agents with a receipt printer — never on the sheet printer
-            ...(canReceipt ? {} : { 'printData.jobKind': { $ne: 'receipt' } }),
-            $or: [
-              { status: { $in: ['pending', 'failed'] } },
-              { status: 'printing', claimedAt: { $lt: staleBefore } },
-              { status: 'printing', claimedAt: null },
-            ],
-          }).sort({ createdAt: 1 });
-          if (pendingJobs.length > 0) {
-            console.log(`🖨️  Sending ${pendingJobs.length} pending print jobs to connected agent`);
-            pendingJobs.forEach(job => {
-              socket.emit('print:new-job', {
-                jobId: job._id,
-                printData: job.printData,
-              });
-            });
-          }
-        } catch (err) {
-          console.error('Error fetching pending jobs on agent connection:', err);
-        }
-      })();
+      // Catch-up: only unclaimed / stale jobs this PC can really print
+      void sendPendingJobsTo(socket);
 
       socket.on('print:job-status', async (data) => {
         try {
@@ -271,36 +248,66 @@ const emitToAll = (event, data) => {
   }
 };
 
-function parseCaps(raw) {
-  return String(raw || '')
-    .toLowerCase()
-    .split(/[,\s]+/)
-    .filter(Boolean);
+const { parseCaps, canTakeKind, jobKindFilterForCaps } = require('../utils/printCaps');
+
+/** undefined / null = old agent that never declared caps */
+function capsOrLegacy(raw) {
+  return raw === undefined || raw === null ? null : parseCaps(raw);
+}
+
+/** Jobs waiting for a printer that this agent can really print (its printer is connected). */
+async function sendPendingJobsTo(socket) {
+  try {
+    const PrintJob = require('../models/PrintJob');
+    const row = printAgentConnections.get(socket.id);
+    const caps = row ? row.caps : socket.agentCaps ?? null;
+    const staleBefore = new Date(Date.now() - 5 * 60 * 1000);
+    const pendingJobs = await PrintJob.find({
+      paperConfirmed: { $ne: 'yes' },
+      ...jobKindFilterForCaps(caps),
+      $or: [
+        { status: { $in: ['pending', 'failed'] } },
+        { status: 'printing', claimedAt: { $lt: staleBefore } },
+        { status: 'printing', claimedAt: null },
+      ],
+    }).sort({ createdAt: 1 });
+    if (pendingJobs.length > 0) {
+      console.log(`🖨️  Sending ${pendingJobs.length} pending print jobs to connected agent`);
+      for (const job of pendingJobs) socket.emit('print:new-job', { jobId: job._id, printData: job.printData });
+    }
+  } catch (err) {
+    console.error('Error fetching pending jobs for agent:', err);
+  }
 }
 
 /**
  * Receipt jobs go only to the newest agent that declared a receipt printer.
- * Sheet jobs go to every connected agent at once. Atomic claim prints exactly one,
- * so the PC sitting on the HP starts immediately instead of losing to whichever
- * socket connected last and then waiting for the next poll.
+ * Sheet jobs go to every agent whose sheet printer is connected (old agents: always).
+ * Atomic claim prints exactly one. A PC with its printer unplugged no longer receives
+ * sheets — it used to win the claim and send them into a dead Windows queue.
  */
 const emitToOnePrintAgent = (event, data) => {
   if (!io) return;
   const isReceipt = String(data?.printData?.jobKind || '') === 'receipt';
   if (!isReceipt) {
-    const ids = [...printAgentConnections.keys()];
-    if (ids.length === 0) {
+    if (printAgentConnections.size === 0) {
       io.to('print-agents').emit(event, data);
       return;
     }
-    for (const sid of ids) io.to(sid).emit(event, data);
+    let sent = 0;
+    for (const [sid, row] of printAgentConnections.entries()) {
+      if (!canTakeKind(row.caps, 'sheet')) continue;
+      io.to(sid).emit(event, data);
+      sent += 1;
+    }
+    if (!sent) console.log('🖨️  Sheet job queued — no PC with a connected sheet printer is online right now');
     return;
   }
 
   let targetId = null;
   let newest = null;
   for (const [sid, row] of printAgentConnections.entries()) {
-    if (!(row.caps || []).includes('receipt')) continue;
+    if (!canTakeKind(row.caps, 'receipt')) continue;
     if (!newest || (row.connectedAt && row.connectedAt > newest)) {
       newest = row.connectedAt;
       targetId = sid;

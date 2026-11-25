@@ -154,6 +154,9 @@ const PRINTER_NAME    = config.PRINTER_NAME;
 const RECEIPT_PRINTER_NAME = config.RECEIPT_PRINTER_NAME || 'XP-Q808K';
 /** true only when the receipt printer is installed and ready on THIS PC */
 let receiptPrinterOk = false;
+/** true only when the sheet printer is really connected to THIS PC (checked every 30s) */
+let sheetPrinterOk = false;
+let sheetPrinterChecked = false;
 const RECONNECT_DELAY = 3000; // ms
 const POLL_INTERVAL_MS = Number(config.POLL_INTERVAL_MS) || 20000;
 /** Printed on receipts and sheets — set per lab in config.json (LAB_NAME). */
@@ -177,7 +180,7 @@ const socket = io(SERVER_URL, {
   auth: (cb) =>
     cb({
       ...(DEVICE_TOKEN ? { deviceToken: DEVICE_TOKEN } : { agentSecret: AGENT_SECRET }),
-      caps: receiptPrinterOk ? 'sheet,receipt' : 'sheet',
+      caps: currentCaps(),
     }),
   reconnection: true,
   reconnectionDelay: RECONNECT_DELAY,
@@ -217,7 +220,7 @@ socket.on('connect', () => {
   authError = false;
   lastError = '';
   writeAgentState(true);
-  socket.emit('print:agent-caps', { caps: receiptPrinterOk ? 'sheet,receipt' : 'sheet' });
+  socket.emit('print:agent-caps', { caps: currentCaps() });
   // Burst catch-up: network often stabilizes a few seconds after socket reconnect
   catchUpBurst('connect');
 });
@@ -592,6 +595,15 @@ async function processQueue() {
         continue;
       }
 
+      // Same for sheets: if the HP is not connected here, another PC must print it.
+      if (String(job.printData?.jobKind || '') !== 'receipt' && sheetPrinterChecked && !sheetPrinterOk) {
+        console.log(`⏭️  Skip sheet ${job.jobId} — sheet printer not connected to this PC`);
+        startedIds.delete(job.jobId);
+        releaseJobLock(job.jobId);
+        currentJobId = null;
+        continue;
+      }
+
       const isReceipt = String(job.printData?.jobKind || '') === 'receipt';
       const printerName = isReceipt ? RECEIPT_PRINTER_NAME : PRINTER_NAME;
       // Build the ticket while the claim round-trip is in flight so Sumatra starts sooner.
@@ -742,7 +754,7 @@ function httpJson(method, url, body) {
           ...(DEVICE_TOKEN ? { 'x-device-token': DEVICE_TOKEN } : { 'x-agent-secret': AGENT_SECRET }),
           'x-agent-id': `pid-${process.pid}`,
           // Only agents with a receipt printer configured may claim receipt jobs
-          'x-agent-caps': receiptPrinterOk ? 'sheet,receipt' : 'sheet',
+          'x-agent-caps': currentCaps(),
           ...(payload ? { 'Content-Length': Buffer.byteLength(payload) } : {}),
         },
         timeout: 15000,
@@ -829,32 +841,98 @@ function catchUpBurst(reason) {
 // Poll forever — covers sleep wake, missed socket events, and PC restarts
 setInterval(() => fetchAndEnqueuePending('interval'), POLL_INTERVAL_MS);
 
+/**
+ * Is this printer physically connected to THIS PC right now?
+ * USB printers have a Plug and Play entry that is "not present" when the cable is out or the
+ * printer is off — Windows still shows the printer as "Normal" and happily queues jobs that
+ * never come out. Network / virtual printers have no such entry and count as connected.
+ * Uses Plug and Play only (no Win32_Printer query, which stalls the HP P1102).
+ * @returns {Promise<'present'|'absent'|'no-pnp'>}
+ */
+async function printerConnection(name) {
+  const n = escapePsSingleQuoted(name);
+  const out = await runPowerShell(
+    `$n='${n}'; $d=@(Get-PnpDevice -ErrorAction SilentlyContinue | Where-Object { $_.FriendlyName -eq $n }); ` +
+      `if ($d.Count -eq 0) { 'NOPNP' } elseif (@($d | Where-Object { $_.Present }).Count -gt 0) { 'PRESENT' } else { 'ABSENT' }`,
+    20000
+  );
+  if (/ABSENT/.test(out)) return 'absent';
+  if (/PRESENT/.test(out)) return 'present';
+  return 'no-pnp';
+}
+
+/** What this PC can print right now — the server only sends those jobs here. */
+function currentCaps() {
+  const caps = [];
+  if (sheetPrinterOk) caps.push('sheet');
+  if (receiptPrinterOk) caps.push('receipt');
+  return caps.length ? caps.join(',') : 'none';
+}
+
+function announceCaps() {
+  if (socket.connected) socket.emit('print:agent-caps', { caps: currentCaps() });
+}
+
+// Sheet printer presence — a PC whose HP is not connected must not take sheets, or it wins
+// the claim and the sheet disappears into its Windows queue while the real print PC waits.
+async function checkSheetPrinter(logChange) {
+  if (!PRINTER_NAME) return;
+  let ok = true;
+  try {
+    ok = (await printerConnection(PRINTER_NAME)) !== 'absent';
+  } catch (err) {
+    ok = true; // cannot tell → keep printing as before
+  }
+  if (ok !== sheetPrinterOk || logChange) {
+    console.log(ok ? `   Sheet printer ${PRINTER_NAME}: connected` : `   Sheet printer ${PRINTER_NAME}: NOT connected to this PC — not taking sheets`);
+  }
+  const became = !sheetPrinterOk && ok;
+  const changed = ok !== sheetPrinterOk;
+  sheetPrinterOk = ok;
+  sheetPrinterChecked = true;
+  printerDown = !ok;
+  if (!ok) {
+    lastError = 'طابعة الشيتات مش متوصلة بالجهاز ده (أو مقفولة)';
+  } else if (lastError.startsWith('طابعة الشيتات')) {
+    lastError = '';
+  }
+  if (changed) {
+    announceCaps();
+    writeAgentState();
+  }
+  if (became) catchUpBurst('sheet-printer-ready');
+}
+
 // Receipt printer presence — only then do we claim receipt jobs (so an agent on a PC
 // without the XP-Q808K never pulls a receipt and lets it fall on the sheet printer).
 async function checkReceiptPrinter(logChange) {
   if (!RECEIPT_PRINTER_NAME) return;
   try {
     const health = await getPrinterHealth(RECEIPT_PRINTER_NAME);
-    const ok = Boolean(health.ok);
+    let ok = Boolean(health.ok);
+    if (ok) {
+      try {
+        ok = (await printerConnection(RECEIPT_PRINTER_NAME)) !== 'absent';
+      } catch (_) {
+        /* keep health result */
+      }
+    }
     if (ok !== receiptPrinterOk || logChange) {
-      console.log(ok ? `   Receipt printer ${RECEIPT_PRINTER_NAME}: ready` : `   Receipt printer ${RECEIPT_PRINTER_NAME}: NOT ready (${health.error || ''})`);
+      console.log(ok ? `   Receipt printer ${RECEIPT_PRINTER_NAME}: ready` : `   Receipt printer ${RECEIPT_PRINTER_NAME}: NOT ready (${health.error || 'not connected'})`);
     }
     const became = !receiptPrinterOk && ok;
     const changed = ok !== receiptPrinterOk;
     receiptPrinterOk = ok;
-    if (changed && socket.connected) {
-      socket.emit('print:agent-caps', { caps: ok ? 'sheet,receipt' : 'sheet' });
-    }
+    if (changed) announceCaps();
     if (became) catchUpBurst('receipt-printer-ready');
   } catch (err) {
     receiptPrinterOk = false;
   }
 }
+checkSheetPrinter(true);
+setInterval(() => checkSheetPrinter(false), 30000);
 checkReceiptPrinter(true);
 setInterval(() => checkReceiptPrinter(false), Math.max(PRINTER_CHECK_MS, 30000));
-// No periodic Win32_Printer poll for the sheet printer. It jammed the P1102
-// so Sumatra returned while the Windows queue stayed empty. Pending sheets
-// are picked up by the normal poll and printed immediately.
 
 // Catch-up on boot / agent restart (laptop was off, service just started)
 recoverJobLocksOnStartup();

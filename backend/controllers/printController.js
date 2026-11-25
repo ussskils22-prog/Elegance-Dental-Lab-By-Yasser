@@ -216,18 +216,16 @@ function unfinishedPrintJobFilter() {
  * Atomic claim — only one agent may print a given job.
  * POST /api/print/job/:id/claim  (agent secret)
  */
-/** Agents declare what they can print via x-agent-caps (e.g. "receipt"). Old agents send nothing. */
+/** Agents declare what they can print via x-agent-caps ("sheet,receipt"). Old agents send nothing (null). */
 function agentCaps(req) {
-  return String(req.headers['x-agent-caps'] || '')
-    .toLowerCase()
-    .split(/[,\s]+/)
-    .filter(Boolean);
+  const raw = req.headers['x-agent-caps'];
+  if (raw === undefined) return null;
+  return require('../utils/printCaps').parseCaps(raw);
 }
 
-/** Receipt jobs only go to agents that have a receipt printer; sheets go to everyone. */
+/** A PC only gets the job kinds whose printer is really connected to it (see utils/printCaps). */
 function jobKindFilterForAgent(req) {
-  if (agentCaps(req).includes('receipt')) return {};
-  return { 'printData.jobKind': { $ne: 'receipt' } };
+  return require('../utils/printCaps').jobKindFilterForCaps(agentCaps(req));
 }
 
 exports.claimPrintJob = async (req, res) => {
