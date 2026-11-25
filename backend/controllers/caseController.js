@@ -1914,7 +1914,9 @@ exports.scanAtStation = async (req, res) => {
     }
     if (targetStage !== 'waiting') {
       if (!dentalCase.stageTimestamps) dentalCase.stageTimestamps = {};
-      dentalCase.stageTimestamps[targetStage] = new Date();
+      // Scans queued while offline carry the real scan time
+      const { scanTimestamp } = require('../utils/scanTimestamp');
+      dentalCase.stageTimestamps[targetStage] = scanTimestamp(req.body?.scannedAt);
       dentalCase.markModified('stageTimestamps');
     }
 

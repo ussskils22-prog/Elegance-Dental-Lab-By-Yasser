@@ -53,6 +53,19 @@ const setupSocket = (server) => {
   io.use(async (socket, next) => {
     try {
       // Print Agent connects with agentSecret instead of JWT
+      // Paired print PC (device token from the installer) — same rights as the shared secret
+      const deviceToken = socket.handshake.auth.deviceToken;
+      if (deviceToken) {
+        const { verifyDeviceToken } = require('./stationDevices');
+        const device = await verifyDeviceToken(deviceToken);
+        if (device && device.kind === 'print') {
+          socket.isPrintAgent = true;
+          socket.agentCaps = parseCaps(socket.handshake.auth.caps);
+          return next();
+        }
+        return next(new Error('Invalid device token'));
+      }
+
       const agentSecret = socket.handshake.auth.agentSecret;
       if (agentSecret) {
         if (agentSecret === process.env.PRINT_AGENT_SECRET) {

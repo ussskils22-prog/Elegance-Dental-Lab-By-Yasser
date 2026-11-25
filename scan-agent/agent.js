@@ -42,7 +42,8 @@ const EMAIL = String(config.EMAIL || '').trim().toLowerCase();
 const PASSWORD = String(config.PASSWORD || '');
 const LABEL = String(config.LABEL || 'Scan Agent');
 const TOKEN_REFRESH_MS = Number(config.TOKEN_REFRESH_MS) || 6 * 60 * 60 * 1000;
-const REQUEST_TIMEOUT_MS = Number(config.REQUEST_TIMEOUT_MS) || 60000;
+// Short timeout: a hung request must not hold up the scans behind it (they are retried anyway)
+const REQUEST_TIMEOUT_MS = Number(config.REQUEST_TIMEOUT_MS) || 15000;
 const LOGIN_RETRIES = Number(config.LOGIN_RETRIES) || 8;
 const CAPTURE_PORT = Number(config.CAPTURE_PORT) || 3921;
 const OPEN_CAPTURE_UI = config.OPEN_CAPTURE_UI === true;
@@ -55,8 +56,11 @@ const BACKGROUND_SCAN =
 const HIDE_CONSOLE =
   config.HIDE_CONSOLE !== undefined ? config.HIDE_CONSOLE === true : BACKGROUND_SCAN;
 
-if (!SERVER_URL || !EMAIL || !PASSWORD) {
-  console.error('❌ Config needs SERVER_URL, EMAIL, PASSWORD');
+/** Paired by the OCCLA installer: no email/password on the PC, only this device token. */
+const DEVICE_TOKEN = String(config.DEVICE_TOKEN || '').trim();
+
+if (!SERVER_URL || (!DEVICE_TOKEN && (!EMAIL || !PASSWORD))) {
+  console.error('❌ Config needs SERVER_URL and DEVICE_TOKEN (or EMAIL + PASSWORD)');
   process.exit(1);
 }
 
@@ -88,9 +92,16 @@ process.on('exit', () => {
 
 let authToken = '';
 let authRole = '';
-let busy = false;
-/** Queue one pending code while a scan request is in-flight (never drop as "skipped"). */
-let pendingCode = '';
+/**
+ * Every scan goes into a queue saved on disk, then a single worker sends them in order.
+ * Internet down / server slow / PC restart → the scans wait and are sent later. None are lost.
+ */
+const { ScanQueue } = require('./scan-queue');
+const STATION_TAG = path.basename(configPath).replace(/^config\./, '').replace(/\.json$/, '');
+const scanQueue = new ScanQueue(path.join(__dirname, 'daemon', `${STATION_TAG}.queue.json`));
+let draining = false;
+/** true while the server cannot be reached (scans are being saved for later) */
+let offline = false;
 let lastAcceptedCode = '';
 let lastAcceptedAt = 0;
 const DEDUPE_MS = 1200;
@@ -118,10 +129,16 @@ say(`   Server : ${SERVER_URL}`);
 say(`   Email  : ${EMAIL}`);
 say(`   Log    : ${LOG_FILE}`);
 
-function beep(ok) {
+/** ok = high short, saved-for-later = two mid tones, error = low long */
+function beep(kind) {
   if (process.platform !== 'win32') return;
-  const freq = ok ? 880 : 220;
-  const dur = ok ? 120 : 280;
+  const k = kind === true ? 'ok' : kind === false ? 'err' : String(kind);
+  if (k === 'queued') {
+    execFile('powershell.exe', ['-NoProfile', '-Command', '[console]::beep(600,90);[console]::beep(600,90)'], { windowsHide: true }, () => {});
+    return;
+  }
+  const freq = k === 'ok' ? 880 : 220;
+  const dur = k === 'ok' ? 120 : 280;
   execFile(
     'powershell.exe',
     ['-NoProfile', '-Command', `[console]::beep(${freq},${dur})`],
@@ -180,10 +197,9 @@ function sleep(ms) {
 }
 
 async function loginOnce() {
-  const res = await httpJson('POST', `${SERVER_URL}/api/auth/login`, {
-    email: EMAIL,
-    password: PASSWORD,
-  });
+  const res = DEVICE_TOKEN
+    ? await httpJson('POST', `${SERVER_URL}/api/stations/session`, {}, { 'x-device-token': DEVICE_TOKEN })
+    : await httpJson('POST', `${SERVER_URL}/api/auth/login`, { email: EMAIL, password: PASSWORD });
   if (res.status >= 400 || !res.data?.token) {
     const msg = res.data?.message || res.data?.errors?.[0]?.msg || `HTTP ${res.status}`;
     throw new Error(`Login failed: ${msg}`);
@@ -218,8 +234,9 @@ async function login() {
   throw lastErr || new Error('Login failed');
 }
 
+// One quick attempt — the scan queue retries by itself, so never block on long login retries
 async function ensureAuth() {
-  if (!authToken) await login();
+  if (!authToken) await loginOnce();
 }
 
 function normalizeScanInput(rawCode) {
@@ -242,68 +259,82 @@ async function scanCode(rawCode) {
   if (code === lastAcceptedCode && now - lastAcceptedAt < DEDUPE_MS) {
     return { ok: true, message: 'Duplicate ignored', deduped: true };
   }
-
-  if (busy) {
-    // Keep latest pending — process after current request finishes (no "skipped")
-    pendingCode = code;
-    return { ok: false, message: 'Queued' };
-  }
-
   lastAcceptedCode = code;
   lastAcceptedAt = now;
-  busy = true;
-  say(`\n📷 Scan: ${code}`);
+
+  scanQueue.push(code, new Date(now).toISOString());
+  say(`\n📷 Scan: ${code}${scanQueue.size > 1 ? `  (${scanQueue.size} waiting)` : ''}`);
+  if (offline) {
+    // Immediate confirmation while the internet is down: it is saved and will be sent.
+    beep('queued');
+    notify('warn', `اتحفظ ${code} — هيتبعت أول ما النت يرجع (${scanQueue.size} مستنيين)`);
+  }
+  void drainQueue();
+  return { ok: true, message: offline ? 'Saved — will send when online' : 'Sending…', queued: scanQueue.size };
+}
+
+/** One request. kind: ok | rejected (server said no — do not retry) | retry (network / server down). */
+async function sendScan(item) {
   try {
     await ensureAuth();
-    let res = await httpJson(
-      'POST',
-      `${SERVER_URL}/api/cases/scan`,
-      { caseNumber: code },
-      { Authorization: `Bearer ${authToken}` }
-    );
-
+    const body = { caseNumber: item.code, scannedAt: item.scannedAt };
+    let res = await httpJson('POST', `${SERVER_URL}/api/cases/scan`, body, { Authorization: `Bearer ${authToken}` });
     if (res.status === 401) {
       say('🔄 Token expired — re-login...');
       authToken = '';
-      await login();
-      res = await httpJson(
-        'POST',
-        `${SERVER_URL}/api/cases/scan`,
-        { caseNumber: code },
-        { Authorization: `Bearer ${authToken}` }
-      );
+      await loginOnce();
+      res = await httpJson('POST', `${SERVER_URL}/api/cases/scan`, body, { Authorization: `Bearer ${authToken}` });
     }
-
     if (res.status >= 200 && res.status < 300 && res.data?.success) {
-      const message = res.data.message || 'OK';
-      writeScannerState(true);
-      say(`✅ ${message}`);
-      if (res.data.case?.currentStage) {
-        say(`   → stage: ${res.data.case.currentStage}`);
-      }
-      beep(true);
-      return { ok: true, message, stage: res.data.case?.currentStage };
+      return { kind: 'ok', message: res.data.message || 'OK', stage: res.data.case?.currentStage };
     }
-
     const message = res.data?.message || res.data?.error || `HTTP ${res.status}`;
-    writeScannerState(true); // server answered — link is alive even if the scan was rejected
-    say(`❌ ${message}`);
-    beep(false);
-    return { ok: false, message };
-  } catch (err) {
-    writeScannerState(false); // network / server unreachable
-    say(`❌ ${err.message}`);
-    beep(false);
-    return { ok: false, message: err.message };
-  } finally {
-    busy = false;
-    const next = pendingCode;
-    pendingCode = '';
-    if (next && next !== code) {
-      setImmediate(() => {
-        void scanCode(next);
-      });
+    if (res.status >= 500 || res.status === 408 || res.status === 429 || res.status === 0) {
+      return { kind: 'retry', message };
     }
+    return { kind: 'rejected', message };
+  } catch (err) {
+    return { kind: 'retry', message: err.message };
+  }
+}
+
+/** Send waiting scans in order. Stops at the first network failure and tries again later. */
+async function drainQueue() {
+  if (draining) return;
+  draining = true;
+  try {
+    while (scanQueue.size) {
+      const item = scanQueue.peek();
+      const r = await sendScan(item);
+      if (r.kind === 'retry') {
+        writeScannerState(false);
+        if (!offline) {
+          offline = true;
+          say(`📴 Server unreachable (${r.message}) — scans are saved and will be sent automatically`);
+          beep('queued');
+          notify('warn', `النت فاصل — السكانات بتتحفظ وهتتبعت لوحدها (${scanQueue.size} مستنيين)`);
+        }
+        break;
+      }
+      scanQueue.shift();
+      writeScannerState(true);
+      if (offline) {
+        offline = false;
+        say('🌐 Back online — sending saved scans');
+      }
+      if (r.kind === 'ok') {
+        say(`✅ ${item.code}: ${r.message}${r.stage ? ` (→ ${r.stage})` : ''}`);
+        beep('ok');
+        notify('ok', r.message);
+      } else {
+        say(`❌ ${item.code}: ${r.message}`);
+        beep('err');
+        notify('err', `${item.code}: ${r.message}`);
+      }
+    }
+    if (!scanQueue.size && !offline) notify('state-ok', `${LABEL} — شغال`);
+  } finally {
+    draining = false;
   }
 }
 
@@ -324,9 +355,23 @@ function keyNameToChar(name) {
   return '';
 }
 
+/** The running capture process (also shows the tray icon and pop-ups). */
+let hookChild = null;
+let hookRestarts = 0;
+let shuttingDown = false;
+
+/** Pop-up + tray state. kind: ok | warn | err | state-ok */
+function notify(kind, text) {
+  const line = `TIP|${kind}|${String(text || '').replace(/[\r\n|]+/g, ' ')}\n`;
+  try {
+    if (hookChild && hookChild.stdin && !hookChild.stdin.destroyed) hookChild.stdin.write(line, 'utf8');
+  } catch (_) {}
+}
+
 /**
  * Primary Windows background capture: US-QWERTY VK map via PowerShell hook.
  * Works even when Arabic keyboard is active and CMD is hidden/unfocused.
+ * If it ever stops, it is started again within seconds.
  */
 function startUsLayoutBarcodeHook() {
   if (!BACKGROUND_SCAN || process.platform !== 'win32') return false;
@@ -336,15 +381,24 @@ function startUsLayoutBarcodeHook() {
     return false;
   }
 
-  try {
-    const child = spawn(
-      'powershell.exe',
-      ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-STA', '-File', hookScript],
-      { windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] }
-    );
+  const launch = () => {
+    if (shuttingDown) return;
+    let child;
+    try {
+      child = spawn(
+        'powershell.exe',
+        ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-STA', '-File', hookScript, '-Label', LABEL],
+        { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] }
+      );
+    } catch (err) {
+      say(`⚠️  Could not start barcode hook: ${err.message} — retrying`);
+      setTimeout(launch, 3000);
+      return;
+    }
+    hookChild = child;
 
     let buf = '';
-    const onData = (chunk) => {
+    child.stdout.on('data', (chunk) => {
       buf += String(chunk || '');
       const lines = buf.split(/\r?\n/);
       buf = lines.pop() || '';
@@ -352,34 +406,37 @@ function startUsLayoutBarcodeHook() {
         const t = line.trim();
         if (!t) continue;
         if (t === 'HOOK_READY') {
-          say('🎧 US-layout background hook READY (no focus needed)');
+          say('🎧 Barcode hook READY (no focus needed, tray icon on)');
+          notify(offline ? 'warn' : 'state-ok', offline ? 'النت فاصل — السكانات بتتحفظ' : `${LABEL} — شغال`);
           continue;
         }
-        if (t.startsWith('SCAN:')) {
-          void scanCode(t.slice(5));
-        }
-      }
-    };
-
-    child.stdout.on('data', onData);
-    child.stderr.on('data', (c) => say(`⚠️  Hook stderr: ${String(c).trim()}`));
-    child.on('exit', (code) => say(`⚠️  Background hook exited (${code})`));
-    child.on('error', (err) => say(`⚠️  Background hook error: ${err.message}`));
-
-    process.on('exit', () => {
-      try {
-        child.kill();
-      } catch {
-        /* ignore */
+        if (t === 'REHOOK') continue;
+        if (t.startsWith('SCAN:')) void scanCode(t.slice(5));
       }
     });
+    child.stdin.on('error', () => {});
+    child.stderr.on('data', (c) => say(`⚠️  Hook stderr: ${String(c).trim()}`));
+    child.on('error', (err) => say(`⚠️  Background hook error: ${err.message}`));
+    child.on('exit', (code) => {
+      if (hookChild === child) hookChild = null;
+      if (shuttingDown) return;
+      hookRestarts += 1;
+      const wait = hookRestarts > 5 ? 10000 : 1000;
+      say(`⚠️  Barcode hook stopped (${code}) — restarting in ${wait / 1000}s`);
+      setTimeout(launch, wait);
+    });
+  };
 
-    say('🎧 Starting US-layout barcode hook (works with Arabic keyboard)...');
-    return true;
-  } catch (err) {
-    say(`⚠️  Could not start US-layout hook: ${err.message}`);
-    return false;
-  }
+  process.on('exit', () => {
+    shuttingDown = true;
+    try {
+      if (hookChild) hookChild.kill();
+    } catch (_) {}
+  });
+
+  say('🎧 Starting barcode hook (works with Arabic keyboard)...');
+  launch();
+  return true;
 }
 
 /**
@@ -559,46 +616,28 @@ function startCaptureUi() {
 }
 
 function enableKeepAwake() {
-  if (process.platform !== 'win32') return;
-  try {
-    const ps = `
-Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-public static class SleepPreventer {
-  [DllImport("kernel32.dll")]
-  public static extern uint SetThreadExecutionState(uint esFlags);
-  public static void StayAwake() {
-    SetThreadExecutionState(0x80000000 | 0x00000001 | 0x00000002);
-  }
-}
-"@
-[SleepPreventer]::StayAwake()
-`;
-    const refresh = () => {
-      execFile('powershell.exe', ['-NoProfile', '-Command', ps], { windowsHide: true }, () => {});
-    };
-    refresh();
-    setInterval(refresh, 60000);
-    console.log('☕ Keep-awake enabled');
-  } catch {
-    /* ignore */
-  }
+  require('./keep-awake').startKeepAwake((m) => say(m));
 }
 
 async function main() {
   enableKeepAwake();
 
-  for (;;) {
-    try {
-      await login();
-      break;
-    } catch (err) {
-      say(`❌ Cannot reach server yet: ${err.message}`);
-      say('   Waiting 10s then trying again... (check internet / Railway)');
-      await sleep(10000);
+  // Scanning starts right away, even with no internet: scans are saved and sent later.
+  // Login happens in the background (and again before each send if needed).
+  void (async () => {
+    for (;;) {
+      try {
+        await loginOnce();
+        void drainQueue();
+        return;
+      } catch (err) {
+        say(`❌ Cannot reach server yet: ${err.message} — scanning still works, scans are saved`);
+        await sleep(10000);
+      }
     }
-  }
+  })();
+  if (scanQueue.size) say(`📦 ${scanQueue.size} saved scan(s) from before — sending them now`);
+  setInterval(() => void drainQueue(), 5000);
 
   setInterval(() => {
     loginOnce().catch((err) => {

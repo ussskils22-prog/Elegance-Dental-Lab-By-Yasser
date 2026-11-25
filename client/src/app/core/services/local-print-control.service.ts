@@ -20,6 +20,10 @@ export interface AgentInfo {
   /** true/false from the agent's own state file; null = running but not reported yet */
   serverLinked: boolean | null;
   lastSeen: string | null;
+  /** Print agent only: this PC's print password does not match the server */
+  authError?: boolean | null;
+  /** Print agent only: last connection problem, in Arabic when known */
+  lastError?: string;
 }
 
 export interface ScannerInfo extends AgentInfo {

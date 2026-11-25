@@ -148,6 +148,8 @@ const configRaw = fs
 const config = JSON.parse(configRaw);
 const SERVER_URL      = config.SERVER_URL.replace(/\/$/, '');
 const AGENT_SECRET    = config.PRINT_AGENT_SECRET;
+/** Paired by the OCCLA installer (preferred): this PC's own token instead of the shared secret. */
+const DEVICE_TOKEN    = String(config.DEVICE_TOKEN || '').trim();
 const PRINTER_NAME    = config.PRINTER_NAME;
 const RECEIPT_PRINTER_NAME = config.RECEIPT_PRINTER_NAME || 'XP-Q808K';
 /** true only when the receipt printer is installed and ready on THIS PC */
@@ -167,41 +169,16 @@ console.log('   Handoff : Sumatra return (no spooler wait — keeps the HP fast)
 console.log(`   Receipt check: every ${Math.max(PRINTER_CHECK_MS, 30000) / 1000}s`);
 
 // ── Keep Windows from sleeping while agent runs ───────────
-function enableKeepAwake() {
-  if (process.platform !== 'win32') return;
-  try {
-    const { execFile } = require('child_process');
-    const ps = `
-Add-Type @"
-using System;
-using System.Runtime.InteropServices;
-public static class SleepPreventer {
-  [DllImport("kernel32.dll")]
-  public static extern uint SetThreadExecutionState(uint esFlags);
-  public static void StayAwake() {
-    SetThreadExecutionState(0x80000000 | 0x00000001 | 0x00000002);
-  }
-}
-"@
-[SleepPreventer]::StayAwake()
-`;
-    // Refresh every 60s so the execution state stays active
-    const refresh = () => {
-      execFile('powershell.exe', ['-NoProfile', '-Command', ps], { windowsHide: true }, () => {});
-    };
-    refresh();
-    setInterval(refresh, 60000);
-    console.log('☕ Keep-awake enabled (system will not sleep while agent runs)');
-  } catch (err) {
-    console.warn('⚠️  Could not enable keep-awake:', err.message);
-  }
-}
-enableKeepAwake();
+require('./keep-awake').startKeepAwake((m) => console.log(m));
 
 // ── Connect to server ─────────────────────────────────────
 const socket = io(SERVER_URL, {
   // auth is re-evaluated on every (re)connect so the server knows our current capabilities
-  auth: (cb) => cb({ agentSecret: AGENT_SECRET, caps: receiptPrinterOk ? 'sheet,receipt' : 'sheet' }),
+  auth: (cb) =>
+    cb({
+      ...(DEVICE_TOKEN ? { deviceToken: DEVICE_TOKEN } : { agentSecret: AGENT_SECRET }),
+      caps: receiptPrinterOk ? 'sheet,receipt' : 'sheet',
+    }),
   reconnection: true,
   reconnectionDelay: RECONNECT_DELAY,
   reconnectionDelayMax: 15000,
@@ -220,6 +197,8 @@ function writeAgentState(connected) {
         pid: process.pid,
         connected: connected === undefined ? socket.connected : !!connected,
         printerDown,
+        authError,
+        lastError,
         ts: new Date().toISOString(),
       }),
       'utf8'
@@ -235,6 +214,8 @@ process.on('exit', () => {
 
 socket.on('connect', () => {
   console.log('✅ Connected to server. Waiting for print jobs...');
+  authError = false;
+  lastError = '';
   writeAgentState(true);
   socket.emit('print:agent-caps', { caps: receiptPrinterOk ? 'sheet,receipt' : 'sheet' });
   // Burst catch-up: network often stabilizes a few seconds after socket reconnect
@@ -243,6 +224,7 @@ socket.on('connect', () => {
 
 socket.on('connect_error', (err) => {
   networkDown = true;
+  noteConnectionError(err.message);
   writeAgentState(false);
   console.error('❌ Connection error:', err.message);
 });
@@ -263,6 +245,27 @@ let currentJobId = null;
 let isProcessingQueue = false;
 let networkDown = false;
 let printerDown = false;
+/** PRINT_AGENT_SECRET in config.json does not match the server — nothing can print until fixed. */
+let authError = false;
+let lastError = '';
+
+function noteConnectionError(message) {
+  const msg = String(message || '');
+  const isAuth = /invalid agent secret|invalid device token|HTTP 401/i.test(msg);
+  if (isAuth && !authError) {
+    console.error('⛔ PRINT_AGENT_SECRET in config.json is wrong — the server refuses this printer. Update it to the server value.');
+  }
+  authError = isAuth;
+  lastError = isAuth
+    ? DEVICE_TOKEN
+      ? 'الجهاز ده اتفصل من الأدمن — اربطه تاني بكود جديد'
+      : 'كلمة سر الطباعة على الجهاز ده غلط — لازم تتحدّث'
+    : msg.slice(0, 200);
+}
+
+/** Per-job retry count for errors that happen BEFORE the sheet reaches the printer. */
+const retryCounts = new Map();
+const MAX_SAFE_RETRIES = 5;
 
 function normalizeJobId(jobId) {
   return String(jobId);
@@ -299,7 +302,7 @@ function tryAcquireJobLock(id) {
   const lockPath = path.join(JOB_LOCK_DIR, `${id}.lock`);
   try {
     const fd = fs.openSync(lockPath, 'wx');
-    fs.writeFileSync(fd, `${process.pid}\n${new Date().toISOString()}\n`);
+    fs.writeFileSync(fd, `${process.pid}\n${new Date().toISOString()}\nqueued\n`);
     fs.closeSync(fd);
     return true;
   } catch (err) {
@@ -307,6 +310,54 @@ function tryAcquireJobLock(id) {
     console.warn('⚠️  Job lock error:', err.message);
     return false;
   }
+}
+
+/** Phase of a job on this PC: queued → sent (handed to Windows) → done. Survives restarts. */
+function setJobPhase(id, phase) {
+  try {
+    fs.writeFileSync(path.join(JOB_LOCK_DIR, `${id}.lock`), `${process.pid}\n${new Date().toISOString()}\n${phase}\n`);
+  } catch (_) {}
+}
+
+/**
+ * After a crash / restart: jobs that never reached the printer are retried; jobs already
+ * handed to Windows are reported done (never printed twice); old finished locks are pruned.
+ */
+function recoverJobLocksOnStartup() {
+  let files = [];
+  try {
+    files = fs.readdirSync(JOB_LOCK_DIR).filter((f) => f.endsWith('.lock'));
+  } catch (_) {
+    return;
+  }
+  const twoDays = 2 * 24 * 60 * 60 * 1000;
+  let retried = 0;
+  for (const f of files) {
+    const id = f.slice(0, -5);
+    const full = path.join(JOB_LOCK_DIR, f);
+    let lines = [];
+    let ageMs = 0;
+    try {
+      lines = String(fs.readFileSync(full, 'utf8')).split(/\r?\n/);
+      ageMs = Date.now() - fs.statSync(full).mtimeMs;
+    } catch (_) {
+      continue;
+    }
+    const phase = String(lines[2] || '').trim();
+    if (phase === 'done') {
+      if (ageMs > twoDays) releaseJobLock(id);
+    } else if (phase === 'sent') {
+      // It reached the Windows spooler before the crash: count it as printed, tell the server.
+      setJobPhase(id, 'done');
+      reportStatus(id, 'done').catch(() => {});
+    } else {
+      // Crashed before printing (or an old lock from before this version): let it print now.
+      // Old-version locks of finished jobs are harmless here: the server no longer lists them.
+      releaseJobLock(id);
+      if (ageMs <= twoDays) retried += 1;
+    }
+  }
+  if (retried) console.log(`♻️  Released ${retried} unfinished job lock(s) from before the restart`);
 }
 
 function isInPipeline(id) {
@@ -519,6 +570,7 @@ async function processQueue() {
     const job = jobQueue.shift();
     queuedIds.delete(job.jobId);
     currentJobId = job.jobId;
+    let sentToPrinter = false;
 
     if (completedIds.has(job.jobId)) {
       console.log(`⏭️  Skip processing ${job.jobId} — already printed this session`);
@@ -569,6 +621,8 @@ async function processQueue() {
       console.log(`   ✅ PDF generated in ${Date.now() - t0}ms: ${pdfPath}`);
 
       console.log(`   🖨️  Sending PDF to printer [${printerName}]...`);
+      sentToPrinter = true;
+      setJobPhase(job.jobId, 'sent');
       // Wait for this Sumatra to exit before the next one. A timeout here used to
       // start a second Sumatra while the first was still talking to the P1102, and the queue stayed empty.
       await runSerializedPrint(() => printPdf(pdfPath, printerName));
@@ -579,6 +633,9 @@ async function processQueue() {
 
       // Mark done locally FIRST so overlapping catch-up cannot re-queue this job
       completedIds.add(job.jobId);
+      setJobPhase(job.jobId, 'done');
+      retryCounts.delete(job.jobId);
+      printerDown = false;
       // Don't await HTTP — paper is already printing
       reportStatus(job.jobId, 'done').catch(() => {});
       fs.unlink(pdfPath, () => {});
@@ -595,6 +652,16 @@ async function processQueue() {
         releaseJobLock(job.jobId);
         await reportStatus(job.jobId, 'pending', `Waiting for printer: ${err.message}`);
         console.log('   ⏳ Job held as pending — will print when printer/agent is back');
+      } else if (!sentToPrinter && (retryCounts.get(job.jobId) || 0) < MAX_SAFE_RETRIES) {
+        // Nothing reached the printer yet (PDF / browser / network hiccup): safe to try again.
+        const attempt = (retryCounts.get(job.jobId) || 0) + 1;
+        retryCounts.set(job.jobId, attempt);
+        startedIds.delete(job.jobId);
+        releaseJobLock(job.jobId);
+        await reportStatus(job.jobId, 'pending', `Retry ${attempt}/${MAX_SAFE_RETRIES}: ${err.message}`);
+        const waitMs = Math.min(60000, 3000 * attempt);
+        console.log(`   🔁 Will retry in ${Math.round(waitMs / 1000)}s (attempt ${attempt}/${MAX_SAFE_RETRIES})`);
+        setTimeout(() => fetchAndEnqueuePending(`retry-${attempt}`), waitMs);
       } else {
         // Keep the lock. Sumatra may already have accepted the sheet, and a retry would print twice.
         await reportStatus(job.jobId, 'failed', err.message);
@@ -672,7 +739,7 @@ function httpJson(method, url, body) {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'x-agent-secret': AGENT_SECRET,
+          ...(DEVICE_TOKEN ? { 'x-device-token': DEVICE_TOKEN } : { 'x-agent-secret': AGENT_SECRET }),
           'x-agent-id': `pid-${process.pid}`,
           // Only agents with a receipt printer configured may claim receipt jobs
           'x-agent-caps': receiptPrinterOk ? 'sheet,receipt' : 'sheet',
@@ -743,6 +810,8 @@ async function fetchAndEnqueuePending(reason) {
     return true;
   } catch (err) {
     networkDown = true;
+    noteConnectionError(err.message);
+    writeAgentState(false);
     console.warn(`⚠️  Pending poll failed (${reason}):`, err.message);
     return false;
   }
@@ -788,6 +857,7 @@ setInterval(() => checkReceiptPrinter(false), Math.max(PRINTER_CHECK_MS, 30000))
 // are picked up by the normal poll and printed immediately.
 
 // Catch-up on boot / agent restart (laptop was off, service just started)
+recoverJobLocksOnStartup();
 catchUpBurst('startup');
 setTimeout(() => catchUpBurst('startup-late'), 8000);
 

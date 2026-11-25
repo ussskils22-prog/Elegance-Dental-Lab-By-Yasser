@@ -45,6 +45,33 @@ const SCAN_AGENT_DIR = path.resolve(ROOT, String(config.SCAN_AGENT_DIR || path.j
 const SCANNER_IDS = ['1', '2', '3'];
 const PRINTER_POLL_MS = Math.max(3000, Number(config.PRINTER_STATUS_POLL_MS) || 6000);
 const IS_WIN = process.platform === 'win32';
+/** Set by "stop" from the web UI; while present the watchdog leaves the print agent stopped. */
+const PRINT_DISABLED_PATH = path.join(DAEMON_DIR, 'print.disabled');
+const WATCHDOG_MS = Math.max(5000, Number(config.WATCHDOG_MS) || 15000);
+
+/**
+ * Only the lab's own site may start / stop agents on this PC. Any other web page opened
+ * on this PC is refused (it could otherwise switch printing off). Extra origins can be
+ * added in config.json → ALLOWED_ORIGINS.
+ */
+const ALLOWED_ORIGINS = new Set(
+  [
+    'https://dental-system-seven.vercel.app',
+    'https://elegance-demo.vercel.app',
+    'http://localhost:4200',
+    'http://127.0.0.1:4200',
+    ...(Array.isArray(config.ALLOWED_ORIGINS) ? config.ALLOWED_ORIGINS : []),
+  ].map(normalizeOrigin)
+);
+function normalizeOrigin(o) {
+  let s = String(o || '').trim().toLowerCase();
+  while (s.endsWith('/')) s = s.slice(0, -1);
+  return s;
+}
+function originAllowed(origin) {
+  if (!origin) return true; // not a browser page (curl, local tools)
+  return ALLOWED_ORIGINS.has(normalizeOrigin(origin));
+}
 
 function log(...args) {
   const line = `[${new Date().toISOString()}] ${args.join(' ')}\n`;
@@ -56,10 +83,11 @@ function log(...args) {
 }
 
 function nodePath() {
+  // The node running this supervisor first: the OCCLA installer ships its own copy
   const candidates = [
+    process.execPath,
     'C:\\Program Files\\nodejs\\node.exe',
     'C:\\Program Files (x86)\\nodejs\\node.exe',
-    process.execPath,
   ];
   for (const p of candidates) {
     if (p && fs.existsSync(p)) return p;
@@ -206,12 +234,20 @@ function printAgentStatus() {
     serverLinked: running && stateFresh ? state.connected === true : running ? null : false,
     lastSeen: state.ts || null,
     printerDown: stateFresh ? state.printerDown === true : null,
+    /** wrong PRINT_AGENT_SECRET on this PC — printing cannot work until it is fixed */
+    authError: stateFresh ? state.authError === true : null,
+    lastError: stateFresh ? String(state.lastError || '') : '',
+    disabled: fs.existsSync(PRINT_DISABLED_PATH),
   };
 }
 
 function stopPrintAgent() {
   const pids = [...new Set([...printAgentFastPids(), ...listNodePidsMatching(PRINT_AGENT_PATTERN)])];
   killPids(pids);
+  try {
+    fs.mkdirSync(DAEMON_DIR, { recursive: true });
+    fs.writeFileSync(PRINT_DISABLED_PATH, new Date().toISOString(), 'utf8');
+  } catch (_) {}
   clearPrinterQueue(PRINTER_NAME);
   clearPrinterQueue(RECEIPT_PRINTER_NAME);
   try {
@@ -225,6 +261,9 @@ function stopPrintAgent() {
 
 function startPrintAgent() {
   if (!MANAGE_PRINT) return printAgentStatus();
+  try {
+    if (fs.existsSync(PRINT_DISABLED_PATH)) fs.unlinkSync(PRINT_DISABLED_PATH);
+  } catch (_) {}
   const cur = printAgentStatus();
   if (cur.running && isPidAlive(cur.pid)) {
     const strays = listNodePidsMatching(PRINT_AGENT_PATTERN).filter((p) => p !== cur.pid);
@@ -409,12 +448,18 @@ function getStatus() {
   };
 }
 
+function corsOrigin(req) {
+  const origin = req && req.headers ? req.headers.origin : '';
+  return origin && originAllowed(origin) ? origin : 'null';
+}
+
 function sendJson(res, code, body) {
   const data = JSON.stringify(body);
   res.writeHead(code, {
     'Content-Type': 'application/json; charset=utf-8',
     'Content-Length': Buffer.byteLength(data),
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': corsOrigin(res.req),
+    Vary: 'Origin',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Private-Network': 'true',
@@ -433,7 +478,8 @@ const server = http.createServer((req, res) => {
 
   if (method === 'OPTIONS') {
     res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': corsOrigin(req),
+      Vary: 'Origin',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
       'Access-Control-Allow-Private-Network': 'true',
@@ -451,6 +497,13 @@ const server = http.createServer((req, res) => {
 
   if (method !== 'POST') {
     sendJson(res, 404, { ok: false, error: 'not found' });
+    return;
+  }
+
+  // Start / stop only from the lab's site (a plain form POST from any page would skip CORS).
+  if (!originAllowed(req.headers.origin)) {
+    log('Refused control request from origin', String(req.headers.origin));
+    sendJson(res, 403, { ok: false, error: 'origin not allowed' });
     return;
   }
 
@@ -475,12 +528,44 @@ const server = http.createServer((req, res) => {
   }
 });
 
+/**
+ * Watchdog: whatever should be running is started again if it died (crash, killed, PC woke up).
+ * Print agent: always, unless stopped from the web UI. Scanners: those that were started.
+ */
+let watchdogBusy = false;
+function watchdogTick() {
+  if (watchdogBusy) return;
+  watchdogBusy = true;
+  try {
+    if (MANAGE_PRINT && AUTO_START_AGENT && !fs.existsSync(PRINT_DISABLED_PATH)) {
+      const st = printAgentStatus();
+      if (!st.running) {
+        log('Watchdog: print agent is not running — starting it');
+        startPrintAgent();
+      }
+    }
+    for (const n of SCANNER_IDS) {
+      if (!fs.existsSync(scannerPidPath(n))) continue; // never started / stopped on purpose
+      const st = scannerStatus(n);
+      if (st.installed && !st.running) {
+        log(`Watchdog: scanner ${n} is not running — starting it`);
+        startScanner(n);
+      }
+    }
+  } catch (err) {
+    log('Watchdog error:', err.message);
+  } finally {
+    watchdogBusy = false;
+  }
+}
+
 server.listen(PORT, HOST, () => {
   log(`Supervisor listening on http://${HOST}:${PORT}`);
   console.log(`🎛️  Station supervisor on http://${HOST}:${PORT}`);
   console.log(`   print agent: ${MANAGE_PRINT ? 'managed' : 'not on this PC'} | scan-agent dir: ${SCAN_AGENT_DIR}`);
   void pollPrinters();
   setInterval(() => void pollPrinters(), PRINTER_POLL_MS);
+  setInterval(watchdogTick, WATCHDOG_MS);
   if (AUTO_START_AGENT && MANAGE_PRINT) {
     setTimeout(() => {
       try {

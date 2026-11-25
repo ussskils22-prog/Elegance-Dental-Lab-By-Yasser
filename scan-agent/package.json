@@ -1,6 +1,6 @@
 {
   "name": "elegance-scan-agent",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Station Scan Agent — barcode wedge → move case by scanner1/2/3 account",
   "main": "agent.js",
   "scripts": {
@@ -9,7 +9,5 @@
     "start:2": "node agent.js config.scanner2.json",
     "start:3": "node agent.js config.scanner3.json"
   },
-  "dependencies": {
-    "node-global-key-listener": "^0.3.0"
-  }
+  "dependencies": {}
 }

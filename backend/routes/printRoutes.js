@@ -6,12 +6,24 @@ const printController = require('../controllers/printController');
 const { verifyToken } = require('../config/jwt');
 const rateLimit = require('express-rate-limit');
 
-function agentSecret(req, res, next) {
+/** Print agent: the shared PRINT_AGENT_SECRET (old installs) or its own paired device token. */
+async function agentSecret(req, res, next) {
   const secret = req.headers['x-agent-secret'];
-  if (!secret || secret !== process.env.PRINT_AGENT_SECRET) {
-    return res.status(401).json({ success: false, message: 'غير مصرح' });
+  if (secret && process.env.PRINT_AGENT_SECRET && secret === process.env.PRINT_AGENT_SECRET) return next();
+  const deviceToken = req.headers['x-device-token'];
+  if (deviceToken) {
+    try {
+      const { verifyDeviceToken } = require('../services/stationDevices');
+      const device = await verifyDeviceToken(deviceToken);
+      if (device && device.kind === 'print') {
+        req.stationDevice = device;
+        return next();
+      }
+    } catch (_) {
+      /* fall through */
+    }
   }
-  next();
+  return res.status(401).json({ success: false, message: 'غير مصرح' });
 }
 
 /** Attach JWT user when present (optional) — used only for create from public/requester flows. */

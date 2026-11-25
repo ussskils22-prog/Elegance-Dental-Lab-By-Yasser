@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { StationDevicesController } from './station-devices/station-devices.controller';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -2188,6 +2189,12 @@ export class Admin implements OnInit, OnDestroy {
     this.selectedReportCase = null;
   }
 
+  private stationsCtl?: StationDevicesController;
+  /** أجهزة المعمل: pairing codes + connected print / scan PCs */
+  get stations(): StationDevicesController {
+    return (this.stationsCtl ??= new StationDevicesController(this.http));
+  }
+
   setNav(nav: string) {
     if (nav === 'ai') {
       nav = 'dashboard';
@@ -2208,6 +2215,8 @@ export class Admin implements OnInit, OnDestroy {
       this.loadWhatsAppSettings();
     } else if (nav === 'lab') {
       this.loadLabConfig();
+    } else if (nav === 'stations') {
+      this.stations.load();
     }
   }
 
@@ -3311,6 +3320,7 @@ export class Admin implements OnInit, OnDestroy {
       'archive',
       'whatsapp',
       'lab',
+      'stations',
       'case-management',
     ]);
     if (nav && allowed.has(nav)) {
