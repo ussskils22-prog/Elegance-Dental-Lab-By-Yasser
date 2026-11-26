@@ -19,3 +19,7 @@ Thumbs.db
 
 # Print agent local config holds PRINT_AGENT_SECRET — never commit it
 print-agent/config.json
+
+# lab data reset backups (contain real data)
+backend/backups/
+backups/
