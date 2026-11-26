@@ -55,6 +55,10 @@ const anonymousPrintLimiter = rateLimit({
 });
 router.post('/job', optionalAuth, anonymousPrintLimiter, printController.createPrintJob);
 
+// Operations report straight to the print PC (secretary / admin)
+router.get('/operations-report', authenticate, authorize('admin', 'secretary'), printController.getOperationsReportPage);
+router.post('/operations-report', authenticate, authorize('admin', 'secretary'), printController.queueOperationsReport);
+
 // Print Agent updates job status (AGENT_SECRET)
 router.patch('/job/:id/status', agentSecret, printController.updateJobStatus);
 

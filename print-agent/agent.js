@@ -604,11 +604,20 @@ async function processQueue() {
         continue;
       }
 
-      const isReceipt = String(job.printData?.jobKind || '') === 'receipt';
+      const kind = String(job.printData?.jobKind || 'sheet');
+      const isReceipt = kind === 'receipt';
+      const isReport = kind === 'report';
       const printerName = isReceipt ? RECEIPT_PRINTER_NAME : PRINTER_NAME;
       // Build the ticket while the claim round-trip is in flight so Sumatra starts sooner.
       const htmlPromise = (
-        isReceipt ? Promise.resolve(buildReceiptHtml(job.printData)) : buildPrintHtml(job.printData)
+        isReceipt
+          ? Promise.resolve(buildReceiptHtml(job.printData))
+          : isReport
+            ? Promise.resolve(String(job.printData?.reportHtml || '')).then((h) => {
+                if (!h) throw new Error('Report page is empty');
+                return h;
+              })
+            : buildPrintHtml(job.printData)
       ).catch((err) => err);
 
       // Atomic server claim — if another agent already owns this job, skip (no second sheet)
@@ -629,7 +638,7 @@ async function processQueue() {
       const html = htmlOrErr;
       const pdfPath = path.join(os.tmpdir(), `print_job_${job.jobId}.pdf`);
       const t0 = Date.now();
-      await generatePdf(html, pdfPath, isReceipt ? 'receipt' : 'sheet');
+      await generatePdf(html, pdfPath, isReceipt ? 'receipt' : isReport ? 'report' : 'sheet');
       console.log(`   ✅ PDF generated in ${Date.now() - t0}ms: ${pdfPath}`);
 
       console.log(`   🖨️  Sending PDF to printer [${printerName}]...`);
@@ -864,7 +873,8 @@ async function printerConnection(name) {
 /** What this PC can print right now — the server only sends those jobs here. */
 function currentCaps() {
   const caps = [];
-  if (sheetPrinterOk) caps.push('sheet');
+  // "report": this agent knows the A4 operations report (printed on the sheet printer)
+  if (sheetPrinterOk) caps.push('sheet', 'report');
   if (receiptPrinterOk) caps.push('receipt');
   return caps.length ? caps.join(',') : 'none';
 }
@@ -1060,6 +1070,10 @@ async function warmPdfBrowser() {
 }
 
 function pdfPaper(kind) {
+  if (kind === 'report') {
+    // Margins come from the page's own @page rule (same numbers the screen uses to count pages)
+    return { format: 'A4', printBackground: true, preferCSSPageSize: true };
+  }
   if (kind === 'receipt') {
     return {
       width: '80mm',

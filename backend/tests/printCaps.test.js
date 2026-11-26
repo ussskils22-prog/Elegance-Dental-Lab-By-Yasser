@@ -29,18 +29,27 @@ describe('print caps — only a PC with the printer connected takes the job', ()
     expect(canTakeKind(['none'], 'sheet')).toBe(false);
     expect(canTakeKind(['receipt'], 'sheet')).toBe(false);
     expect(jobKindFilterForCaps(['none'])).toEqual({ _id: { $exists: false } });
-    expect(jobKindFilterForCaps(['receipt'])).toEqual({ 'printData.jobKind': 'receipt' });
+    expect(jobKindFilterForCaps(['receipt'])).toEqual({ 'printData.jobKind': { $in: ['receipt'] } });
   });
 
   test('a PC with the printer takes sheets, receipts only with a receipt printer', () => {
     expect(canTakeKind(['sheet'], 'sheet')).toBe(true);
     expect(canTakeKind(['sheet'], 'receipt')).toBe(false);
-    expect(jobKindFilterForCaps(['sheet', 'receipt'])).toEqual({});
+    expect(jobKindFilterForCaps(['sheet', 'receipt', 'report'])).toEqual({});
+    expect(jobKindFilterForCaps(['sheet', 'receipt'])).toEqual({ 'printData.jobKind': { $nin: ['report'] } });
   });
 
   test('old agents (no caps sent) keep the old rule: sheets only', () => {
     expect(canTakeKind(null, 'sheet')).toBe(true);
     expect(canTakeKind(null, 'receipt')).toBe(false);
-    expect(jobKindFilterForCaps(null)).toEqual({ 'printData.jobKind': { $ne: 'receipt' } });
+    expect(jobKindFilterForCaps(null)).toEqual({ 'printData.jobKind': { $nin: ['receipt', 'report'] } });
+  });
+
+  test('the A4 report goes only to a new agent with the sheet printer connected', () => {
+    expect(canTakeKind(['sheet', 'report'], 'report')).toBe(true);
+    expect(canTakeKind(['sheet'], 'report')).toBe(false); // agent too old to know reports
+    expect(canTakeKind(['receipt', 'report'], 'report')).toBe(false); // sheet printer unplugged
+    expect(canTakeKind(null, 'report')).toBe(false);
+    expect(jobKindFilterForCaps(['receipt', 'report'])).toEqual({ 'printData.jobKind': { $in: ['receipt'] } });
   });
 });

@@ -13,7 +13,10 @@ const printJobSchema = new mongoose.Schema(
       quantity:   { type: Number, default: 0 },
       caseNumber: { type: String, default: '' },
       printDate:  { type: String, default: '' },
-      jobKind:    { type: String, enum: ['sheet', 'receipt'], default: 'sheet' },
+      jobKind:    { type: String, enum: ['sheet', 'receipt', 'report'], default: 'sheet' },
+      /** Report only: the ready A4 page (built by the server) */
+      reportHtml: { type: String, default: '' },
+      reportPages: { type: Number, default: 0 },
       amount:     { type: Number, default: 0 },
       receiptNote:{ type: String, default: '' },
       /** Receipt only: patient, how it was paid, and the case totals after this payment */

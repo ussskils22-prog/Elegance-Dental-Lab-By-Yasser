@@ -16,22 +16,33 @@ function parseCaps(raw) {
     .filter(Boolean);
 }
 
-/** @param {string[]|null} caps  null = old agent that never declared caps */
+/**
+ * Job kinds an agent may print. "report" (A4 operations report) needs the sheet printer AND an
+ * agent new enough to know reports (it declares "report"); older agents would print it as a case sheet.
+ * @param {string[]|null} caps  null = old agent that never declared caps
+ */
+function allowedKinds(caps) {
+  if (caps === null || caps === undefined) return ['sheet'];
+  const out = [];
+  if (caps.includes('sheet')) out.push('sheet');
+  if (caps.includes('receipt')) out.push('receipt');
+  if (caps.includes('sheet') && caps.includes('report')) out.push('report');
+  return out;
+}
+
 function canTakeKind(caps, kind) {
-  const isReceipt = String(kind || '') === 'receipt';
-  if (caps === null || caps === undefined) return !isReceipt;
-  return caps.includes(isReceipt ? 'receipt' : 'sheet');
+  const k = String(kind || 'sheet');
+  return allowedKinds(caps).includes(k === 'receipt' || k === 'report' ? k : 'sheet');
 }
 
 /** Mongo filter on PrintJob for jobs this agent may take. */
 function jobKindFilterForCaps(caps) {
-  if (caps === null || caps === undefined) return { 'printData.jobKind': { $ne: 'receipt' } };
-  const sheet = caps.includes('sheet');
-  const receipt = caps.includes('receipt');
-  if (sheet && receipt) return {};
-  if (sheet) return { 'printData.jobKind': { $ne: 'receipt' } };
-  if (receipt) return { 'printData.jobKind': 'receipt' };
-  return { _id: { $exists: false } }; // no printer connected → nothing
+  const allowed = allowedKinds(caps);
+  if (!allowed.length) return { _id: { $exists: false } }; // no printer connected → nothing
+  if (!allowed.includes('sheet')) return { 'printData.jobKind': { $in: allowed } };
+  // "sheet" also covers old jobs saved without a kind
+  const blocked = ['receipt', 'report'].filter((k) => !allowed.includes(k));
+  return blocked.length ? { 'printData.jobKind': { $nin: blocked } } : {};
 }
 
 /**

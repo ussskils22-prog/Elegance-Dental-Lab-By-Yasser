@@ -8,7 +8,7 @@ import type { Observable } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { type ClientAccountKind } from '../../core/auth/client-account';
 import { CaseApiService, type CaseBill, type PaymentMethod } from '../../core/services/case-api.service';
-import { renderOperationsReportHtml, type OperationsReport } from './operations-report';
+import { countA4Pages } from './operations-report';
 import { rankNameSuggestions, sameDoctorName, spacingOnlyMatch } from '../../core/utils/doctor-name';
 import { SharedCasesService, type DentalCase } from '../../core/services/shared-cases.service';
 import { UserApiService } from '../../core/services/user-api.service';
@@ -472,29 +472,61 @@ export class Secretary implements OnInit, OnDestroy {
     });
   }
 
-  /** Opens a print-ready operations report (late, due soon, stuck, ready for pickup). */
+  /** True while the operations report is being counted / sent. */
+  readonly reportSending = signal(false);
+
+  /**
+   * Sends the weekly operations report straight to the print PC (no browser print dialog).
+   * First counts the A4 pages so the secretary can load enough paper, then asks to confirm.
+   */
   printOperationsReport(): void {
-    const win = window.open('', '_blank');
-    if (!win) {
-      this.flash('المتصفح منع فتح نافذة الطباعة — اسمح بالنوافذ المنبثقة');
-      return;
-    }
-    win.document.write('<p dir="rtl" style="font-family:sans-serif">جاري تجهيز التقرير…</p>');
-    this.caseApi.getOperationsReport().subscribe({
-      next: (res: { data?: OperationsReport }) => {
-        if (res?.data) {
-          win.document.open();
-          win.document.write(renderOperationsReportHtml(res.data, this.brandTitle));
-          win.document.close();
-          win.focus();
-          setTimeout(() => win.print(), 300);
-        }
-      },
-      error: () => {
-        win.close();
-        this.flash('تعذّر تجهيز تقرير التشغيل');
-      },
-    });
+    if (this.reportSending()) return;
+    this.reportSending.set(true);
+    const lab = this.brandTitle || '';
+    this.http
+      .get<{ data?: { html: string; pageMarginMm: number; printerOnline: boolean } }>(
+        `${this.apiBase}/print/operations-report`,
+        { params: { lab } }
+      )
+      .subscribe({
+        next: async (res) => {
+          const page = res?.data;
+          if (!page?.html) {
+            this.reportSending.set(false);
+            this.flash('تعذّر تجهيز تقرير التشغيل');
+            return;
+          }
+          const pages = await countA4Pages(page.html, page.pageMarginMm);
+          const offline = page.printerOnline
+            ? ''
+            : '\n\n⚠️ جهاز الطباعة مش متصل دلوقتي — التقرير هيستنى ويطبع أول ما يتصل.';
+          const ok = window.confirm(
+            `التقرير هيطبع ${pages} ${pages === 1 ? 'ورقة' : pages <= 10 ? 'ورق' : 'ورقة'} A4 على طابعة الشيتات.\nحط ورق يكفي ودوس OK.${offline}`
+          );
+          if (!ok) {
+            this.reportSending.set(false);
+            return;
+          }
+          this.http.post<{ data?: { printerOnline?: boolean } }>(`${this.apiBase}/print/operations-report`, { lab, pages }).subscribe({
+            next: (r) => {
+              this.reportSending.set(false);
+              this.flash(
+                r?.data?.printerOnline === false
+                  ? 'التقرير اتحفظ — هيطبع أول ما جهاز الطباعة يتصل'
+                  : `التقرير اتبعت للطابعة (${pages} ورقة)`
+              );
+            },
+            error: () => {
+              this.reportSending.set(false);
+              this.flash('تعذّر إرسال التقرير للطابعة');
+            },
+          });
+        },
+        error: () => {
+          this.reportSending.set(false);
+          this.flash('تعذّر تجهيز تقرير التشغيل');
+        },
+      });
   }
 
   private parseCaseReceivedDate(c: { receivedDateRaw?: string; receivedDate?: string; date?: string }): number | null {

@@ -521,3 +521,50 @@ exports.getAgentStatus = async (req, res) => {
     return res.status(500).json({ success: false, message: 'خطأ في السيرفر' });
   }
 };
+
+// ───────── Operations report: straight to the print PC (no browser print dialog) ─────────
+async function buildWeeklyReportHtml(labName) {
+  const { generateOperationsReport } = require('../services/operationsReport');
+  const { renderOperationsReportHtml, PAGE_MARGIN_MM } = require('../services/operationsReportHtml');
+  const report = await generateOperationsReport(new Date(), { weekly: true });
+  const name = String(labName || '').trim().slice(0, 80);
+  return { html: renderOperationsReportHtml(report, name), pageMarginMm: PAGE_MARGIN_MM, range: report.range || null };
+}
+
+// GET /api/print/operations-report?lab=… — the page the print PC will print (for the page count)
+exports.getOperationsReportPage = async (req, res) => {
+  try {
+    const { hasReportAgent } = require('../services/socketService');
+    const out = await buildWeeklyReportHtml(req.query.lab);
+    res.json({ success: true, data: { ...out, printerOnline: hasReportAgent() } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'تعذّر تجهيز تقرير التشغيل' });
+  }
+};
+
+// POST /api/print/operations-report { lab, pages } — queue it on the sheet printer
+exports.queueOperationsReport = async (req, res) => {
+  try {
+    const { hasReportAgent } = require('../services/socketService');
+    const { html, range } = await buildWeeklyReportHtml(req.body && req.body.lab);
+    const pages = Math.max(0, Math.min(500, Number(req.body && req.body.pages) || 0));
+    const job = await PrintJob.create({
+      printData: {
+        doctor: 'تقرير التشغيل',
+        patient: 'آخر 7 أيام',
+        workType: 'تقرير',
+        printDate: new Date().toISOString(),
+        jobKind: 'report',
+        reportHtml: html,
+        reportPages: pages,
+        caseNumber: range ? `REPORT-${String(range.to).slice(0, 10)}` : 'REPORT',
+      },
+      status: 'pending',
+      createdBy: req.user?.userId || null,
+    });
+    emitToOnePrintAgent('print:new-job', { jobId: job._id, printData: job.printData });
+    res.status(201).json({ success: true, data: { jobId: job._id, printerOnline: hasReportAgent() } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'تعذّر إرسال التقرير للطابعة' });
+  }
+};

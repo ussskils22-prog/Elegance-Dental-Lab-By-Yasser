@@ -250,6 +250,14 @@ const emitToAll = (event, data) => {
 
 const { parseCaps, canTakeKind, jobKindFilterForCaps, effectiveCaps } = require('../utils/printCaps');
 
+/** Is a new agent that can print the A4 report (sheet printer connected) online right now? */
+function hasReportAgent() {
+  for (const row of printAgentConnections.values()) {
+    if (canTakeKind(row.caps, 'report')) return true;
+  }
+  return false;
+}
+
 /** Is a new agent (declares caps) with a connected sheet printer online right now? */
 function hasModernSheetAgent() {
   for (const row of printAgentConnections.values()) {
@@ -296,7 +304,8 @@ async function sendPendingJobsTo(socket) {
  */
 const emitToOnePrintAgent = (event, data) => {
   if (!io) return;
-  const isReceipt = String(data?.printData?.jobKind || '') === 'receipt';
+  const kind = String(data?.printData?.jobKind || 'sheet');
+  const isReceipt = kind === 'receipt';
   if (!isReceipt) {
     if (printAgentConnections.size === 0) {
       io.to('print-agents').emit(event, data);
@@ -305,7 +314,7 @@ const emitToOnePrintAgent = (event, data) => {
     let sent = 0;
     const modernOnline = hasModernSheetAgent();
     for (const [sid, row] of printAgentConnections.entries()) {
-      if (!canTakeKind(effectiveCaps(row.caps, modernOnline), 'sheet')) continue;
+      if (!canTakeKind(effectiveCaps(row.caps, modernOnline), kind)) continue;
       io.to(sid).emit(event, data);
       sent += 1;
     }
@@ -337,4 +346,5 @@ module.exports = {
   emitToOnePrintAgent,
   getPrintAgentStatus,
   hasModernSheetAgent,
+  hasReportAgent,
 };
