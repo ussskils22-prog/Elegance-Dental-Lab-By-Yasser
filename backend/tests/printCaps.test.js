@@ -1,4 +1,23 @@
-const { parseCaps, canTakeKind, jobKindFilterForCaps } = require('../utils/printCaps');
+const { parseCaps, canTakeKind, jobKindFilterForCaps, effectiveCaps } = require('../utils/printCaps');
+
+describe('old agents are shut out while a new one with the sheet printer is online', () => {
+  test('old agent gets nothing when a new sheet agent is online', () => {
+    const caps = effectiveCaps(null, true);
+    expect(canTakeKind(caps, 'sheet')).toBe(false);
+    expect(canTakeKind(caps, 'receipt')).toBe(false);
+    expect(jobKindFilterForCaps(caps)).toEqual({ _id: { $exists: false } });
+  });
+
+  test('old agent keeps working when no new agent is online', () => {
+    expect(effectiveCaps(null, false)).toBeNull();
+    expect(canTakeKind(effectiveCaps(undefined, false), 'sheet')).toBe(true);
+  });
+
+  test('new agents are untouched', () => {
+    expect(effectiveCaps(['sheet'], true)).toEqual(['sheet']);
+    expect(effectiveCaps(['receipt'], true)).toEqual(['receipt']);
+  });
+});
 
 describe('print caps — only a PC with the printer connected takes the job', () => {
   test('parse', () => {

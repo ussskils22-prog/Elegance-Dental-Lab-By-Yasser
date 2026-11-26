@@ -34,4 +34,16 @@ function jobKindFilterForCaps(caps) {
   return { _id: { $exists: false } }; // no printer connected → nothing
 }
 
-module.exports = { parseCaps, canTakeKind, jobKindFilterForCaps };
+/**
+ * Old agents can't tell whether their printer is connected — that is how a laptop without the
+ * printer kept stealing sheets. While a new agent with a connected sheet printer is online,
+ * old agents get nothing. With no new agent online they keep working (fail-open).
+ * @param {string[]|null} caps
+ * @param {boolean} modernSheetAgentOnline
+ */
+function effectiveCaps(caps, modernSheetAgentOnline) {
+  if ((caps === null || caps === undefined) && modernSheetAgentOnline) return [];
+  return caps === undefined ? null : caps;
+}
+
+module.exports = { parseCaps, canTakeKind, jobKindFilterForCaps, effectiveCaps };

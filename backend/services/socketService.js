@@ -248,7 +248,15 @@ const emitToAll = (event, data) => {
   }
 };
 
-const { parseCaps, canTakeKind, jobKindFilterForCaps } = require('../utils/printCaps');
+const { parseCaps, canTakeKind, jobKindFilterForCaps, effectiveCaps } = require('../utils/printCaps');
+
+/** Is a new agent (declares caps) with a connected sheet printer online right now? */
+function hasModernSheetAgent() {
+  for (const row of printAgentConnections.values()) {
+    if (Array.isArray(row.caps) && row.caps.includes('sheet')) return true;
+  }
+  return false;
+}
 
 /** undefined / null = old agent that never declared caps */
 function capsOrLegacy(raw) {
@@ -260,7 +268,7 @@ async function sendPendingJobsTo(socket) {
   try {
     const PrintJob = require('../models/PrintJob');
     const row = printAgentConnections.get(socket.id);
-    const caps = row ? row.caps : socket.agentCaps ?? null;
+    const caps = effectiveCaps(row ? row.caps : socket.agentCaps ?? null, hasModernSheetAgent());
     const staleBefore = new Date(Date.now() - 5 * 60 * 1000);
     const pendingJobs = await PrintJob.find({
       paperConfirmed: { $ne: 'yes' },
@@ -295,8 +303,9 @@ const emitToOnePrintAgent = (event, data) => {
       return;
     }
     let sent = 0;
+    const modernOnline = hasModernSheetAgent();
     for (const [sid, row] of printAgentConnections.entries()) {
-      if (!canTakeKind(row.caps, 'sheet')) continue;
+      if (!canTakeKind(effectiveCaps(row.caps, modernOnline), 'sheet')) continue;
       io.to(sid).emit(event, data);
       sent += 1;
     }
@@ -327,4 +336,5 @@ module.exports = {
   emitToAll,
   emitToOnePrintAgent,
   getPrintAgentStatus,
+  hasModernSheetAgent,
 };

@@ -219,8 +219,11 @@ function unfinishedPrintJobFilter() {
 /** Agents declare what they can print via x-agent-caps ("sheet,receipt"). Old agents send nothing (null). */
 function agentCaps(req) {
   const raw = req.headers['x-agent-caps'];
-  if (raw === undefined) return null;
-  return require('../utils/printCaps').parseCaps(raw);
+  const { parseCaps, effectiveCaps } = require('../utils/printCaps');
+  const caps = raw === undefined ? null : parseCaps(raw);
+  // Old agent while a new one with the sheet printer is online → it gets nothing
+  const { hasModernSheetAgent } = require('../services/socketService');
+  return effectiveCaps(caps, hasModernSheetAgent());
 }
 
 /** A PC only gets the job kinds whose printer is really connected to it (see utils/printCaps). */
