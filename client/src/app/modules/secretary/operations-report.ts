@@ -15,6 +15,8 @@ export interface OperationsReport {
   dueSoon: OperationsReportRow[];
   stuck: OperationsReportRow[];
   readyWaiting: OperationsReportRow[];
+  /** Set on the weekly printed report: cases received in [from, to]. */
+  range?: { from: string; to: string };
 }
 
 const esc = (s: unknown): string =>
@@ -65,7 +67,7 @@ export function renderOperationsReportHtml(r: OperationsReport, labName = ''): s
   @page{size:A4;margin:12mm}
 </style></head><body>
 <h1>تقرير التشغيل${labName ? ' — ' + esc(labName) : ''}</h1>
-<div class="meta">اتطبع: ${esc(cairo(r.generatedAt))}</div>
+<div class="meta">${r.range ? `الحالات المستلمة من ${esc(cairo(r.range.from).split(' ')[0])} إلى ${esc(cairo(r.range.to).split(' ')[0])} (آخر 7 أيام) — ` : ''}اتطبع: ${esc(cairo(r.generatedAt))}</div>
 ${table('🔴 متأخرة عن ميعاد التسليم', r.overdue, 'متأخرة', (x) => `${x.hoursOverdue} ساعة`)}
 ${table('🟡 تتسلم خلال 24 ساعة', r.dueSoon, 'ميعاد التسليم', (x) => esc(cairo(x.dueAt)))}
 ${table('⏸️ واقفة أكتر من يومين في نفس المرحلة', r.stuck, 'في المرحلة من', (x) => `${x.hoursInStage ?? '—'} ساعة`)}

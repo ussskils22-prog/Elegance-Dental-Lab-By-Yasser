@@ -984,7 +984,9 @@ exports.getDeliveryAlerts = async (req, res) => {
 /** GET /cases/operations-report — late, due soon, stuck, and ready-for-pickup cases. */
 exports.getOperationsReport = async (req, res) => {
   try {
-    res.status(200).json({ success: true, data: await generateOperationsReport() });
+    // Printed report = last 7 days by default (all open cases ran to dozens of pages). ?period=all for everything.
+    const weekly = String(req.query.period || 'week') !== 'all';
+    res.status(200).json({ success: true, data: await generateOperationsReport(new Date(), { weekly }) });
   } catch (error) {
     res.status(500).json({ success: false, message: 'تعذّر تجهيز تقرير التشغيل' });
   }

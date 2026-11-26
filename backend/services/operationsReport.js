@@ -4,7 +4,15 @@
  * and by the twice-daily WhatsApp summary.
  */
 const { classifyCase, metaOf } = require('../utils/caseDeadlines');
-const { cairoParts, cairoDayKey } = require('../utils/cairoTime');
+const { cairoParts, cairoDayKey, cairoDateTimeToUtc } = require('../utils/cairoTime');
+
+const REPORT_DAYS = 7;
+
+/** The printed report covers the last 7 Cairo days (today + 6 before): [from, now]. */
+function weekRange(now = new Date()) {
+  const sixDaysAgo = new Date(now.getTime() - (REPORT_DAYS - 1) * 24 * 3600 * 1000);
+  return { from: cairoDateTimeToUtc(cairoDayKey(sixDaysAgo), '00:00'), to: now };
+}
 
 // The lab works with 4 stages: جديدة → ديزاين → فينيش → جاهزة (milling counts as فينيش).
 const STAGE_AR = {
@@ -32,10 +40,19 @@ function rowOf(doc, c) {
   };
 }
 
-/** Pure: build the report from case documents. */
-function buildOperationsReport(cases, now = new Date()) {
+/**
+ * Pure: build the report from case documents.
+ * opts.since (Date): only cases received on/after it (the weekly printed report).
+ */
+function buildOperationsReport(cases, now = new Date(), opts = {}) {
+  const since = opts.since instanceof Date ? opts.since : null;
   const report = { generatedAt: now.toISOString(), overdue: [], dueSoon: [], stuck: [], readyWaiting: [] };
+  if (since) report.range = { from: since.toISOString(), to: now.toISOString() };
   for (const doc of cases || []) {
+    if (since) {
+      const created = doc.createdAt ? new Date(doc.createdAt) : null;
+      if (!created || Number.isNaN(created.getTime()) || created < since) continue;
+    }
     const c = classifyCase(doc, now);
     if (!c) continue;
     const row = rowOf(doc, c);
@@ -82,15 +99,19 @@ function formatReportText(report, labName = '', cap = 15) {
   return lines.join('\n');
 }
 
-async function loadOpenCases() {
+async function loadOpenCases(since = null) {
   const DentalCase = require('../models/DentalCase');
-  return DentalCase.find({ currentStage: { $ne: 'exited' }, status: { $ne: 'exited' } })
+  const filter = { currentStage: { $ne: 'exited' }, status: { $ne: 'exited' } };
+  if (since) filter.createdAt = { $gte: since };
+  return DentalCase.find(filter)
     .select('caseNumber patientName currentStage status dueDate notes referringDoctor priority createdAt updatedAt stageTimestamps')
     .lean();
 }
 
-async function generateOperationsReport(now = new Date()) {
-  return buildOperationsReport(await loadOpenCases(), now);
+/** opts.weekly: only cases received in the last 7 days (the printed report). */
+async function generateOperationsReport(now = new Date(), opts = {}) {
+  const since = opts.weekly ? weekRange(now).from : null;
+  return buildOperationsReport(await loadOpenCases(since), now, { since });
 }
 
 /**
@@ -125,4 +146,4 @@ function scheduleOperationsReport() {
   setInterval(tick, 60 * 1000);
 }
 
-module.exports = { STAGE_AR, buildOperationsReport, formatReportText, generateOperationsReport, scheduleOperationsReport };
+module.exports = { STAGE_AR, weekRange, buildOperationsReport, formatReportText, generateOperationsReport, scheduleOperationsReport };

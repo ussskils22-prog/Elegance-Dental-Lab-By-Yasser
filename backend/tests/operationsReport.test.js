@@ -45,3 +45,27 @@ describe('stage names — the lab uses 4 stages', () => {
     expect(new Set(Object.values(STAGE_AR)).size).toBe(4);
   });
 });
+
+describe('weekly printed report', () => {
+  const { weekRange } = require('../services/operationsReport');
+  const nowW = new Date('2026-11-26T10:00:00Z'); // Thu 12:00 Cairo
+
+  test('covers today and the 6 days before (Cairo midnight)', () => {
+    const { from } = weekRange(nowW);
+    expect(from.toISOString()).toBe('2026-11-19T22:00:00.000Z'); // 20/11 00:00 Cairo
+  });
+
+  test('cases received before the week are left out', () => {
+    const list = [
+      { _id: 'a', caseNumber: 'OLD', currentStage: 'khart', createdAt: '2026-10-01T09:00:00Z', stageTimestamps: { khart: '2026-10-01T09:00:00Z' } },
+      { _id: 'b', caseNumber: 'NEW', currentStage: 'khart', createdAt: '2026-11-21T09:00:00Z', stageTimestamps: { khart: '2026-11-21T09:00:00Z' } },
+    ];
+    const r = buildOperationsReport(list, nowW, { since: weekRange(nowW).from });
+    expect(r.stuck.map((x) => x.caseNumber)).toEqual(['NEW']);
+    expect(r.range.from).toBe('2026-11-19T22:00:00.000Z');
+  });
+
+  test('without since nothing changes (WhatsApp summary)', () => {
+    expect(buildOperationsReport(cases, now).range).toBeUndefined();
+  });
+});
