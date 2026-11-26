@@ -69,3 +69,24 @@ describe('weekly printed report', () => {
     expect(buildOperationsReport(cases, now).range).toBeUndefined();
   });
 });
+
+describe('printed report columns', () => {
+  const { renderOperationsReportHtml } = require('../services/operationsReportHtml');
+  const doc = {
+    _id: 'x', caseNumber: 'C-9', referringDoctor: 'هيثم', patientName: 'منى', currentStage: 'khart',
+    createdAt: '2026-11-21T09:00:00Z', stageTimestamps: { khart: '2026-11-21T09:00:00Z' },
+    notes: META({ quantity: 3, originalEntry: { workType: 'Zircon (3)', quantity: 3 } }),
+  };
+  const r = buildOperationsReport([doc], new Date('2026-11-26T10:00:00Z'));
+
+  test('rows carry the work type (without the count) and the count', () => {
+    expect(r.stuck[0]).toMatchObject({ workType: 'Zircon', quantity: 3, stageLabel: 'فينيش' });
+  });
+
+  test('the page shows doctor, patient, type, count, stage — no case number', () => {
+    const html = renderOperationsReportHtml(r);
+    expect(html).toContain('<th>الدكتور</th><th>المريض</th><th>النوع</th><th class="n">العدد</th><th>المرحلة</th>');
+    expect(html).toContain('<td>هيثم</td><td>منى</td><td>Zircon</td><td class="n">3</td><td>فينيش</td>');
+    expect(html).not.toContain('C-9');
+  });
+});

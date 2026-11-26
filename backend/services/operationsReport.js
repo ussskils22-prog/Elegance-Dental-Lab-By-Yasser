@@ -24,9 +24,22 @@ const STAGE_AR = {
   completed: 'جاهزة',
 };
 
+/** "Zircon (3)" → "Zircon"; the count is its own column. */
+function workTypeOf(meta, doc) {
+  const raw = String((meta.originalEntry && meta.originalEntry.workType) || meta.workType || doc.caseType || '').trim();
+  return raw.replace(/\s*\(\d+\)\s*$/, '');
+}
+
+function quantityOf(meta) {
+  const q = Number(meta.quantity ?? (meta.originalEntry && meta.originalEntry.quantity));
+  return Number.isFinite(q) && q > 0 ? q : null;
+}
+
 function rowOf(doc, c) {
   const meta = metaOf(doc);
   return {
+    workType: workTypeOf(meta, doc),
+    quantity: quantityOf(meta),
     id: String(doc._id || ''),
     caseNumber: String(doc.caseNumber || ''),
     doctorName: String(doc.referringDoctor || meta.doctor || meta.doctorName || ''),
