@@ -10,5 +10,5 @@
   "AUTO_START_AGENT": true,
   "SCAN_AGENT_DIR": "../scan-agent",
   "AUTO_START_SCANNERS": [],
-  "LAB_NAME": "Elegance Dental Lab"
+  "LAB_NAME": "OCCLA Dental Lab"
 }

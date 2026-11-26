@@ -16,7 +16,7 @@ export class BrandLockupComponent implements OnInit {
   /** Force a light mark on a dark photo. */
   @Input() tone: 'auto' | 'light' = 'auto';
 
-  labName = 'Elegance Dental Lab';
+  labName = 'OCCLA Dental Lab';
 
   private readonly labConfig = inject(LabConfigService);
   private readonly destroyRef = inject(DestroyRef);

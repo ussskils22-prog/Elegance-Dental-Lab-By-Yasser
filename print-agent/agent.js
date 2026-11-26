@@ -1,5 +1,5 @@
 /**
- * Elegance Dental Lab — Print Agent
+ * OCCLA Dental Lab — Print Agent
  * Runs on the lab's Windows laptop.
  * Connects to the Railway server via Socket.IO,
  * receives print jobs, renders HTML → PDF → prints silently.
@@ -160,7 +160,7 @@ let sheetPrinterChecked = false;
 const RECONNECT_DELAY = 3000; // ms
 const POLL_INTERVAL_MS = Number(config.POLL_INTERVAL_MS) || 20000;
 /** Printed on receipts and sheets — set per lab in config.json (LAB_NAME). */
-const LAB_NAME = String(config.LAB_NAME || 'Elegance Dental Lab').trim() || 'Elegance Dental Lab';
+const LAB_NAME = String(config.LAB_NAME || 'OCCLA Dental Lab').trim() || 'OCCLA Dental Lab';
 const PRINTER_CHECK_MS = Number(config.PRINTER_CHECK_MS) || 10000;
 
 console.log('🖨️  Elegance Print Agent starting...');

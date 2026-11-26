@@ -35,7 +35,7 @@ export class Login implements OnInit {
   public readonly pwa = inject(PwaInstallService);
   private readonly labConfig = inject(LabConfigService);
   branding: LabBranding = {
-    labName: 'Elegance Dental Lab',
+    labName: 'OCCLA Dental Lab',
     logoUrl: '',
     primaryColor: '#2563eb',
   };

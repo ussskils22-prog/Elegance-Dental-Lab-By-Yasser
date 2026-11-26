@@ -20,7 +20,7 @@ const appSettingsSchema = new mongoose.Schema(
     },
     /** White-label branding for this lab deployment */
     branding: {
-      labName: { type: String, default: 'Elegance Dental Lab' },
+      labName: { type: String, default: 'OCCLA Dental Lab' },
       logoUrl: { type: String, default: '' },
       primaryColor: { type: String, default: '#2563eb' },
     },
@@ -44,7 +44,7 @@ const appSettingsSchema = new mongoose.Schema(
       instanceId: { type: String, default: '' },
       phoneNumberId: { type: String, default: '' },
       dailyHour: { type: Number, default: 18 },
-      labName: { type: String, default: 'Elegance Dental Lab' },
+      labName: { type: String, default: 'OCCLA Dental Lab' },
       msgCompleted: {
         type: String,
         default:

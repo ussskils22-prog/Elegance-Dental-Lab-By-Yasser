@@ -27,7 +27,7 @@ function publicBrandingFrom(doc) {
   const labName =
     branding.labName ||
     doc.whatsapp?.labName ||
-    'Elegance Dental Lab';
+    'OCCLA Dental Lab';
   return {
     labName,
     logoUrl: branding.logoUrl || '',
@@ -82,7 +82,7 @@ exports.updateLabSettings = async (req, res) => {
       if (!doc.branding) doc.branding = {};
       if (body.branding.labName !== undefined) {
         const name = String(body.branding.labName || '').trim();
-        doc.branding.labName = name || doc.branding.labName || 'Elegance Dental Lab';
+        doc.branding.labName = name || doc.branding.labName || 'OCCLA Dental Lab';
         if (doc.whatsapp) doc.whatsapp.labName = doc.branding.labName;
       }
       if (body.branding.logoUrl !== undefined) {
@@ -152,7 +152,7 @@ exports.getWhatsAppSettings = async (req, res) => {
         instanceId: wa.instanceId || '',
         phoneNumberId: wa.phoneNumberId || '',
         dailyHour: wa.dailyHour ?? 18,
-        labName: wa.labName || 'Elegance Dental Lab',
+        labName: wa.labName || 'OCCLA Dental Lab',
         msgCompleted:
           wa.msgCompleted ||
           '{lab}\nحالة ({patient})\n{workType} — {quantity} قطعة\nجاهزة للاستلام تواصل مع المعمل لاستلام الحالة',
@@ -187,7 +187,12 @@ exports.updateWhatsAppSettings = async (req, res) => {
       const h = Number(body.dailyHour);
       wa.dailyHour = Number.isFinite(h) ? Math.min(23, Math.max(0, h)) : 18;
     }
-    if (body.labName !== undefined) wa.labName = String(body.labName || '').trim() || 'Elegance Dental Lab';
+    if (body.labName !== undefined) {
+      wa.labName = String(body.labName || '').trim() || 'OCCLA Dental Lab';
+      // The same "lab name" box renames the lab everywhere (login, navbar, printouts)
+      if (!doc.branding) doc.branding = {};
+      doc.branding.labName = wa.labName;
+    }
     if (body.msgCompleted !== undefined) {
       wa.msgCompleted = String(body.msgCompleted || '').trim() || wa.msgCompleted;
     }
@@ -248,7 +253,7 @@ exports.testWhatsApp = async (req, res) => {
     ).trim();
     const testMessage =
       customMessage ||
-      'Elegance Dental Lab\n✅ تجربة إشعار واتساب من السيستم — لو وصلك الرسالة يبقى الإعداد تمام.';
+      'OCCLA Dental Lab\n✅ تجربة إشعار واتساب من السيستم — لو وصلك الرسالة يبقى الإعداد تمام.';
     const result = await sendWhatsAppText(phone, testMessage);
     if (!result || result.skipped || !result.ok) {
       return res.status(400).json({

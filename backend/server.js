@@ -135,7 +135,7 @@ app.get('/', (req, res) => {
     success: true,
     message: demoMode
       ? 'Uni Shop Demo API (isolated fake data)'
-      : 'Elegance Dental Lab API Backend is running',
+      : 'OCCLA Dental Lab API Backend is running',
     frontend: demoMode
       ? process.env.DEMO_FRONTEND_URL || 'https://elegance-demo.vercel.app'
       : 'https://dental-system-kappa.vercel.app',

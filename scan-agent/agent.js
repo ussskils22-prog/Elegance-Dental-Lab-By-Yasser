@@ -1,5 +1,5 @@
 /**
- * Elegance Dental Lab — Station Scan Agent
+ * OCCLA Dental Lab — Station Scan Agent
  * Runs on a lab Windows PC next to a USB barcode scanner (keyboard wedge).
  * Logs in as scanner1 / scanner2 / scanner3 and POSTs scanned codes to /api/cases/scan.
  *

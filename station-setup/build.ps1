@@ -5,7 +5,7 @@
 # Lab PCs need nothing installed beforehand — not even Node.js.
 param(
   [string]$Server = 'https://elegance-dental-lab-by-yasser-production-5940.up.railway.app',
-  [string]$LabName = 'Elegance Dental Lab',
+  [string]$LabName = 'OCCLA Dental Lab',
   [string]$Version = (Get-Date -Format 'yyyy.MM.dd.HHmm')
 )
 

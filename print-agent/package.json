@@ -1,7 +1,7 @@
 {
   "name": "elegance-print-agent",
   "version": "1.0.0",
-  "description": "Print Agent for Elegance Dental Lab - receives remote print jobs and prints automatically",
+  "description": "Print Agent for OCCLA Dental Lab - receives remote print jobs and prints automatically",
   "main": "agent.js",
   "scripts": {
     "start": "node agent.js"

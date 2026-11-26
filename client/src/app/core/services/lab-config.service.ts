@@ -35,7 +35,7 @@ export interface LabWorkflow {
 }
 
 const DEFAULT_BRANDING: LabBranding = {
-  labName: 'Elegance Dental Lab',
+  labName: 'OCCLA Dental Lab',
   logoUrl: '',
   primaryColor: '#2563eb',
 };

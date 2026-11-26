@@ -62,7 +62,7 @@ function configFromEnv() {
     instanceId: String(process.env.WHATSAPP_INSTANCE_ID || ''),
     phoneNumberId: String(process.env.WHATSAPP_PHONE_NUMBER_ID || ''),
     dailyHour: Number(process.env.WHATSAPP_DAILY_HOUR || 18),
-    labName: String(process.env.WHATSAPP_LAB_NAME || 'Elegance Dental Lab'),
+    labName: String(process.env.WHATSAPP_LAB_NAME || 'OCCLA Dental Lab'),
     msgCompleted: DEFAULT_MSG_COMPLETED,
     msgExited: DEFAULT_MSG_EXITED,
     msgDaily: DEFAULT_MSG_DAILY,
@@ -95,7 +95,7 @@ async function reloadWhatsAppConfig() {
         instanceId: String(doc.whatsapp.instanceId || ''),
         phoneNumberId: String(doc.whatsapp.phoneNumberId || ''),
         dailyHour: Number(doc.whatsapp.dailyHour ?? 18),
-        labName: String(doc.whatsapp.labName || 'Elegance Dental Lab'),
+        labName: String(doc.whatsapp.labName || 'OCCLA Dental Lab'),
         msgCompleted: normalizeMsgTemplate(
           doc.whatsapp.msgCompleted,
           OLD_MSG_COMPLETED,
@@ -277,7 +277,7 @@ async function findDoctorUserByCase(dentalCase) {
 }
 
 function labLabel() {
-  return getConfig().labName || 'Elegance Dental Lab';
+  return getConfig().labName || 'OCCLA Dental Lab';
 }
 
 async function notifyDoctorCaseStatus(dentalCase, kind) {
