@@ -65,9 +65,24 @@ describe('classifyCase', () => {
     expect(classifyCase(base({ currentStage: 'exited' }), now)).toBeNull();
   });
 
-  test('due within the next 24h → dueSoon', () => {
-    const doc = { currentStage: 'finishing', notes: META({ deliveryDate: '2026-11-24', deliveryTime: '20:00' }) };
-    expect(classifyCase(doc, now).dueSoon).toBe(true);
+  test('due tomorrow (Cairo date) → dueSoon, any hour', () => {
+    const late = { currentStage: 'finishing', notes: META({ deliveryDate: '2026-11-25', deliveryTime: '22:00' }) };
+    const early = { currentStage: 'finishing', notes: META({ deliveryDate: '2026-11-25', deliveryTime: '09:00' }) };
+    expect(classifyCase(late, now).dueSoon).toBe(true);
+    expect(classifyCase(early, now).dueSoon).toBe(true);
+  });
+
+  test('due later today or after tomorrow → not in "tomorrow"', () => {
+    const today = { currentStage: 'finishing', notes: META({ deliveryDate: '2026-11-24', deliveryTime: '20:00' }) };
+    const later = { currentStage: 'finishing', notes: META({ deliveryDate: '2026-11-26' }) };
+    expect(classifyCase(today, now).dueSoon).toBe(false);
+    expect(classifyCase(later, now).dueSoon).toBe(false);
+  });
+
+  test('Friday 11pm Cairo → tomorrow is Saturday', () => {
+    const { cairoTomorrowKey } = require('../utils/caseDeadlines');
+    expect(cairoTomorrowKey(new Date('2026-11-27T21:00:00Z'))).toBe('2026-11-28');
+    expect(cairoTomorrowKey(new Date('2026-11-27T22:30:00Z'))).toBe('2026-11-29'); // already Saturday 00:30
   });
 
   test('no stage movement for more than 48 hours → stuck', () => {

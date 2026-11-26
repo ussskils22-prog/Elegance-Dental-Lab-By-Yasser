@@ -3,7 +3,7 @@
  * and waiting for pickup. Used by GET /cases/operations-report (screen + print)
  * and by the twice-daily WhatsApp summary.
  */
-const { classifyCase, metaOf } = require('../utils/caseDeadlines');
+const { classifyCase, metaOf, cairoTomorrowKey } = require('../utils/caseDeadlines');
 const { cairoParts, cairoDayKey, cairoDateTimeToUtc } = require('../utils/cairoTime');
 
 const REPORT_DAYS = 7;
@@ -53,13 +53,21 @@ function rowOf(doc, c) {
   };
 }
 
+/** "السبت 28/11" — the Cairo day the "due tomorrow" section is about. */
+function tomorrowLabel(now = new Date()) {
+  const [y, m, d] = cairoTomorrowKey(now).split('-').map(Number);
+  const noon = new Date(Date.UTC(y, m - 1, d, 10));
+  const day = new Intl.DateTimeFormat('ar-EG', { timeZone: 'Africa/Cairo', weekday: 'long' }).format(noon);
+  return `${day} ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`;
+}
+
 /**
  * Pure: build the report from case documents.
  * opts.since (Date): only cases received on/after it (the weekly printed report).
  */
 function buildOperationsReport(cases, now = new Date(), opts = {}) {
   const since = opts.since instanceof Date ? opts.since : null;
-  const report = { generatedAt: now.toISOString(), overdue: [], dueSoon: [], stuck: [], readyWaiting: [] };
+  const report = { generatedAt: now.toISOString(), tomorrow: tomorrowLabel(now), overdue: [], dueSoon: [], stuck: [], readyWaiting: [] };
   if (since) report.range = { from: since.toISOString(), to: now.toISOString() };
   for (const doc of cases || []) {
     if (since) {
@@ -106,7 +114,7 @@ function formatReportText(report, labName = '', cap = 15) {
     if (rows.length > cap) lines.push(`  … و${rows.length - cap} كمان`);
   };
   section('🔴 متأخرة عن ميعاد التسليم', report.overdue, (r) => `${r.caseNumber} — ${r.doctorName} — ${r.stageLabel} — متأخرة ${r.hoursOverdue} ساعة`);
-  section('🟡 تتسلم خلال 24 ساعة', report.dueSoon, (r) => `${r.caseNumber} — ${r.doctorName} — ${r.stageLabel} — ${fmtDue(r.dueAt)}`);
+  section(`🟡 تسليمها بكرة (${report.tomorrow || ''})`, report.dueSoon, (r) => `${r.caseNumber} — ${r.doctorName} — ${r.stageLabel} — ${fmtDue(r.dueAt)}`);
   section('⏸️ واقفة أكتر من يومين في نفس المرحلة', report.stuck, (r) => `${r.caseNumber} — ${r.doctorName} — ${r.stageLabel} — ${r.hoursInStage} ساعة`);
   section('✅ جاهزة ومستنية الاستلام', report.readyWaiting, (r) => `${r.caseNumber} — ${r.doctorName}`);
   return lines.join('\n');

@@ -186,7 +186,7 @@
           </div>
         </div>
         <div class="stat-card dash-counter" style="border-top-color:var(--warning-solid)" *ngIf="deliveryAlerts.dueSoonCount">
-          <div class="stat-label" style="color:var(--warning-text)">تسليم خلال 24 ساعة</div>
+          <div class="stat-label" style="color:var(--warning-text)">تسليمها بكرة</div>
           <div class="stat-val">{{ deliveryAlerts.dueSoonCount }}</div>
           <div class="dash-alert-list">
             <div *ngFor="let r of deliveryAlerts.dueSoon | slice:0:6">{{ r.caseNumber }} — {{ r.doctorName || ('common.unknown' | t) }}</div>

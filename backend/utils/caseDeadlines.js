@@ -2,11 +2,20 @@
  * One definition of "when is this case due" and "is it late / stuck", shared by
  * the alerts endpoint, the operations report and the scheduled summary.
  */
-const { cairoDateTimeToUtc } = require('./cairoTime');
+const { cairoDateTimeToUtc, cairoParts } = require('./cairoTime');
 
 const META = '__META__\n';
 const STUCK_HOURS = 48;
 const SOON_HOURS = 24;
+
+const pad2 = (n) => String(n).padStart(2, '0');
+
+/** 'YYYY-MM-DD' of tomorrow in Cairo (Friday → Saturday). */
+function cairoTomorrowKey(now = new Date()) {
+  const p = cairoParts(now);
+  const t = new Date(Date.UTC(p.year, p.month - 1, p.day + 1));
+  return `${t.getUTCFullYear()}-${pad2(t.getUTCMonth() + 1)}-${pad2(t.getUTCDate())}`;
+}
 
 function metaOf(doc) {
   const notes = String(doc?.notes || '');
@@ -53,15 +62,17 @@ function classifyCase(doc, now = new Date()) {
   const entered = stageEnteredAt(doc);
   const hoursInStage = entered ? Math.floor((now.getTime() - entered.getTime()) / 3600000) : null;
   const msLeft = due ? due.getTime() - now.getTime() : null;
+  // "Due tomorrow": the delivery date is tomorrow's Cairo date (whatever the hour)
+  const dueKey = due ? (() => { const p = cairoParts(due); return `${p.year}-${pad2(p.month)}-${pad2(p.day)}`; })() : null;
   return {
     due,
     readyWaiting: ready,
     overdue: !ready && msLeft !== null && msLeft < 0,
-    dueSoon: !ready && msLeft !== null && msLeft >= 0 && msLeft <= SOON_HOURS * 3600000,
+    dueSoon: !ready && dueKey !== null && dueKey === cairoTomorrowKey(now),
     stuck: !ready && hoursInStage !== null && hoursInStage > STUCK_HOURS,
     hoursOverdue: msLeft !== null && msLeft < 0 ? Math.floor(-msLeft / 3600000) : 0,
     hoursInStage,
   };
 }
 
-module.exports = { caseDueAt, classifyCase, metaOf, STUCK_HOURS, SOON_HOURS };
+module.exports = { caseDueAt, classifyCase, metaOf, cairoTomorrowKey, STUCK_HOURS, SOON_HOURS };

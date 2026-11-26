@@ -59,7 +59,7 @@ function renderOperationsReportHtml(r, labName = '') {
 <h1>تقرير التشغيل${labName ? ' — ' + esc(labName) : ''}</h1>
 <div class="meta">${range}اتطبع: ${esc(cairo(r.generatedAt))}</div>
 ${table('🔴 متأخرة عن ميعاد التسليم', r.overdue)}
-${table('🟡 تتسلم خلال 24 ساعة', r.dueSoon)}
+${table(`🟡 تسليمها بكرة${r.tomorrow ? ' — ' + r.tomorrow : ''}`, r.dueSoon)}
 ${table('⏸️ واقفة أكتر من يومين في نفس المرحلة', r.stuck)}
 ${table('✅ جاهزة ومستنية الاستلام', r.readyWaiting)}
 </body></html>`;
